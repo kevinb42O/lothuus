@@ -42,5 +42,10 @@ export async function createEntryPhotoWall(world:HTMLElement):Promise<EntryPhoto
   let x=0,y=0,node:HTMLElement|null=grid;
   while(node&&node!==world){x+=node.offsetLeft;y+=node.offsetTop;node=node.offsetParent as HTMLElement|null;}
   const blob=await new Promise<Blob|null>(resolve=>atlas.toBlob(resolve,'image/webp',.95));
-  return blob?{url:URL.createObjectURL(blob),width:columns*pitch,height:rows*pitch,x,y,worldWidth:world.clientWidth}:null;
+  if(!blob)return null;
+  const url=URL.createObjectURL(blob),decoded=new Image();decoded.src=url;
+  // A CSS background swap must not briefly replace a painted atlas with an
+  // undecoded blob, especially while the mobile compositor is scaling it.
+  try{await decoded.decode();}catch{URL.revokeObjectURL(url);return null;}
+  return {url,width:columns*pitch,height:rows*pitch,x,y,worldWidth:world.clientWidth};
 }

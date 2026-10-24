@@ -79,3 +79,16 @@ GPU resources nor its photo-atlas rebuilding. Reduced-motion behavior remains.
 
 The restored opener uses the shared 10-second timing, including its accelerated
 doorway approach and short final brake, on mobile as well as desktop.
+
+## Stable portal photographs and gentler phone focus
+
+During the pinned flight, the photo visibility hook keeps exactly the first
+eight grid rows mounted (24 photos in the three-column phone layout), independent
+of camera projection. At arrival it resumes the 240px viewport window. This avoids
+image mounting/unmounting and atlas reconstruction as the transformed grid crosses
+IntersectionObserver bounds. New atlas blobs decode before replacing the painted
+CSS background. The mobile focus effect is reduced from 7px/3.5% overscan to
+3px/1.5%; desktop remains unchanged. The ten-second timing and native iOS grid stay.
+
+95 tests, typecheck and production build pass; device visual verification remains
+with the user because browser control is unavailable in this environment.

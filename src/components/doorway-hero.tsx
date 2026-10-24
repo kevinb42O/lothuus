@@ -19,6 +19,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   const root=useRef<HTMLDivElement>(null),canvas=useRef<HTMLDivElement>(null);
   const stage=useRef<HTMLElement>(null),photoWall=useRef<HTMLDivElement>(null),world=useRef<HTMLDivElement>(null);
   const scene=useRef<HouseScene|null>(null),progress=useRef(0),pinned=useRef(false);
+  const focus=useRef({radius:7,overscan:.035});
   const atlas=useRef<EntryPhotoWall|null>(null),lastProjection=useRef<HouseCollectionProjection>({x:0,y:0,scale:1});
   const [loadProgress,setLoadProgress]=useState(0),[loaderDismissed,setLoaderDismissed]=useState(false);
   const [status,setStatus]=useState<'loading'|'ready'|'error'>('loading'),[attempt,setAttempt]=useState(0);
@@ -38,8 +39,8 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     const defocus=pinned.current?1-entryEase(.015,.28,value):0;
     if(canvas.current){
       // Reduced-motion CSS can disable the optical focus effect.
-      canvas.current.style.setProperty('--entry-focus-filter',defocus>0?`blur(${(7*defocus).toFixed(3)}px)`:'none');
-      canvas.current.style.setProperty('--entry-focus-transform',defocus>0?`scale(${1+.035*defocus})`:'none');
+      canvas.current.style.setProperty('--entry-focus-filter',defocus>0?`blur(${(focus.current.radius*defocus).toFixed(3)}px)`:'none');
+      canvas.current.style.setProperty('--entry-focus-transform',defocus>0?`scale(${1+focus.current.overscan*defocus})`:'none');
     }
     const reveal=pinned.current?pose.reveal:0;
     foreground.style.opacity=String(scene.current?1:1-reveal);
@@ -90,6 +91,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   useEffect(()=>{
     if(arrived)return;
     const element=canvas.current;if(!element)return;
+    focus.current=window.matchMedia('(pointer: coarse), (max-width: 600px)').matches?{radius:3,overscan:.015}:{radius:7,overscan:.035};
     let cancelled=false,owned:HouseScene|null=null,readyTimer=0,readyFrame=0;
     setStatus('loading');setLoadProgress(.04);setLoaderDismissed(false);
     import('./house-scene').then(module=>cancelled?null:module.mountHouse(element,undefined,{mode:'hero',onProgress:paint,onLoadProgress:value=>{if(!cancelled)setLoadProgress(value);}})).then(api=>{

@@ -11,8 +11,10 @@ export function useVisibleMosaicPhotos(grid:RefObject<HTMLDivElement|null>,revis
   useEffect(()=>{
     const element=grid.current;if(!element)return;
     let active=true;
+    const entrance=element.closest('.house-entry-experience');
+    const inFlight=()=>!!entrance?.classList.contains('house-entry-pinned')&&!entrance.classList.contains('house-entry-arrived');
     const observer=new IntersectionObserver(entries=>{
-      if(!active)return;
+      if(!active||inFlight())return;
       setVisible(previous=>{
         const next=new Set(previous);
         for(const entry of entries){
@@ -26,8 +28,19 @@ export function useVisibleMosaicPhotos(grid:RefObject<HTMLDivElement|null>,revis
     const tiles=element.querySelectorAll<HTMLElement>('[data-id][data-present="true"]');
     const current=new Set(Array.from(tiles,tile=>tile.dataset.id!));
     setVisible(previous=>new Set([...previous].filter(id=>current.has(id))));
-    tiles.forEach(tile=>observer.observe(tile));
-    return()=>{active=false;observer.disconnect();};
+    const synchronize=()=>{
+      observer.disconnect();
+      if(inFlight()){
+        // The atlas uses eight rows. Keep their sources stable while projection
+        // moves the grid through observer boundaries; never load all 195 photos.
+        const columns=Math.max(0,...Array.from(tiles,tile=>Number(tile.dataset.column)||0))+1;
+        setVisible(new Set(Array.from(tiles).slice(0,columns*8).map(tile=>tile.dataset.id!)));
+      }else tiles.forEach(tile=>observer.observe(tile));
+    };
+    const phase=new MutationObserver(synchronize);
+    if(entrance)phase.observe(entrance,{attributes:true,attributeFilter:['class']});
+    synchronize();
+    return()=>{active=false;observer.disconnect();phase.disconnect();};
   },[grid,revision]);
   return visible;
 }

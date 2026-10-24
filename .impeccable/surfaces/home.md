@@ -87,3 +87,5 @@ COLLECTION IMAGE WINDOW — Full-page reloads persist with the photo entrance, s
 IOS NATIVE GRID — iOS now selects an ordinary CSS grid before mounting any animated tiles. No tile transforms, animated height, snapshot transitions or elastic scroll loop. Square photos, category filtering, hearts, direct product details, keyboard navigation and the image visibility window remain. Desktop retains its animated mosaic. Real iPhone verification is still required.
 
 MOBILE OPENER RESTORED — User confirms the native grid fixes the crash. Restore the live 3D opener and focus blur on mobile, retaining reduced-motion behavior and the iOS native grid. Both grid variants supply the doorway atlas. Dispose the scene and release atlas observers/image on automatic arrival so collection scrolling is independent of hero resources.
+
+MOBILE FOCUS / PORTAL STABILITY — Phone focus uses 3px blur and 1.5% overscan. Keep the first eight grid rows mounted throughout the flight so projected intersections cannot replace images/atlases. Resume ordinary viewport photo loading on arrival, and decode new atlas blobs before swapping backgrounds. Keep the ten-second timing and native iOS grid.
