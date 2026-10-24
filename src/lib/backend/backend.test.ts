@@ -239,3 +239,44 @@ test('reserving a mixed selection never partly claims source objects when anothe
   assert.equal(availability(s,'H031'),'available');
   assert.equal(s.reservations[0].status,'expired');
 });
+
+
+test('photo order persists on an incomplete draft without changing its other fields', () => {
+  const s = initialStore();
+  const photos = [{ id: randomUUID(), alt: 'Eerste' }, { id: randomUUID(), alt: 'Tweede' }, { id: randomUUID(), alt: 'Derde' }];
+  command(s, { action: 'save-item', item: { title: '', category: 'keramiek', description: '', priceCents: 0, priceUnset: true, date: '', material: '', dimensions: '', maker: '', condition: '', publication: 'draft', photos } });
+  const before = structuredClone(s.items[0]);
+  command(s, { action: 'save-item-photos', id: before.id, version: before.version, photos: [photos[2], photos[0], photos[1]] });
+  const after = s.items[0];
+  assert.deepEqual(after.photos.map(p => p.id), [photos[2].id, photos[0].id, photos[1].id]);
+  assert.equal(after.version, before.version + 1);
+  const { photos: ignoredPhotos, version: ignoredVersion, updatedAt: ignoredDate, ...unchanged } = after;
+  const { photos: oldPhotos, version: oldVersion, updatedAt: oldDate, ...original } = before;
+  assert.deepEqual(unchanged, original);
+});
+
+test('photo updates reject stale writers, duplicate photos and unknown items', () => {
+  const s = fixture(), item = s.items[0];
+  const request = { action: 'save-item-photos', id: item.id, version: item.version, photos: item.photos };
+  command(s, request);
+  assert.throws(() => command(s, request), /elders gewijzigd/);
+  assert.throws(() => command(s, { ...request, version: item.version, photos: [item.photos[0], item.photos[0]] }), /één keer/);
+  assert.throws(() => command(s, { ...request, id: randomUUID() }), /niet gevonden/);
+  assert.throws(() => command(s, { ...request, version: item.version, photos: [] }), /minstens één foto/);
+});
+
+test('photo ordering is persisted across database reloads before completing a draft', () => {
+  const otherPhotoId = randomUUID();
+  writeFileSync(join(directory, 'images', `${otherPhotoId}-detail.webp`), 'test fixture');
+  const created = transact(s => {
+    command(s, { action: 'save-item', item: { title: '', materialGroup: 'K', category: 'keramiek', description: '', priceCents: 0, priceUnset: true, date: '', material: '', dimensions: '', maker: '', condition: '', publication: 'draft', photos: [{ id: photoId, alt: 'Eerste' }, { id: otherPhotoId, alt: 'Hoofdfoto' }] } });
+    return structuredClone(s.items[0]);
+  });
+  transact(s => command(s, { action: 'save-item-photos', id: created.id, version: created.version, photos: [...created.photos].reverse() }));
+  const reloaded = transact(s => s.items.find(item => item.id === created.id)!);
+  assert.equal(reloaded.photos[0].id, otherPhotoId);
+  assert.equal(reloaded.title, '');
+  assert.equal(reloaded.description, '');
+  assert.equal(reloaded.priceUnset, true);
+  assert.equal(reloaded.publication, 'draft');
+});

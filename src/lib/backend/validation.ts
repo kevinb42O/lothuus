@@ -3,7 +3,8 @@ export const categories = z.enum(['vazen', 'keramiek', 'glas', 'meubels', 'verli
 const text = (max: number) => z.string().trim().max(max);
 const contactShape = { name: text(120).min(2, 'Vul je naam in.'), email: z.string().trim().email('Vul een geldig e-mailadres in.').max(180).transform(v => v.toLowerCase()), phone: text(40), channel: z.enum(['email', 'phone', 'whatsapp']) };
 export const contactSchema = z.object(contactShape).refine(c => c.channel === 'email' || c.phone.length >= 6, 'Vul een telefoonnummer in voor deze contactmethode.');
-export const itemSchema = z.object({ id: z.uuid().optional(), version: z.number().int().optional(), creationKey: z.uuid().optional(), materialGroup: z.enum(['K', 'P', 'G', 'T', 'H', 'I']).optional(), editorReady: z.boolean().optional(), priceUnset: z.boolean().optional(), title: text(180), category: categories, description: text(6000), priceCents: z.number().int().min(0).max(100000000), date: text(120), material: text(180), dimensions: text(180), maker: text(180), condition: text(1200), publication: z.enum(['draft', 'published', 'archived']), photos: z.array(z.object({ id: z.uuid(), alt: text(240).min(1) })).max(12) });
+const photosSchema = z.array(z.object({ id: z.uuid(), alt: text(240).min(1) })).max(12);
+export const itemSchema = z.object({ id: z.uuid().optional(), version: z.number().int().optional(), creationKey: z.uuid().optional(), materialGroup: z.enum(['K', 'P', 'G', 'T', 'H', 'I']).optional(), editorReady: z.boolean().optional(), priceUnset: z.boolean().optional(), title: text(180), category: categories, description: text(6000), priceCents: z.number().int().min(0).max(100000000), date: text(120), material: text(180), dimensions: text(180), maker: text(180), condition: text(1200), publication: z.enum(['draft', 'published', 'archived']), photos: photosSchema });
 export const settingsSchema = z.object({ requestsEnabled: z.boolean().default(true), businessName: text(120).min(1), ownerEmail: z.union([z.literal(''), z.email().max(180)]), replyTo: z.union([z.literal(''), z.email().max(180)]), beneficiary: text(180), iban: text(40).transform(v => v.replace(/\s/g, '').toUpperCase()), deadlineDays: z.number().int().min(1).max(30), pickup: text(2000), terms: text(8000), privacy: text(8000), termsVersion: text(30).min(1), reservationsEnabled: z.boolean() });
 export function validIban(iban: string) {
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
@@ -21,6 +22,7 @@ export const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('resolve-notification'), id: z.string().max(100) }),
   z.object({ action: z.literal('read-notification'), id: z.string().max(100) }),
   z.object({ action: z.literal('save-item'), item: itemSchema }),
+  z.object({ action: z.literal('save-item-photos'), id: z.uuid(), version: z.number().int(), photos: photosSchema }),
   z.object({ action: z.literal('change-material'), id: z.uuid(), version: z.number().int(), materialGroup: z.enum(['K', 'P', 'G', 'T', 'H', 'I']) }),
   z.object({ action: z.literal('save-settings'), settings: settingsSchema, version: z.number().int() }),
   z.object({ action: z.literal('save-customer'), customer: z.object({ id: z.uuid().optional(), ...contactShape, notes: text(6000) }) }),

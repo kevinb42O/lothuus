@@ -47,6 +47,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
   const uploading = useRef(false);
   const alive = useRef(true);
   const flight = useRef<Promise<boolean> | null>(null);
+  const retryPhotosOnly = useRef(false);
   const saved = useRef(JSON.stringify(fromItem(item)));
   const blocked = useRef(false);
   const recoveryKey = `lothuus:product:${item?.id || 'new'}`;
@@ -76,22 +77,29 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
     return () => window.removeEventListener('beforeunload', prevent);
   }, []);
 
-  const save = useCallback(async (manual = false): Promise<boolean> => {
-    if (flight.current) { const ok = await flight.current; if (!ok) return false; }
+  const save = useCallback(async (manual = false, photosOnly = false): Promise<boolean> => {
+    // Photo saves and whole-fiche saves share one queue and the latest server version.
+    while (flight.current) { const ok = await flight.current; if (!ok && !photosOnly) return false; }
+    const hasChanges = () => photosOnly && meta.current
+      ? JSON.stringify(latest.current.photos) !== JSON.stringify((JSON.parse(saved.current) as Draft).photos)
+      : JSON.stringify(latest.current) !== saved.current;
     if (!alive.current) return false;
-    if (JSON.stringify(latest.current) === saved.current) return true;
-    if (!latest.current.materialGroup) { if (manual) setError('Kies eerst een materiaal. Daarna bewaren we je concept automatisch.'); return false; }
-    if (blocked.current && !manual) return false;
+    if (!hasChanges()) return true;
+    if ((!photosOnly || !meta.current) && !latest.current.materialGroup) { if (manual) setError('Kies eerst een materiaal. Daarna bewaren we je concept automatisch.'); return false; }
+    if (blocked.current && !manual && !photosOnly) return false;
     blocked.current = false;
     const run = async () => {
+      retryPhotosOnly.current = photosOnly;
       setSaveState('saving'); setError('');
       try {
-        while (JSON.stringify(latest.current) !== saved.current) {
+        while (hasChanges()) {
           const snapshot = latest.current;
+          const photoSave = photosOnly && !!meta.current;
           const cents = inputCents(snapshot.price);
-          if (Number.isNaN(cents)) throw new Error('Controleer de prijs. Gebruik bijvoorbeeld 45 of 45,50.');
-          const payload = { ...snapshot, photos: snapshot.photos.map((p, index) => ({ ...p, alt: p.alt.trim() || `Productfoto ${index + 1}` })), materialGroup: snapshot.materialGroup || undefined, priceCents: cents ?? 0, priceUnset: cents === null, id: meta.current?.id, version: meta.current?.version, creationKey: meta.current?.creationKey || creation.current };
-          const response = await fetch('/api/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save-item', item: payload }) });
+          if (!photoSave && Number.isNaN(cents)) throw new Error('Controleer de prijs. Gebruik bijvoorbeeld 45 of 45,50.');
+          const photos = snapshot.photos.map((p, index) => ({ ...p, alt: p.alt.trim() || `Productfoto ${index + 1}` }));
+          const payload = { ...snapshot, photos, materialGroup: snapshot.materialGroup || undefined, priceCents: cents ?? 0, priceUnset: cents === null, id: meta.current?.id, version: meta.current?.version, creationKey: meta.current?.creationKey || creation.current };
+          const response = await fetch('/api/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(photoSave ? { action: 'save-item-photos', id: meta.current!.id, version: meta.current!.version, photos } : { action: 'save-item', item: payload }) });
           const result = await response.json();
           if (!response.ok) {
             if (response.status === 401) { setSessionExpired(true); throw new Error('Je sessie is verlopen. Log hieronder opnieuw in; je invoer blijft behouden.'); }
@@ -107,12 +115,20 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
           // A retry after a lost create response may return the original revision.
           meta.current = record;
           if (alive.current) { setServerItem(record); dataCallback.current(store); }
+          if (photoSave) {
+            // A photo save confirms only the photos; keep unfinished text dirty.
+            const baseline = JSON.parse(saved.current) as Draft;
+            saved.current = JSON.stringify({ ...baseline, photos: snapshot.photos });
+            continue;
+          }
           const returned = JSON.stringify(fromItem(record));
           saved.current = returned === JSON.stringify(snapshot) ? JSON.stringify(snapshot) : returned;
           if (record.version === 1 && returned !== JSON.stringify(snapshot)) continue;
           saved.current = JSON.stringify(snapshot);
         }
-        try { localStorage.removeItem(recoveryKey); } catch { /* Server has confirmed the save. */ }
+        if (JSON.stringify(latest.current) === saved.current) {
+          try { localStorage.removeItem(recoveryKey); } catch { /* Server has confirmed the save. */ }
+        }
         if (alive.current) { setSaveState('saved'); setSavedAt(new Date().toISOString()); }
         return true;
       } catch (e) {
@@ -138,12 +154,10 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
 
   function change<K extends keyof Draft>(key: K, value: Draft[K]) {
     setFeedback(''); setError(''); blocked.current = false;
-    setDraft(current => {
-      const next = { ...current, [key]: value };
-      if (next.editorReady && missingFields(asItem(next)).length) next.editorReady = false;
-      latest.current = next;
-      return next;
-    });
+    const next = { ...latest.current, [key]: value };
+    if (next.editorReady && missingFields(asItem(next)).length) next.editorReady = false;
+    latest.current = next;
+    setDraft(next);
   }
   const updatePhotos = (photos: Photo[]) => change('photos', photos);
   const updateQueue = () => { if (alive.current) setPending([...queue.current]); };
@@ -180,7 +194,9 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
   function reorder(from: string, to: string) {
     const photos = [...latest.current.photos]; const start = photos.findIndex(p => p.id === from); const end = photos.findIndex(p => p.id === to);
     if (start < 0 || end < 0 || start === end) return;
-    photos.splice(end, 0, photos.splice(start, 1)[0]); updatePhotos(photos); setFeedback('Fotovolgorde aangepast. De eerste foto is de hoofdfoto.');
+    photos.splice(end, 0, photos.splice(start, 1)[0]);
+    updatePhotos(photos);
+    void save(false, true).then(ok => { if (ok && alive.current) setFeedback('Fotovolgorde opgeslagen. De eerste foto is de hoofdfoto.'); });
   }
   function focusField(field: string) { const target = document.getElementById(`product-${field}`); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); target?.focus({ preventScroll: true }); }
   async function finish(next = false) {
@@ -216,9 +232,9 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
   }
 
   return <div className="product-workspace">
-    <div className="pe-topbar"><button className="a-back" onClick={onBack}><ArrowLeft size={16} />Alle producten</button><div className={`pe-save-state ${saveState === 'error' ? 'is-error' : ''}`} role="status">{saveState === 'saving' ? <LoaderCircle size={15} className="a-spin" /> : saveState === 'error' ? <RotateCcw size={15} /> : <Check size={15} />}<span>{saveState === 'saving' ? 'Wijzigingen bewaren…' : saveState === 'error' ? 'Nog niet bewaard' : dirty ? 'Wijzigingen klaar om te bewaren' : savedAt ? `Opgeslagen om ${new Intl.DateTimeFormat('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }).format(new Date(savedAt))}` : 'Begin waar je wilt'}</span>{saveState === 'error' && <button onClick={() => void save(true)}>Opnieuw proberen</button>}</div></div>
+    <div className="pe-topbar"><button className="a-back" onClick={onBack}><ArrowLeft size={16} />Alle producten</button><div className={`pe-save-state ${saveState === 'error' ? 'is-error' : ''}`} role="status">{saveState === 'saving' ? <LoaderCircle size={15} className="a-spin" /> : saveState === 'error' ? <RotateCcw size={15} /> : <Check size={15} />}<span>{saveState === 'saving' ? 'Wijzigingen bewaren…' : saveState === 'error' ? 'Nog niet bewaard' : dirty ? 'Wijzigingen klaar om te bewaren' : savedAt ? `Opgeslagen om ${new Intl.DateTimeFormat('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }).format(new Date(savedAt))}` : 'Begin waar je wilt'}</span>{saveState === 'error' && <button onClick={() => void save(true, retryPhotosOnly.current)}>Opnieuw proberen</button>}</div></div>
     {recovery && <div className="pe-recovery"><div><strong>Er staat nog invoer in deze browser.</strong><p>Herstel je vorige wijzigingen of ga verder met de opgeslagen versie.</p></div><button className="a-secondary" onClick={() => { setDraft(recovery.draft); latest.current = recovery.draft; setRecoveredKey(recovery.creationKey); setRecovery(null); blocked.current = false; }}>Invoer herstellen</button><button className="a-link" onClick={() => { localStorage.removeItem(recoveryKey); setRecovery(null); }}>Opgeslagen versie houden</button></div>}
-    {sessionExpired && <form className="pe-session" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const password = new FormData(form).get('password'); setLoginBusy(true); setError(''); try { const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, email: 'katrien@lothuus.be' }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Inloggen is niet gelukt.'); form.reset(); setSessionExpired(false); await save(true); } catch (e) { setError((e as Error).message); } finally { setLoginBusy(false); } }}><div><h2>Even opnieuw inloggen</h2><p>Je invoer blijft op deze pagina staan. Na het inloggen bewaren we verder.</p></div><label htmlFor="renew-password">Je wachtwoord<input id="renew-password" type="password" name="password" autoComplete="current-password" required maxLength={200} /></label><button className="a-button" disabled={loginBusy}>{loginBusy ? 'Inloggen…' : 'Inloggen en bewaren'}</button></form>}
+    {sessionExpired && <form className="pe-session" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const password = new FormData(form).get('password'); setLoginBusy(true); setError(''); try { const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, email: 'katrien@lothuus.be' }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Inloggen is niet gelukt.'); form.reset(); setSessionExpired(false); await save(true, retryPhotosOnly.current); } catch (e) { setError((e as Error).message); } finally { setLoginBusy(false); } }}><div><h2>Even opnieuw inloggen</h2><p>Je invoer blijft op deze pagina staan. Na het inloggen bewaren we verder.</p></div><label htmlFor="renew-password">Je wachtwoord<input id="renew-password" type="password" name="password" autoComplete="current-password" required maxLength={200} /></label><button className="a-button" disabled={loginBusy}>{loginBusy ? 'Inloggen…' : 'Inloggen en bewaren'}</button></form>}
     {conflict && <section className="pe-conflict" aria-label="Gewijzigd in een ander venster"><h2>Dit product is ook in een ander venster gewijzigd.</h2><p>Je eigen invoer blijft hier staan. Vergelijk de versies en kies welke je wilt bewaren.</p><div className="pe-conflict-versions">{[{ label: 'Jouw invoer', value: draft }, { label: 'Opgeslagen versie', value: fromItem(conflict) }].map(version => <div key={version.label}><h3>{version.label}</h3><dl>{textTargets.map(target => <div key={target.key}><dt>{target.label}</dt><dd>{version.value[target.key] || 'Nog leeg'}</dd></div>)}<div><dt>Foto’s</dt><dd>{version.value.photos.length} foto’s, in volgorde: {version.value.photos.map(p => p.alt).join(', ')}</dd></div></dl></div>)}</div><div className="a-actions"><button className="a-secondary" type="button" onClick={() => { const value = fromItem(conflict); meta.current = conflict; saved.current = JSON.stringify(value); latest.current = value; setDraft(value); setServerItem(conflict); setSavedAt(conflict.updatedAt || conflict.createdAt); setConflict(null); setError(''); setSaveState('saved'); blocked.current = false; try { localStorage.removeItem(recoveryKey); } catch {} }}>Opgeslagen versie gebruiken</button><button className="a-button" type="button" onClick={() => { meta.current = conflict; setConflict(null); void save(true); }}>Bewaren met mijn invoer</button></div></section>}
     {recoveryWarning && <p className="a-info" role="status">{recoveryWarning}</p>}
     {error && <div className="a-error pe-message" role="alert"><span>{error}</span><button type="button" aria-label="Melding sluiten" onClick={() => setError('')}><X size={16} /></button></div>}
@@ -231,11 +247,12 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
         {serverItem?.productNumber && availability(store, serverItem.id) === 'available' && <details className="pe-material-correction"><summary>Verkeerd materiaal gekozen?</summary><p>Een correctie geeft dit product een nieuw nummer in de juiste reeks. Het vorige nummer blijft gereserveerd en wordt nooit hergebruikt.</p><div><select aria-label="Gecorrigeerde materiaalgroep" value={correctMaterial} onChange={e => setCorrectMaterial(e.target.value as MaterialGroup)} disabled={correcting}><option value="">Kies het juiste materiaal</option>{materialGroups.filter(m => m.code !== draft.materialGroup).map(m => <option key={m.code} value={m.code}>{m.label}</option>)}</select><button type="button" className="a-secondary" disabled={!correctMaterial || correcting || hasPending} onClick={() => void correctMaterialGroup()}>{correcting ? 'Corrigeren…' : 'Materiaal corrigeren'}</button></div></details>}
         {serverItem?.previousNumbers?.length ? <p className="pe-hint">Vorige nummers: {serverItem.previousNumbers.join(', ')}. Alleen het huidige nummer gebruiken.</p> : null}
       </section>
-      <section className="pe-section" aria-labelledby="photos-heading"><div className="pe-section-title"><div><h2 id="photos-heading">Laat het product zien <span className="pe-count">{draft.photos.length} / 8</span></h2><p>De eerste foto is de hoofdfoto. Zet details en gebruikssporen achteraan.</p></div></div>
+      <section className="pe-section" aria-labelledby="photos-heading"><div className="pe-section-title"><div><h2 id="photos-heading">Laat het product zien <span className="pe-count">{draft.photos.length} / 8</span></h2><p>Kies je hoofdfoto of versleep de foto’s. De volgorde wordt meteen opgeslagen, ook als de fiche nog niet volledig is.</p></div></div>
         <div id="product-photos" tabIndex={-1} className={`pe-photo-workspace ${dragOver ? 'is-file-over' : ''}`} onDragOver={e => { e.preventDefault(); if (e.dataTransfer.types.includes('Files')) setDragOver(true); }} onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }} onDrop={e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}>
           {(draft.photos.length > 0 || pending.length > 0) && <div className="pe-photo-grid">{draft.photos.map((photo, index) => <div className={`pe-photo ${dragPhoto === photo.id ? 'is-dragging' : ''} ${dropPhoto === photo.id && dragPhoto !== photo.id ? 'is-target' : ''}`} data-photo-id={photo.id} key={photo.id} draggable onDragStart={e => { e.dataTransfer.setData('text/plain', photo.id); e.dataTransfer.effectAllowed = 'move'; setDragPhoto(photo.id); }} onDragOver={e => { if (dragPhoto) { e.preventDefault(); setDropPhoto(photo.id); } }} onDrop={e => { if (dragPhoto) { e.preventDefault(); e.stopPropagation(); reorder(dragPhoto, photo.id); setDragPhoto(null); setDropPhoto(null); } }} onDragEnd={() => { setDragPhoto(null); setDropPhoto(null); }}>
             <div className="pe-photo-image"><img src={`/api/images/${photo.id}?size=thumb`} alt={photo.alt} /><span className={`pe-photo-label ${index === 0 ? 'is-cover' : ''}`}>{index === 0 ? 'Hoofdfoto' : String(index + 1).padStart(2, '0')}</span><button type="button" className="pe-photo-remove" aria-label={`Foto ${index + 1} verwijderen`} onClick={() => { setRemoved({ photo, index }); updatePhotos(latest.current.photos.filter(p => p.id !== photo.id)); }}><X size={15} /></button></div>
             <div className="pe-photo-controls"><button type="button" className="pe-drag-handle" aria-label={`Foto ${index + 1} verslepen`} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setDragPhoto(photo.id); }} onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) { const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-photo-id]'); setDropPhoto(target?.getAttribute('data-photo-id') || null); } }} onPointerUp={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) { const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-photo-id]')?.getAttribute('data-photo-id'); if (target) reorder(photo.id, target); e.currentTarget.releasePointerCapture(e.pointerId); } setDragPhoto(null); setDropPhoto(null); }} onPointerCancel={() => { setDragPhoto(null); setDropPhoto(null); }}><GripVertical size={17} /></button><span>Foto {index + 1}</span><button type="button" disabled={index === 0} aria-label={`Foto ${index + 1} eerder plaatsen`} onClick={() => reorder(photo.id, draft.photos[index - 1].id)}><ArrowLeft size={14} /></button><button type="button" disabled={index === draft.photos.length - 1} aria-label={`Foto ${index + 1} later plaatsen`} onClick={() => reorder(photo.id, draft.photos[index + 1].id)}><ArrowRight size={14} /></button></div>
+            {index > 0 && <button type="button" className="pe-make-cover" aria-label={`Foto ${index + 1} als hoofdfoto instellen`} onClick={() => reorder(photo.id, latest.current.photos[0].id)}>Maak hoofdfoto</button>}
             <details className="pe-photo-alt"><summary>Fotobeschrijving</summary><input aria-label={`Beschrijving foto ${index + 1}`} maxLength={240} value={photo.alt} onChange={e => updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: e.target.value } : p))} onBlur={() => { if (!photo.alt.trim()) updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: `Productfoto ${index + 1}` } : p)); }} /></details>
           </div>)}{pending.map(p => <div className="pe-photo pe-pending" key={p.key}><div className="pe-photo-image"><img src={p.preview} alt={p.file.name} /><span className="pe-photo-label">{p.state === 'error' ? 'Niet gelukt' : 'Verwerken…'}</span></div><p>{p.state === 'error' ? p.error : p.file.name}</p>{p.state === 'error' ? <div className="pe-pending-actions"><button type="button" className="a-link" onClick={() => { p.state = 'waiting'; updateQueue(); void processQueue(); }}>Opnieuw</button><button type="button" aria-label={`Upload ${p.file.name} verwijderen`} onClick={() => { URL.revokeObjectURL(p.preview); queue.current = queue.current.filter(v => v.key !== p.key); updateQueue(); }}><X size={16} /></button></div> : <LoaderCircle className="a-spin" size={17} />}</div>)}
           {draft.photos.length + pending.length < 8 && draft.photos.length > 0 && <button className="pe-add-photo" type="button" onClick={() => fileInput.current?.click()}><ImagePlus size={23} /><span>Foto toevoegen</span></button>}</div>}

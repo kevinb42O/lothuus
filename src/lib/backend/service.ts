@@ -165,6 +165,16 @@ export function command(s: Store, raw: unknown) {
     }
     if (item) Object.assign(item, input, { productNumber, updatedAt: now(), version: item.version + 1 });
     else s.items.unshift({ ...input, productNumber, updatedAt: now(), id: randomUUID(), version: 1, createdAt: now() });
+  } else if (c.action === 'save-item-photos') {
+    const item = s.items.find(i => i.id === c.id);
+    if (!item) throw new BusinessError('Product niet gevonden.', 404);
+    if (item.version !== c.version) throw new BusinessError('Dit object is elders gewijzigd. Vernieuw de pagina.', 409);
+    if (new Set(c.photos.map(photo => photo.id)).size !== c.photos.length) throw new BusinessError('Een foto mag maar één keer op de fiche staan.');
+    if (c.photos.length > 8 && c.photos.length > item.photos.length) throw new BusinessError('Gebruik maximaal 8 foto’s. Bestaande foto’s blijven behouden.');
+    if (item.publication === 'published' && !c.photos.length) throw new BusinessError('Een gepubliceerd product heeft minstens één foto nodig.');
+    item.photos = c.photos;
+    if (item.editorReady && missingFields(item).length) item.editorReady = false;
+    item.updatedAt = now(); item.version++;
   } else if (c.action === 'change-material') {
     const item = s.items.find(i => i.id === c.id);
     if (!item) throw new BusinessError('Product niet gevonden.', 404);

@@ -226,6 +226,8 @@
 .pe-photo-controls > button { width: 28px; min-height: 35px; display: grid; place-items: center; color: #5b6c4e; border-radius: 3px; }
 .pe-photo-controls button:hover { background: #eef3e5; }
 .pe-drag-handle { touch-action: none !important; cursor: grab; }
+.pe-make-cover { width: 100%; min-height: 44px; padding: 8px; border-top: 1px solid var(--a-line); color: var(--a-accent); font-size: 11px; font-weight: 600; text-align: center; }
+.pe-make-cover:hover { background: var(--a-soft); }
 .admin-shell details.pe-photo-alt { margin: 0; border-top: 1px solid #edf0e8; padding: 0 7px; }
 .pe-photo-alt summary { font-size: 9px; min-height: 29px; line-height: 29px; color: #5b6c4e; }
 .admin-shell .pe-photo-alt input { min-height: 35px; font-size: 11px; padding: 6px; margin-bottom: 7px; }
