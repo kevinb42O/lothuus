@@ -49,3 +49,17 @@ only to tiles with mounted photographs, instead of promoting the whole collectio
 
 This fixes concrete unbounded image retention/layer-promotion behavior, but no
 device memory trace or crash reproduction is available to prove causality.
+
+## Native iOS grid after reloads when scrolling below the collection
+
+The next user report locates the reload when scrolling below the grid. iOS now
+selects `NativeMosaic` before either grid mounts. It uses a regular CSS grid with
+square tiles in document flow. It never mounts the desktop Motion tiles, animated
+container height, filter snapshots, hover expansion or elastic scroll listener.
+Category filters update the ordinary grid; photos retain the 240px visibility
+window, and product details, selection and keyboard product navigation remain.
+Desktop continues to use `AnimatedMosaic`.
+
+A native-render regression checks all 195 product controls, saved state and the
+absence of tile transforms/canvas/startup image requests. The full suite,
+typecheck and production build pass. Physical iPhone confirmation remains pending.

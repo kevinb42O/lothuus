@@ -74,6 +74,9 @@ h1 > span { font-family: var(--font-editorial), serif; font-style: italic; font-
 .hint-dot { height: 4px; width: 4px; border-radius: 50%; background: var(--accent); }
 .touch-hint { display: none; }
 .mosaic-wrap { width: 100%; overflow-anchor: none; }
+.mosaic-native { display: grid; width: 100%; }
+.mosaic-native > .object-tile { position: relative; min-width: 0; aspect-ratio: 1; background: var(--tile); }
+.mosaic-native .object-photograph { transition: none; }
 /* Every object has a real place; all new positions animate in one motion. */
 .mosaic-fluid { overflow: clip; position: relative; width: 100%; overflow-anchor: none; contain: layout; user-select: none; }
 .mosaic-fluid .object-tile { position: absolute; top: 0; left: 0; background: var(--tile); overflow: hidden; }

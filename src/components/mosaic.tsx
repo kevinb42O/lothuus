@@ -12,6 +12,8 @@ import { PointerIntent, type IntentTarget } from '@/lib/pointer-intent';
 import { categoryDirection, collectionColumns, filterTransition, type TileBounds } from '@/lib/filter-transition';
 import { captureWall, CollectionWall, type CapturedWall } from './collection-wall';
 import { useVisibleMosaicPhotos } from './use-visible-mosaic-photos';
+import { needsPhotoEntrance } from './house-device';
+import { NativeMosaic } from './native-mosaic';
 
 type Props = { objects: CollectionObject[]; filterKey: string; focused: boolean; onOpen: (object: CollectionObject) => void; saved: string[]; onToggle: (id: string) => void };
 
@@ -29,7 +31,15 @@ async function preparePhoto(object: CollectionObject,width:number) {
   await image.decode();
 }
 
-export function Mosaic({ objects: requestedObjects, filterKey, focused, onOpen, saved, onToggle }: Props) {
+export function Mosaic(props:Props){
+  const [native,setNative]=useState<boolean|null>(null);
+  // Choose before mounting either grid. iOS never constructs the animated tiles.
+  useEffect(()=>setNative(needsPhotoEntrance(navigator)),[]);
+  if(native===null)return null;
+  return native?<NativeMosaic {...props}/>:<AnimatedMosaic {...props}/>;
+}
+
+function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen, saved, onToggle }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [presentation, setPresentation] = useState(() => ({
     objects: requestedObjects, focused, filterKey, revision: 0,
