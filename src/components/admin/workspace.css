@@ -390,3 +390,5 @@ html:has(.admin-shell) ::-webkit-scrollbar-thumb { background: #b9c4ae; }
 .pe-import-photos button { display: flex; flex-direction: column; align-items: stretch; padding: 8px; gap: 9px; font-size: 12px; text-align: left; }
 .pe-import-photos button img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #f4f4ef; }
 .pe-import-photos button, .pe-import-photos button span { min-width: 0; white-space: normal; line-height: 1.4; }
+
+.pe-publication .a-button, .pe-publication .a-secondary { width: 100%; margin-top: 12px; }

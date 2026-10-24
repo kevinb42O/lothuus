@@ -14,11 +14,20 @@ export function limit(s: Store, key: string, max: number, milliseconds: number) 
   if (bucket.count >= max) throw new BusinessError('Te veel pogingen. Probeer het later opnieuw.', 429);
   bucket.count++; s.limits[key] = bucket;
 }
+function publicAvailability(s: Store, id: string) {
+  const item = s.items.find(item => item.id === id || item.sourceReference === id);
+  const states = [availability(s, id), ...(item ? [availability(s, item.id), ...(item.sourceReference ? [availability(s, item.sourceReference)] : [])] : [])];
+  return states.includes('sold') ? 'sold' as const : states.includes('reserved') ? 'reserved' as const : 'available' as const;
+}
 export function catalogue(s: Store) {
-  const objects: PublicObject[] = s.items.filter(i => i.publication === 'published').map(i => ({ id: i.id, title: i.title, category: i.category, description: i.description, date: i.date, material: i.material, dimensions: i.dimensions, maker: i.maker, image: `/api/images/${i.photos[0]?.id}?size=grid`, source: '', credit: '', imageSource: '', license: '', priceCents: i.priceCents, condition: i.condition, availability: availability(s, i.id), version: i.version, photos: i.photos }));
+  const objects: PublicObject[] = s.items.filter(i => i.publication === 'published').map(i => ({ id: i.id, title: i.title, category: i.category, description: i.description, date: i.date, material: i.material, dimensions: i.dimensions, maker: i.maker, image: `/api/images/${i.photos[0]?.id}?size=grid`, source: '', credit: '', imageSource: '', license: '', priceCents: i.priceCents, condition: i.condition, availability: publicAvailability(s, i.id), version: i.version, photos: i.photos }));
   const reservedSources = new Set(s.reservations.flatMap(r => reservationLines(r).map(line => line.itemId)));
   const importedItems = new Map(s.items.filter(item => item.sourceReference).map(item => [item.sourceReference, item]));
-  const sourceObjects = suppliedObjects.filter(o => !objects.length || reservedSources.has(o.id)).map(o => {
+  const sourceObjects = suppliedObjects.filter(o => {
+    const imported = importedItems.get(o.id);
+    if (imported?.publication === 'published' || imported?.publication === 'archived') return false;
+    return !objects.length || importedItems.size > 0 || reservedSources.has(o.id);
+  }).map(o => {
     const item = importedItems.get(o.id);
     // Follow the editor's selection using photos that are already public in the source catalogue.
     // Private uploads and unfinished product text stay private until publication.
@@ -27,7 +36,7 @@ export function catalogue(s: Store) {
       return index >= 0 && o.photos?.[index]?.src ? [o.photos[index]] : [];
     }) || [];
     const photos = selected.length ? selected : o.photos;
-    return { ...o, image: photos?.[0]?.src || o.image, photos, version: 1, availability: availability(s, o.id) };
+    return { ...o, image: photos?.[0]?.src || o.image, photos, version: 1, availability: publicAvailability(s, o.id) };
   });
   const hasInventory = objects.length > 0;
   const { businessName, pickup, terms, privacy, termsVersion, deadlineDays } = s.settings;
@@ -54,7 +63,7 @@ function associateCustomer(s: Store, contact: Reservation['contact']) {
 function makeReservation(s: Store, itemId: string, contact: Reservation['contact'], message: string, source: 'web' | 'direct'): { reservation: Reservation; token: string } {
   const item = s.items.find(i => i.id === itemId);
   if (!item || (source === 'web' && item.publication !== 'published')) throw new BusinessError('Dit object is niet beschikbaar.', 409);
-  if (availability(s, itemId) !== 'available') throw new BusinessError('Dit object is intussen gereserveerd of verkocht.', 409);
+  if (publicAvailability(s, itemId) !== 'available') throw new BusinessError('Dit object is intussen gereserveerd of verkocht.', 409);
   const token = randomBytes(32).toString('hex');
   const reservation: Reservation = { id: randomUUID(), reference: `LT-${new Date().getFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`, itemId, customerId: associateCustomer(s, contact).id, title: item.title, image: item.photos[0] ? `/api/images/${item.photos[0].id}?size=thumb` : '', priceCents: item.priceCents, contact: { name: contact.name, email: contact.email, phone: contact.phone, channel: contact.channel }, message, status: 'active', fulfilment: 'not_arranged', createdAt: now(), deadline: paymentDeadline(s.settings.deadlineDays), bank: { beneficiary: s.settings.beneficiary, iban: s.settings.iban, instructions: s.settings.pickup }, payments: [], events: [], tokenHash: hash(token), termsVersion: s.settings.termsVersion, source, reminded: false, version: 1 };
   event(reservation, source === 'web' ? 'Reservering aangemaakt via de website.' : 'Directe verkoop aangemaakt door eigenaar.');
@@ -94,13 +103,14 @@ export function checkout(s: Store, raw: unknown) {
   const lines = input.items.map(line => {
     const item = s.items.find(i => i.id === line.itemId);
     const source = item ? undefined : suppliedObjects.find(i => i.id === line.itemId);
+    if (source && s.items.some(i => i.sourceReference === source.id && i.publication !== 'draft')) throw new BusinessError('De productfiche is gewijzigd. Bekijk je selectie opnieuw.', 409);
     if (!item && !source || item && item.publication !== 'published') throw new BusinessError('Een object is niet meer beschikbaar. Bekijk je selectie opnieuw.', 409);
     const unknownPrice = !!source || !!item?.priceUnset || !item?.priceCents;
     const price = unknownPrice ? null : item!.priceCents;
     const version = item?.version || 1;
     const title = item?.title || source!.title;
     if (price !== line.expectedPrice || version !== line.expectedVersion) throw new BusinessError(`${title}: prijs of gegevens gewijzigd. Bekijk je selectie opnieuw.`, 409);
-    if (availability(s, line.itemId) !== 'available') throw new BusinessError(`${title} is intussen gereserveerd of verkocht. Bekijk je selectie opnieuw.`, 409);
+    if (publicAvailability(s, line.itemId) !== 'available') throw new BusinessError(`${title} is intussen gereserveerd of verkocht. Bekijk je selectie opnieuw.`, 409);
     return { itemId: line.itemId, title, productNumber: item?.productNumber || source?.id || '', image: source?.image || (item?.photos[0] ? `/api/images/${item.photos[0].id}?size=thumb` : ''), priceCents: price || 0, pricePending: unknownPrice };
   });
   limit(s, `email:${hash(input.contact.email)}`, 5, 3600000);

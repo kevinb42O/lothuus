@@ -359,3 +359,39 @@ test('private uploads in an imported draft are never exposed through the public 
   assert.ok(!JSON.stringify(projection).includes(privatePhoto.id));
   assert.ok(!JSON.stringify(projection).includes(privatePhoto.alt));
 });
+
+
+test('publishing an imported product replaces only its source entry and keeps the rest of the collection', async () => {
+  const { objects: sources } = await import('../collection');
+  const s = initialStore();
+  const photos = [{ id: randomUUID(), alt: 'Hoofdfoto' }, { id: randomUUID(), alt: 'Detail' }];
+  const fields = { materialGroup: 'K', title: 'Katriens ingevulde titel', category: 'keramiek', description: 'Katriens bewaarde beschrijving', priceCents: 8500, priceUnset: false, date: 'Jaren 70', material: 'Keramiek', dimensions: '28 cm', maker: '', condition: 'Goede staat', publication: 'draft', editorReady: true, photos };
+  command(s, { action: 'save-item', item: fields });
+  const item = s.items[0];item.sourceReference = 'K001';item.sourcePhotos = photos;
+  const before = catalogue(s);
+  assert.equal(before.objects.length, sources.length);
+  assert.equal(before.objects.find(o => o.id === 'K001')!.title, sources.find(o => o.id === 'K001')!.title);
+  command(s, { action: 'save-item', item: { ...item, publication: 'published' } });
+  const published = catalogue(s);
+  assert.equal(published.objects.length, sources.length);
+  assert.equal(published.objects.filter(o => o.id === 'K001').length, 0);
+  const visible = published.objects.find(o => o.id === item.id)!;
+  assert.equal(visible.title, fields.title);assert.equal(visible.description, fields.description);assert.equal(visible.priceCents, 8500);
+  assert.ok(published.objects.some(o => o.id === 'K002'));
+  command(s, { action: 'save-item', item: { ...item, publication: 'draft' } });
+  assert.equal(catalogue(s).objects.length, sources.length);
+  assert.ok(!JSON.stringify(catalogue(s)).includes(fields.description));
+  assert.equal(item.description, fields.description);
+});
+
+test('imported stock keeps source reservations blocked after publication', async () => {
+  const { checkout } = await import('./service');
+  const s = initialStore();
+  const input = { items: [{ itemId: 'K001', expectedPrice: null, expectedVersion: 1 }], contact: { name: 'Test Klant', email: 'publication-test@example.com', phone: '', channel: 'email' }, emailConfirmation: 'publication-test@example.com', message: '', termsVersion: '1', accepted: true, website: '', key: randomUUID() };
+  checkout(s, input);
+  command(s, { action: 'save-item', item: { materialGroup: 'K', title: 'Vaasje', category: 'keramiek', description: 'Beschrijving', priceCents: 8500, date: '1970', material: 'Keramiek', dimensions: '28 cm', maker: '', condition: 'Goed', publication: 'published', photos: [{ id: photoId, alt: 'Een' }, { id: randomUUID(), alt: 'Twee' }] } });
+  const item=s.items[0];item.sourceReference='K001';
+  assert.equal(catalogue(s).objects.find(o=>o.id===item.id)!.availability, 'reserved');
+  assert.throws(()=>checkout(s,{...input,key:randomUUID(),items:[{itemId:item.id,expectedPrice:8500,expectedVersion:item.version}]}),/gereserveerd|verkocht/);
+  assert.throws(()=>checkout(s,{...input,key:randomUUID()}),/gewijzigd/);
+});
