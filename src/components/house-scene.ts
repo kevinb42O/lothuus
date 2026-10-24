@@ -21,7 +21,7 @@ type HouseSceneOptions={mode?:'explorer'|'hero';onLoadProgress?:(progress:number
 export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:boolean,entered?:boolean)=>void,options:HouseSceneOptions={}):Promise<HouseScene> {
   const hero=options.mode==='hero';
   options.onLoadProgress?.(.12);
-  const mobile=element.clientWidth<600;
+  const mobile=element.clientWidth<600||window.matchMedia('(pointer: coarse)').matches;
   // Geometry edges are antialiased in the composer's multisampled scene target.
   // The canvas receives a single full-screen triangle: a second MSAA buffer
   // there only resolves identical samples, at the cost of full-screen bandwidth.
@@ -31,10 +31,11 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
   const loader=new T.TextureLoader();const loaded:T.Texture[]=[];
-  async function map(name:string,color=false){const t=await loader.loadAsync(`/house/materials/${name}.webp`);if(color)t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());loaded.push(t);return t;}
+  const materialPath=`/house/materials/${mobile?'mobile/':''}`;
+  async function map(name:string,color=false){const t=await loader.loadAsync(`${materialPath}${name}.webp`);if(color)t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=Math.min(mobile?2:8,renderer.capabilities.getMaxAnisotropy());loaded.push(t);return t;}
   async function materialSet(prefix:string,names=['color','normal','roughness']):Promise<MaterialSet>{const [color,normal,roughness]=await Promise.all(names.map((name,i)=>map(`${prefix}-${name}`,i===0)));return{color,normal,roughness};}
   let environment:T.DataTexture,sky:T.Texture,brick:MaterialSet,roof:MaterialSet,paving:MaterialSet;
-  try{[environment,brick,roof,paving,sky]=await Promise.all([new HDRLoader().loadAsync('/house/materials/daylight.hdr'),materialSet('yellow_bricks'),materialSet('grey_roof_tiles'),materialSet('paving',['color','normalgl','roughness']),loader.loadAsync('/house/materials/front-street-backdrop.webp')]);}
+  try{[environment,brick,roof,paving,sky]=await Promise.all([new HDRLoader().loadAsync('/house/materials/daylight.hdr'),materialSet('yellow_bricks'),materialSet('grey_roof_tiles'),materialSet('paving',['color','normalgl','roughness']),loader.loadAsync(`${materialPath}front-street-backdrop.webp`)]);}
   catch(error){loaded.forEach(t=>t.dispose());renderer.dispose();throw error;}
   options.onLoadProgress?.(.4);
   loaded.push(environment);environment.mapping=T.EquirectangularReflectionMapping;
@@ -49,7 +50,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   scene.add(backdrop);
   scene.fog=new T.Fog('#bacbd0',95,180);
   const sun=new T.DirectionalLight('#fff2dd',3.2);sun.position.set(-10,19,13);sun.target.position.set(0,2,3);
-  sun.castShadow=true;sun.shadow.mapSize.set(mobile?2048:4096,mobile?2048:4096);sun.shadow.camera.left=-19;sun.shadow.camera.right=19;sun.shadow.camera.top=20;sun.shadow.camera.bottom=-12;sun.shadow.camera.near=.5;sun.shadow.camera.far=65;
+  sun.castShadow=true;sun.shadow.mapSize.set(mobile?1024:4096,mobile?1024:4096);sun.shadow.camera.left=-19;sun.shadow.camera.right=19;sun.shadow.camera.top=20;sun.shadow.camera.bottom=-12;sun.shadow.camera.near=.5;sun.shadow.camera.far=65;
   sun.shadow.bias=-.00008;sun.shadow.normalBias=.014;sun.shadow.radius=2.2;scene.add(sun,sun.target);
   // This is the accepted builder's geometry, including the latest refined ironwork.
   // Loading its baked buffers avoids expensive contour triangulation on the main thread.
@@ -86,6 +87,8 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   const probe=new T.CubeCamera(.1,90,probeTarget);probe.position.set(0,3.6,4.6);scene.add(probe);
   house.glass.visible=false;renderer.shadowMap.needsUpdate=true;probe.update(renderer,scene);house.glass.visible=true;
   const localReflection=pmrem.fromCubemap(probeTarget.texture);house.glass.envMap=localReflection.texture;house.glass.envMapIntensity=1.3;house.glass.needsUpdate=true;pmrem.dispose();
+  // Only the prefiltered maps are sampled after startup. Release their sources.
+  probeTarget.dispose();environment.dispose();
   options.onLoadProgress?.(.9);
   const canvas=renderer.domElement;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Echt 3D-model van de buitenkant van LOTHUUS, met gemodelleerde gevel, dakpannen, balkon, straat, planten en bomen. Sleep om het huis vanuit een andere hoek te bekijken.');canvas.dataset.scene='geometric-3d';element.append(canvas);
   const camera=new T.PerspectiveCamera(36,1,.12,360);camera.filmGauge=36;
@@ -98,9 +101,9 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   const target=new T.WebGLRenderTarget(1,1,{type:T.HalfFloatType,samples:mobile?0:4,resolveDepthBuffer:false,storeMultisampledDepthBuffer:false});
   if(hero)target.depthTexture=new T.DepthTexture(1,1,T.UnsignedIntType);
   const composer=new EffectComposer(renderer,target);const renderPass=new RenderPass(scene,camera);composer.addPass(renderPass);
-  const ao=new CachedHouseAO(scene,camera,1,1);ao.updateGtaoMaterial({radius:.18,distanceExponent:1,thickness:.18});ao.updatePdMaterial({radius:3,lumaPhi:10,depthPhi:2,normalPhi:3});ao.blendIntensity=.22;composer.addPass(ao);
+  const ao=hero?null:new CachedHouseAO(scene,camera,1,1);
+  if(ao){ao.updateGtaoMaterial({radius:.18,distanceExponent:1,thickness:.18});ao.updatePdMaterial({radius:3,lumaPhi:10,depthPhi:2,normalPhi:3});ao.blendIntensity=.22;composer.addPass(ao);}
   // Sun shadows and PBR lighting remain; avoid another geometry pass during the scroll journey.
-  if(hero)ao.enabled=false;
   // A cheap coverage pass preserves the complete moving door, even where it
   // swings behind the entrance plane. The live DOM grid shows through the rest.
   const doorMaskTarget=hero?new T.WebGLRenderTarget(1,1,{samples:mobile?0:4,resolveDepthBuffer:false,storeMultisampledDepthBuffer:false}):null;
@@ -215,7 +218,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
     const doorMoving=Math.abs(house.doorLeaf.rotation.y-oldAngle)>1e-6;
     if(doorMoving){house.doorLeaf.updateMatrix();shadowDirty=true;}
     lens.uniforms.entranceFade.value=hero?0:rig.entranceFade;
-    if(traveling||doorMoving)ao.invalidate();
+    if(traveling||doorMoving)ao?.invalidate();
     if(moved||traveling||doorMoving)dirty=true;
     if(time-lastFrame>=1000/(mobile?30:60)-.5&&(dirty||moved||traveling||doorMoving||wind)){
       // Project/paint the collection only when its matching 3D frame is drawn.
@@ -227,7 +230,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
     if(moved||traveling||doorMoving||wind||dirty)invalidate();else lastTick=0;
   }
   function invalidate(){if(!disposed&&visible&&!document.hidden&&!frame)frame=requestAnimationFrame(animate);}
-  function change(){ao.invalidate();dirty=true;invalidate();}controls.addEventListener('change',change);
+  function change(){ao?.invalidate();dirty=true;invalidate();}controls.addEventListener('change',change);
   function interrupt(){rig.stop();onFilmChange?.(false);dirty=true;invalidate();}
   controls.addEventListener('start',interrupt);
   let activeView:View='front';
@@ -235,7 +238,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
     const referenceAspect=activeView==='door'?.7:1604/981;
     const wide=T.MathUtils.radToDeg(2*Math.atan(Math.tan(T.MathUtils.degToRad(18))*Math.max(1,referenceAspect/camera.aspect)));
     camera.fov=hero?T.MathUtils.lerp(wide,camera.aspect<1?46:36,sampleHouseEntry(rig.scrollProgress).lens):wide;
-    rig.project();ao.invalidate();
+    rig.project();ao?.invalidate();
   }
   let initialized=false;
   function view(value:View){
@@ -251,7 +254,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   }
   let compact=mobile;
   function resize(){const w=element.clientWidth,h=element.clientHeight;if(!w||!h)return;camera.aspect=w/h;
-    fitView();if(hero)fitWordmark();ao.invalidate();renderer.setSize(w,h,false);composer.setSize(w,h);doorMaskTarget?.setSize(Math.round(w*dpr),Math.round(h*dpr));if(compact!==(w<600)){compact=w<600;if(!hero)view('front');}dirty=true;render(performance.now());}
+    fitView();if(hero)fitWordmark();ao?.invalidate();renderer.setSize(w,h,false);composer.setSize(w,h);doorMaskTarget?.setSize(Math.round(w*dpr),Math.round(h*dpr));if(compact!==(w<600)){compact=w<600;if(!hero)view('front');}dirty=true;render(performance.now());}
   function motionPreference(){if(reduced.matches)interrupt();landscape.setWindEnabled(windEnabled&&!reduced.matches);lastTick=0;shadowDirty=true;dirty=true;invalidate();}reduced.addEventListener('change',motionPreference);
   const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(element);
   const visibility=new IntersectionObserver(entries=>{visible=entries.some(e=>e.isIntersecting);if(visible){dirty=true;invalidate();}else{cancelAnimationFrame(frame);frame=0;lastTick=0;}});visibility.observe(element);
@@ -274,7 +277,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
     },
     zoom(factor){onFilmChange?.(false);rig.dolly(factor,controls.minDistance,controls.maxDistance,reduced.matches);dirty=true;invalidate();},
     wind(enabled){windEnabled=enabled;landscape.setWindEnabled(enabled&&!reduced.matches);shadowDirty=true;dirty=true;invalidate();},
-    dispose(){disposed=true;cancelAnimationFrame(frame);controls.removeEventListener('change',change);controls.removeEventListener('start',interrupt);controls.dispose();reduced.removeEventListener('change',motionPreference);resizeObserver.disconnect();visibility.disconnect();document.removeEventListener('visibilitychange',documentVisibility);canvas.removeEventListener('webglcontextlost',contextLost);renderPass.dispose();ao.dispose();shadowCache.dispose();lens.dispose();composer.dispose();doorMaskTarget?.dispose();doorMaskMaterial.dispose();probeTarget.dispose();localReflection.dispose();ambient.dispose();disposeScene(scene);loaded.forEach(t=>t.dispose());sun.shadow.dispose();renderer.dispose();renderer.forceContextLoss();canvas.remove();},
+    dispose(){disposed=true;cancelAnimationFrame(frame);controls.removeEventListener('change',change);controls.removeEventListener('start',interrupt);controls.dispose();reduced.removeEventListener('change',motionPreference);resizeObserver.disconnect();visibility.disconnect();document.removeEventListener('visibilitychange',documentVisibility);canvas.removeEventListener('webglcontextlost',contextLost);renderPass.dispose();ao?.dispose();shadowCache.dispose();lens.dispose();composer.dispose();doorMaskTarget?.dispose();doorMaskMaterial.dispose();probeTarget.dispose();localReflection.dispose();ambient.dispose();disposeScene(scene);loaded.forEach(t=>t.dispose());sun.shadow.dispose();renderer.dispose();renderer.forceContextLoss();canvas.remove();},
   };
 }
 function disposeScene(scene:T.Scene){const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh){if(o instanceof T.InstancedMesh)o.dispose();geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])materials.add(m);if(o.customDepthMaterial)materials.add(o.customDepthMaterial);}});materials.forEach(m=>{for(const value of Object.values(m))if(value instanceof T.Texture)textures.add(value);m.dispose();});geometries.forEach(g=>g.dispose());textures.forEach(t=>t.dispose());}

@@ -13,7 +13,9 @@ export type WindUniforms={uWindTime:{value:number};uWindStrength:{value:number}}
 
 export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:WindUniforms) {
   const root=new T.Group();root.name='Street, planting beds and real 3D vegetation';
-  const random=seedRandom(71233),loader=new GLTFLoader();
+  const manager=new T.LoadingManager();
+  if(mobile)manager.setURLModifier(url=>url.replace('/house/models/textures/','/house/models/textures/mobile/'));
+  const random=seedRandom(71233),loader=new GLTFLoader(manager);
   const modelNames=[mobile?'tree_small_02-low':'tree_small_02','tree_small_02-low','shrub_02','shrub_03','grass_medium_02'];
   const requests=new Map<string,Promise<T.Group>>();
   const models=await Promise.all(modelNames.map(name=>{let request=requests.get(name);if(!request){request=loader.loadAsync(`/house/models/${name}.glb`).then(g=>g.scene);requests.set(name,request);}return request;}));
