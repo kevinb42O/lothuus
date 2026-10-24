@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { elasticProfile, elasticStep } from '@/lib/elastic-scroll';
 
 /** Native document scrolling; only grid transforms receive elastic column lag. */
-export function useElasticGrid(container: RefObject<HTMLDivElement | null>, columns: number, reduced: boolean, resetKey: string, onScrollStart: () => void) {
+export function useElasticGrid(container: RefObject<HTMLDivElement | null>, columns: number, reduced: boolean, resetKey: string, onScrollStart: () => void, revealing: RefObject<boolean>) {
   const scrolling = useRef(false);
   const stop = useRef<() => void>(() => {});
   useEffect(() => {
@@ -49,6 +49,8 @@ export function useElasticGrid(container: RefObject<HTMLDivElement | null>, colu
       else { clear(); frame = 0; }
     }
     function scroll() {
+      // Expansion reveal must neither close its owner nor introduce column lag.
+      if (revealing.current) { reset(); return; }
       // Ignore scroll events from the product dialog; those do not move the page.
       if (grid.closest('[inert]')) {
         clear(); scrolling.current = false; lastScroll = window.scrollY; return;
@@ -77,6 +79,6 @@ export function useElasticGrid(container: RefObject<HTMLDivElement | null>, colu
       document.removeEventListener('visibilitychange', reset);
       reset(); stop.current = () => {};
     };
-  }, [container, columns, reduced, resetKey, onScrollStart]);
+  }, [container, columns, reduced, resetKey, onScrollStart, revealing]);
   return { scrolling, stop };
 }

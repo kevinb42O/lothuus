@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { categories, categoryLabel, type CollectionObject } from '@/lib/collection';
 import { HeartButton } from './heart-button';
 import { useElasticGrid } from './use-elastic-grid';
+import { useMosaicReveal } from './use-mosaic-reveal';
 import { collectionLayout, type ActiveCell } from '@/lib/grid-layout';
 import { PointerIntent, type IntentTarget } from '@/lib/pointer-intent';
 import { categoryDirection, collectionColumns, filterTransition, type TileBounds } from '@/lib/filter-transition';
@@ -29,6 +30,7 @@ async function preparePhoto(object: CollectionObject,width:number) {
   if (props.srcSet) image.srcset = props.srcSet;
   image.src = props.src;
   await image.decode();
+  return image;
 }
 
 export function Mosaic(props:Props){
@@ -57,7 +59,6 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
   const release = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<ActiveCell | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const generation = useRef(0);
   const measuredWidth = useRef(0);
   const candidate = useRef<string | null>(null);
@@ -73,13 +74,13 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
   const layout = useMemo(() => collectionLayout(ids, columns, active, cell, gap), [ids, columns, active, cell, gap]);
   const visiblePhotos=useVisibleMosaicPhotos(container,`${width}:${presentation.revision}:${idsKey}`);
   const clearPending = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null; generation.current++;
+    generation.current++;
   }, []);
   const clearIntent = useCallback(() => {
     cancelAnimationFrame(intentFrame.current); intentFrame.current = 0; intent.current.reset(); cursor.current = null;
   }, []);
-  const settle = useCallback(() => { clearIntent(); clearPending(); candidate.current = null; setActive(null); }, [clearIntent, clearPending]);
+  const resetHover = useCallback(() => { clearIntent(); clearPending(); candidate.current = null; }, [clearIntent, clearPending]);
+  const settle = useCallback(() => { resetHover(); setActive(null); }, [resetHover]);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) => {
       if (Math.abs(entry.contentRect.width - measuredWidth.current) < .5) return;
@@ -93,7 +94,9 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
     return () => { observer.disconnect(); clearIntent(); clearPending(); window.removeEventListener('blur', settle); document.removeEventListener('visibilitychange', visibility); };
   }, [clearIntent, clearPending, settle]);
   useEffect(() => { settle(); }, [ids, settle]);
-  const elastic = useElasticGrid(container, columns, !!reduced || changing, ids.join(','), settle);
+  const expandedCell = layout.cells.find(cell => cell.expanded);
+  const revealing = useMosaicReveal(container, expandedCell, !!reduced, resetHover, clearIntent);
+  const elastic = useElasticGrid(container, columns, !!reduced || changing, ids.join(','), resetHover, revealing);
 
   useEffect(() => {
     if (!width) return;
@@ -170,9 +173,16 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
     if (candidate.current === id) return;
     clearPending(); candidate.current = id;
     const request = generation.current;
-    const image = button.querySelector('img');
-    if (!image || !container.current) return;
-    try { await image.decode(); } catch { if (request === generation.current) candidate.current = null; return; }
+    let image = button.querySelector('img');
+    if (!container.current) return;
+    try {
+      // Home/End can focus a tile outside the mounted photo window.
+      if (!image && keyboard) {
+        const object = objects.find(object => object.id === id);
+        if (object) image = await preparePhoto(object, cell);
+      } else if (image) await image.decode();
+    } catch { if (request === generation.current) candidate.current = null; return; }
+    if (!image) { candidate.current = null; return; }
     if (request !== generation.current || !button.isConnected || busy.current) return;
     // Decoding may finish after the pointer has left, a dialog opened, or tiles moved.
     if (!keyboard && (!pointerButton(id) || elastic.scrolling.current)) { candidate.current = null; return; }
@@ -216,7 +226,7 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
       data-filtering={changing} data-focused={presentation.focused} data-filter={presentation.filterKey}
       initial={false} animate={{ height: layout.height }} transition={changing ? filterMovement : movement}
       onPointerMove={event => {
-        if (busy.current || elastic.scrolling.current || event.pointerType !== 'mouse' || !window.matchMedia('(min-width: 768px) and (any-hover: hover)').matches) return;
+        if (busy.current || revealing.current || elastic.scrolling.current || event.pointerType !== 'mouse' || !window.matchMedia('(min-width: 768px) and (any-hover: hover)').matches) return;
         if (event.buttons || document.body.style.overflow === 'hidden') { clearIntent(); clearPending(); candidate.current = null; return; }
         cursor.current = { x: event.clientX, y: event.clientY };
         const point = intent.current.point;
@@ -229,7 +239,7 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
         if (intent.current.tracking && !intentFrame.current) intentFrame.current = requestAnimationFrame(finishJourney);
       }}
       onPointerEnter={() => { clearPending(); candidate.current = null; }}
-      onPointerLeave={() => { clearIntent(); clearPending(); candidate.current = null; timer.current = setTimeout(settle, 180); }}
+      onPointerLeave={resetHover}
       onPointerCancel={settle}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) settle(); }}
       onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); settle(); } }}>
