@@ -11,6 +11,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const published = cloudMode() ? (await serverDatabase().rpc('lothuus_photo_is_public', { photo_id: id })).data === true : await withStore(s => s.items.some(i => i.publication === 'published' && i.photos.some(p => p.id === id)));
     if (!published) return new NextResponse(null, { status: 404 });
   }
-  try { const body = await readPhoto(id, size); if (!body) return new NextResponse(null, { status: 404 }); return new NextResponse(body, { headers: { 'Content-Type': 'image/webp', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } }); }
+  // Photo IDs are immutable. Recheck access before allowing a browser to reuse
+  // its copy, so logout or unpublishing also takes effect on cached photos.
+  const tag = `"photo-v1-${id}-${size}"`;
+  const headers = { 'Cache-Control': 'private, no-cache', 'ETag': tag, 'Vary': 'Cookie', 'X-Content-Type-Options': 'nosniff' };
+  const matches = (request.headers.get('if-none-match') || '').split(',').map(value => value.trim().replace(/^W\//, ''));
+  if (matches.includes(tag) || matches.includes('*')) return new NextResponse(null, { status: 304, headers });
+  try { const body = await readPhoto(id, size); if (!body) return new NextResponse(null, { status: 404 }); return new NextResponse(body, { headers: { ...headers, 'Content-Type': 'image/webp' } }); }
   catch { return new NextResponse(null, { status: 404 }); }
 }

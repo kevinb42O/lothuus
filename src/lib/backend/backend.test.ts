@@ -13,6 +13,46 @@ const directory = mkdtempSync(join(tmpdir(), 'lothuus-tests-'));
 const photoId = randomUUID();
 before(() => { process.env.LOTHUUS_DATA_DIR = directory; mkdirSync(join(directory, 'images')); writeFileSync(join(directory, 'images', `${photoId}-detail.webp`), 'test fixture'); });
 after(() => { delete process.env.LOTHUUS_DATA_DIR; rmSync(directory, { recursive: true, force: true }); });
+test('photo revalidation avoids storage reads but still checks owner and publication access', async () => {
+  const { NextRequest } = await import('next/server');
+  const { GET } = await import('../../app/api/images/[id]/route');
+  const { authenticate } = await import('./local-auth');
+  const id = randomUUID();
+  const imagePath = join(directory, 'images', `${id}-detail.webp`);
+  writeFileSync(imagePath, 'cached photo');
+  process.env.ADMIN_PASSWORD = 'isolated-photo-cache-test';
+  try {
+    const token = authenticate('isolated-photo-cache-test');
+    const get = (etag?: string, owner = true, size = 'detail') => GET(new NextRequest(`http://localhost:3000/api/images/${id}?size=${size}`, {
+      headers: { ...(owner ? { cookie: `lothuus-owner=${token}` } : {}), ...(etag ? { 'If-None-Match': etag } : {}) },
+    }), { params: Promise.resolve({ id }) });
+    const first = await get();
+    assert.equal(first.status, 200);
+    assert.equal(await first.text(), 'cached photo');
+    assert.equal(first.headers.get('cache-control'), 'private, no-cache');
+    assert.equal(first.headers.get('vary'), 'Cookie');
+    const tag = first.headers.get('etag')!;
+    assert.ok(tag);
+    // An absent file proves revalidation does not read photo storage again.
+    rmSync(imagePath);
+    const cached = await get(`"other", W/${tag}`);
+    assert.equal(cached.status, 304);
+    assert.equal(await cached.text(), '');
+    assert.equal(cached.headers.get('etag'), tag);
+    assert.equal((await get(tag, true, 'thumb')).status, 404);
+    assert.equal((await get(tag, false)).status, 404);
+    writeFileSync(imagePath, 'cached photo');
+    transact(s => { Object.assign(s, fixture()); s.items[0].photos = [{ id, alt: 'Cache test' }]; });
+    assert.equal((await get(tag, false)).status, 304);
+    transact(s => { s.items[0].publication = 'draft'; });
+    assert.equal((await get(tag, false)).status, 404);
+    assert.equal((await get('*', false)).status, 404);
+  } finally {
+    delete process.env.ADMIN_PASSWORD;
+    transact(s => Object.assign(s, initialStore()));
+    rmSync(imagePath, { force: true });
+  }
+});
 function fixture() {
   const s = initialStore();
   s.settings = { ...s.settings, ownerEmail: 'owner@example.com', replyTo: 'owner@example.com', beneficiary: 'Test', iban: 'BE68539007547034', terms: 'Testvoorwaarden', privacy: 'Testprivacy', reservationsEnabled: true };
