@@ -32,3 +32,20 @@ visual source. iPad desktop user agents with touch also use this path; desktop
 Macs and Windows keep the live entrance. This is a temporary feature fallback,
 not evidence that the underlying live 3D crash is fixed. Browser control remains
 disabled, so no physical-device or browser runtime validation is claimed.
+
+## Collection correction after the photo entrance also reloads
+
+The user confirms testing `https://www.lothuus.be` with the photo entrance visible,
+and still seeing full-page reloads. The homepage failure therefore occurs without
+initializing the live 3D scene. The public catalogue endpoint returns the supplied
+195-object collection. The iOS fallback remains during this isolated correction.
+
+The mosaic now uses one IntersectionObserver to mount image elements only within
+240px of the viewport, and removes offscreen image elements again. Unlike native
+lazy loading alone, scrolling does not leave every visited image mounted. Tile
+geometry and buttons remain present. Responsive image sizes follow actual tile
+widths in both the grid and filter preloading. Scroll-time `will-change` applies
+only to tiles with mounted photographs, instead of promoting the whole collection.
+
+This fixes concrete unbounded image retention/layer-promotion behavior, but no
+device memory trace or crash reproduction is available to prove causality.

@@ -11,17 +11,17 @@ import { collectionLayout, type ActiveCell } from '@/lib/grid-layout';
 import { PointerIntent, type IntentTarget } from '@/lib/pointer-intent';
 import { categoryDirection, collectionColumns, filterTransition, type TileBounds } from '@/lib/filter-transition';
 import { captureWall, CollectionWall, type CapturedWall } from './collection-wall';
+import { useVisibleMosaicPhotos } from './use-visible-mosaic-photos';
 
 type Props = { objects: CollectionObject[]; filterKey: string; focused: boolean; onOpen: (object: CollectionObject) => void; saved: string[]; onToggle: (id: string) => void };
-const photoSizes = '(max-width: 540px) 50vw, 480px';
 
 function TileFrame(props: HTMLMotionProps<'div'>) {
   const present = useIsPresent();
   return <motion.div {...props} data-present={present} inert={!present} aria-hidden={!present || undefined} />;
 }
 
-async function preparePhoto(object: CollectionObject) {
-  const { props } = getImageProps({ src: object.image, alt: object.title, fill: true, sizes: photoSizes, unoptimized: object.image.startsWith('/api/') });
+async function preparePhoto(object: CollectionObject,width:number) {
+  const { props } = getImageProps({ src: object.image, alt: object.title, fill: true, sizes: `${Math.ceil(width)}px`, unoptimized: object.image.startsWith('/api/') });
   const image = new window.Image();
   if (props.sizes) image.sizes = props.sizes;
   if (props.srcSet) image.srcset = props.srcSet;
@@ -61,6 +61,7 @@ export function Mosaic({ objects: requestedObjects, filterKey, focused, onOpen, 
   const idsKey = objects.map(object => object.id).join(',');
   const ids = useMemo(() => idsKey ? idsKey.split(',') : [], [idsKey]);
   const layout = useMemo(() => collectionLayout(ids, columns, active, cell, gap), [ids, columns, active, cell, gap]);
+  const visiblePhotos=useVisibleMosaicPhotos(container,`${width}:${presentation.revision}:${idsKey}`);
   const clearPending = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null; generation.current++;
@@ -117,7 +118,7 @@ export function Mosaic({ objects: requestedObjects, filterKey, focused, onOpen, 
       const top = grid.getBoundingClientRect().top;
       // Decode the arriving viewport and a spare row while the current collection remains visible.
       const visible = nextLayout.cells.filter(cell => top + cell.y < window.innerHeight + nextCell && top + cell.y + cell.height > 0);
-      await Promise.allSettled(visible.map(cell => preparePhoto(requestedObjects.find(object => object.id === cell.id)!)));
+      await Promise.allSettled(visible.map(cell => preparePhoto(requestedObjects.find(object => object.id === cell.id)!,cell.width)));
       if (cancelled || !container.current) return;
       const previous = new Map<string, TileBounds & { key: string }>();
       container.current.querySelectorAll<HTMLElement>('[data-id][data-present="true"]').forEach(tile => {
@@ -226,8 +227,9 @@ export function Mosaic({ objects: requestedObjects, filterKey, focused, onOpen, 
       {width > 0 && objects.map((object, index) => {
         const position = layout.cells[index];
         const expanded = position.expanded;
+        const photoVisible=expanded||visiblePhotos.has(object.id);
         const arriving = presentation.arriving.has(object.id);
-        return <TileFrame key={presentation.keys[object.id]} className={`object-tile ${expanded ? 'is-expanded' : ''}`} data-id={object.id} data-tile-key={presentation.keys[object.id]} data-row={position.row} data-column={position.column} data-span={position.span}
+        return <TileFrame key={presentation.keys[object.id]} className={`object-tile ${expanded ? 'is-expanded' : ''}`} data-photo-visible={photoVisible} data-id={object.id} data-tile-key={presentation.keys[object.id]} data-row={position.row} data-column={position.column} data-span={position.span}
           style={{ '--elastic-shift': `var(--elastic-${position.column}, 0px)` } as CSSProperties}
           transformTemplate={(_, transform) => `${transform === 'none' ? '' : transform} translateY(var(--elastic-shift, 0px))`}
           initial={arriving && !reduced ? { x: position.x, y: position.y + 18, width: position.width, height: position.height, opacity: 0 } : false}
@@ -253,7 +255,7 @@ export function Mosaic({ objects: requestedObjects, filterKey, focused, onOpen, 
                 container.current?.querySelector<HTMLButtonElement>(`[data-object="${objects[next].id}"]`)?.focus({ preventScroll: true });
               }
             }}>
-            <span className="object-photograph"><Image src={object.image} unoptimized={object.image.startsWith('/api/')} alt={object.title} fill sizes={photoSizes} loading={index < 24 || arriving ? 'eager' : 'lazy'} draggable={false} /></span>
+            <span className="object-photograph">{photoVisible&&<Image src={object.image} unoptimized={object.image.startsWith('/api/')} alt={object.title} fill sizes={`${Math.ceil(position.width)}px`} loading="eager" draggable={false} />}</span>
             <span className="object-id" aria-hidden="true">{object.id}</span>
             {object.availability && object.availability !== 'available' && <span className={`stock-badge ${object.availability}`}>{object.availability === 'reserved' ? 'Gereserveerd' : 'Verkocht'}</span>}
             <motion.span className="fluid-caption" initial={false} animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: reduced ? 0 : .18 }} aria-hidden={!expanded}>

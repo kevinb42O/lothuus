@@ -77,7 +77,7 @@ h1 > span { font-family: var(--font-editorial), serif; font-style: italic; font-
 /* Every object has a real place; all new positions animate in one motion. */
 .mosaic-fluid { overflow: clip; position: relative; width: 100%; overflow-anchor: none; contain: layout; user-select: none; }
 .mosaic-fluid .object-tile { position: absolute; top: 0; left: 0; background: var(--tile); overflow: hidden; }
-.mosaic-fluid[data-elastic="moving"] .object-tile { will-change: transform; }
+.mosaic-fluid[data-elastic="moving"] .object-tile[data-photo-visible="true"] { will-change: transform; }
 .mosaic-fluid .object-tile.is-expanded { z-index: 2; }
 .collection-wall { position: absolute; left: 0; width: 100%; background: var(--paper); overflow: hidden; pointer-events: none; z-index: 4; }
 .wall-photograph { position: absolute; overflow: hidden; background: var(--tile); }
