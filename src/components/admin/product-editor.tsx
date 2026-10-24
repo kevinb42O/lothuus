@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, Check, CheckCheck, ChevronDown, ClipboardPaste, Copy, GripVertical, ImagePlus, LoaderCircle, LockKeyhole, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { useToast } from './toasts';
 import { categories, type Category } from '@/lib/collection';
 import { availability, money, type AdminStore, type Item, type Photo } from '@/lib/backend/types';
 import { divideText, inputCents, materialGroups, materialName, missingFields, textTargets, type MaterialGroup, type TextTarget } from '@/lib/inventory';
@@ -14,6 +15,7 @@ const asItem = (draft: Draft) => ({ ...draft, materialGroup: draft.materialGroup
 function EditorField({ id, label, hint, children, wide = false }: { id: string; label: string; hint?: string; children: ReactNode; wide?: boolean }) { return <div className={`pe-field ${wide ? 'pe-wide' : ''}`}><label htmlFor={`product-${id}`}>{label}</label>{children}{hint && <p className="pe-hint" id={`hint-${id}`}>{hint}</p>}</div>; }
 
 export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, registerLeave }: { item?: Item; store: AdminStore; onDirect: (itemId: string, customerId: string) => Promise<void>; onData: (store: AdminStore) => void; onBack: () => void; onNext: () => void; registerLeave: (handler: (() => Promise<boolean>) | null) => void }) {
+  const { notify } = useToast();
   const [draft, setDraft] = useState<Draft>(() => fromItem(item));
   const [creationKey] = useState(() => crypto.randomUUID());
   const [serverItem, setServerItem] = useState(item);
@@ -37,10 +39,10 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
   const [directBusy, setDirectBusy] = useState(false);
   const [correctMaterial, setCorrectMaterial] = useState<MaterialGroup | ''>('');
   const [correcting, setCorrecting] = useState(false);
-  const [feedback, setFeedback] = useState('');
+  const setFeedback = useCallback((message: string) => { if (message) notify({ id: 'product-action', tone: 'success', message }); }, [notify]);
   const fileInput = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const latest = useRef(draft); latest.current = draft;
+  const latest = useRef(draft);
   const meta = useRef(item);
   const dataCallback = useRef(onData); dataCallback.current = onData;
   const queue = useRef<PendingPhoto[]>([]);
@@ -84,13 +86,14 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
       ? JSON.stringify(latest.current.photos) !== JSON.stringify((JSON.parse(saved.current) as Draft).photos)
       : JSON.stringify(latest.current) !== saved.current;
     if (!alive.current) return false;
-    if (!hasChanges()) return true;
+    if (!hasChanges()) { if (manual) notify({ id: 'product-action', tone: 'success', message: 'Alles is al opgeslagen.' }); return true; }
     if ((!photosOnly || !meta.current) && !latest.current.materialGroup) { if (manual) setError('Kies eerst een materiaal. Daarna bewaren we je concept automatisch.'); return false; }
     if (blocked.current && !manual && !photosOnly) return false;
     blocked.current = false;
     const run = async () => {
       retryPhotosOnly.current = photosOnly;
       setSaveState('saving'); setError('');
+      notify({ id: 'product-action', tone: 'loading', message: photosOnly ? 'Foto’s opslaan…' : 'Product opslaan…' });
       try {
         while (hasChanges()) {
           const snapshot = latest.current;
@@ -130,16 +133,30 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
           try { localStorage.removeItem(recoveryKey); } catch { /* Server has confirmed the save. */ }
         }
         if (alive.current) { setSaveState('saved'); setSavedAt(new Date().toISOString()); }
+        notify({ id: 'product-action', tone: 'success', message: photosOnly ? 'Hoofdfoto en fotovolgorde opgeslagen.' : 'Product opgeslagen.' });
         return true;
       } catch (e) {
         blocked.current = true;
-        if (alive.current) { setSaveState('error'); setError(e instanceof TypeError ? 'De verbinding is onderbroken. Je invoer blijft behouden. Probeer opnieuw zodra je verbinding terug is.' : (e as Error).message); }
+        const message = e instanceof TypeError ? 'De verbinding is onderbroken. Je invoer blijft behouden. Probeer opnieuw zodra je verbinding terug is.' : (e as Error).message;
+        if (alive.current) { setSaveState('error'); setError(message); }
+        else notify({ id: 'product-action', tone: 'error', message });
         return false;
       }
     };
     flight.current = run();
     try { return await flight.current; } finally { flight.current = null; }
-  }, [recoveryKey]);
+  }, [recoveryKey, notify]);
+
+  useEffect(() => {
+    if (!error) return;
+    const action = conflict
+      ? { label: 'Vergelijk versies', run: () => { const panel = document.querySelector<HTMLElement>('.pe-conflict'); panel?.scrollIntoView({ block: 'center' }); panel?.focus({ preventScroll: true }); } }
+      : sessionExpired
+        ? { label: 'Opnieuw inloggen', run: () => { document.getElementById('renew-password')?.focus(); } }
+        : { label: 'Opnieuw proberen', run: () => { void save(true, retryPhotosOnly.current); } };
+    notify({ id: 'product-action', tone: 'error', message: error, action });
+  }, [error, conflict, sessionExpired, notify, save]);
+  useEffect(() => { if (recoveryWarning) notify({ id: 'product-recovery', tone: 'error', message: recoveryWarning }); }, [recoveryWarning, notify]);
 
   useEffect(() => { if (!dirty || !draft.materialGroup || recovery) return; const timer = setTimeout(() => { void save(); }, 1100); return () => clearTimeout(timer); }, [draft, dirty, save, recovery]);
   useEffect(() => {
@@ -159,7 +176,10 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
     latest.current = next;
     setDraft(next);
   }
-  const updatePhotos = (photos: Photo[]) => change('photos', photos);
+  const updatePhotos = (photos: Photo[], immediate = true) => {
+    change('photos', photos);
+    return immediate ? save(false, true) : Promise.resolve(true);
+  };
   const updateQueue = () => { if (alive.current) setPending([...queue.current]); };
   async function processQueue() {
     if (uploading.current) return;
@@ -168,16 +188,18 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
       const next = queue.current.find(p => p.state === 'waiting');
       if (!next) break;
       next.state = 'uploading'; updateQueue();
+      notify({ id: 'product-upload', tone: 'loading', message: 'Foto uploaden…' });
       try {
         const body = new FormData(); body.append('file', next.file);
         const response = await fetch('/api/images', { method: 'POST', body });
         const photo = await response.json();
         if (!response.ok) throw new Error(photo.error || 'Deze foto kon niet worden verwerkt.');
         if (!alive.current) break;
-        updatePhotos([...latest.current.photos, photo]);
+        await updatePhotos([...latest.current.photos, photo]);
+        notify({ id: 'product-upload', tone: 'success', message: 'Foto geüpload.' });
         queue.current = queue.current.filter(p => p.key !== next.key);
         URL.revokeObjectURL(next.preview);
-      } catch (e) { next.state = 'error'; next.error = (e as Error).message; }
+      } catch (e) { next.state = 'error'; next.error = (e as Error).message; notify({ id: 'product-upload', tone: 'error', message: next.error }); }
       updateQueue();
     }
     uploading.current = false;
@@ -195,8 +217,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
     const photos = [...latest.current.photos]; const start = photos.findIndex(p => p.id === from); const end = photos.findIndex(p => p.id === to);
     if (start < 0 || end < 0 || start === end) return;
     photos.splice(end, 0, photos.splice(start, 1)[0]);
-    updatePhotos(photos);
-    void save(false, true).then(ok => { if (ok && alive.current) setFeedback('Fotovolgorde opgeslagen. De eerste foto is de hoofdfoto.'); });
+    void updatePhotos(photos).then(ok => { if (ok && alive.current) setFeedback('Fotovolgorde opgeslagen. De eerste foto is de hoofdfoto.'); });
   }
   function focusField(field: string) { const target = document.getElementById(`product-${field}`); target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); target?.focus({ preventScroll: true }); }
   async function finish(next = false) {
@@ -205,7 +226,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
   }
   async function markReady() {
     setShowCheck(true);
-    if (missing.length || hasPending) { if (missing[0]) focusField(missing[0].field); return; }
+    if (missing.length || hasPending) { notify({ id: 'product-action', tone: 'info', message: hasPending ? 'Wacht tot de foto’s verwerkt zijn.' : 'Vul de ontbrekende gegevens aan voordat je dit product als klaar markeert.' }); if (missing[0]) focusField(missing[0].field); return; }
     change('editorReady', true);
     // Commit the exact state synchronously; React may not have rendered it yet.
     latest.current = { ...latest.current, editorReady: true };
@@ -233,12 +254,12 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
 
   return <div className="product-workspace">
     <div className="pe-topbar"><button className="a-back" onClick={onBack}><ArrowLeft size={16} />Alle producten</button><div className={`pe-save-state ${saveState === 'error' ? 'is-error' : ''}`} role="status">{saveState === 'saving' ? <LoaderCircle size={15} className="a-spin" /> : saveState === 'error' ? <RotateCcw size={15} /> : <Check size={15} />}<span>{saveState === 'saving' ? 'Wijzigingen bewaren…' : saveState === 'error' ? 'Nog niet bewaard' : dirty ? 'Wijzigingen klaar om te bewaren' : savedAt ? `Opgeslagen om ${new Intl.DateTimeFormat('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }).format(new Date(savedAt))}` : 'Begin waar je wilt'}</span>{saveState === 'error' && <button onClick={() => void save(true, retryPhotosOnly.current)}>Opnieuw proberen</button>}</div></div>
-    {recovery && <div className="pe-recovery"><div><strong>Er staat nog invoer in deze browser.</strong><p>Herstel je vorige wijzigingen of ga verder met de opgeslagen versie.</p></div><button className="a-secondary" onClick={() => { setDraft(recovery.draft); latest.current = recovery.draft; setRecoveredKey(recovery.creationKey); setRecovery(null); blocked.current = false; }}>Invoer herstellen</button><button className="a-link" onClick={() => { localStorage.removeItem(recoveryKey); setRecovery(null); }}>Opgeslagen versie houden</button></div>}
+    {recovery && <div className="pe-recovery"><div><strong>Er staat nog invoer in deze browser.</strong><p>Herstel je vorige wijzigingen of ga verder met de opgeslagen versie.</p></div><button className="a-secondary" onClick={() => { setDraft(recovery.draft); latest.current = recovery.draft; setRecoveredKey(recovery.creationKey); setRecovery(null); blocked.current = false; notify({ id: 'product-action', tone: 'info', message: 'Je vorige invoer is hersteld.' }); }}>Invoer herstellen</button><button className="a-link" onClick={() => { localStorage.removeItem(recoveryKey); setRecovery(null); notify({ id: 'product-action', tone: 'success', message: 'De opgeslagen versie blijft behouden.' }); }}>Opgeslagen versie houden</button></div>}
     {sessionExpired && <form className="pe-session" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const password = new FormData(form).get('password'); setLoginBusy(true); setError(''); try { const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, email: 'katrien@lothuus.be' }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Inloggen is niet gelukt.'); form.reset(); setSessionExpired(false); await save(true, retryPhotosOnly.current); } catch (e) { setError((e as Error).message); } finally { setLoginBusy(false); } }}><div><h2>Even opnieuw inloggen</h2><p>Je invoer blijft op deze pagina staan. Na het inloggen bewaren we verder.</p></div><label htmlFor="renew-password">Je wachtwoord<input id="renew-password" type="password" name="password" autoComplete="current-password" required maxLength={200} /></label><button className="a-button" disabled={loginBusy}>{loginBusy ? 'Inloggen…' : 'Inloggen en bewaren'}</button></form>}
-    {conflict && <section className="pe-conflict" aria-label="Gewijzigd in een ander venster"><h2>Dit product is ook in een ander venster gewijzigd.</h2><p>Je eigen invoer blijft hier staan. Vergelijk de versies en kies welke je wilt bewaren.</p><div className="pe-conflict-versions">{[{ label: 'Jouw invoer', value: draft }, { label: 'Opgeslagen versie', value: fromItem(conflict) }].map(version => <div key={version.label}><h3>{version.label}</h3><dl>{textTargets.map(target => <div key={target.key}><dt>{target.label}</dt><dd>{version.value[target.key] || 'Nog leeg'}</dd></div>)}<div><dt>Foto’s</dt><dd>{version.value.photos.length} foto’s, in volgorde: {version.value.photos.map(p => p.alt).join(', ')}</dd></div></dl></div>)}</div><div className="a-actions"><button className="a-secondary" type="button" onClick={() => { const value = fromItem(conflict); meta.current = conflict; saved.current = JSON.stringify(value); latest.current = value; setDraft(value); setServerItem(conflict); setSavedAt(conflict.updatedAt || conflict.createdAt); setConflict(null); setError(''); setSaveState('saved'); blocked.current = false; try { localStorage.removeItem(recoveryKey); } catch {} }}>Opgeslagen versie gebruiken</button><button className="a-button" type="button" onClick={() => { meta.current = conflict; setConflict(null); void save(true); }}>Bewaren met mijn invoer</button></div></section>}
+    {conflict && <section className="pe-conflict" tabIndex={-1} aria-label="Gewijzigd in een ander venster"><h2>Dit product is ook in een ander venster gewijzigd.</h2><p>Je eigen invoer blijft hier staan. Vergelijk de versies en kies welke je wilt bewaren.</p><div className="pe-conflict-versions">{[{ label: 'Jouw invoer', value: draft }, { label: 'Opgeslagen versie', value: fromItem(conflict) }].map(version => <div key={version.label}><h3>{version.label}</h3><dl>{textTargets.map(target => <div key={target.key}><dt>{target.label}</dt><dd>{version.value[target.key] || 'Nog leeg'}</dd></div>)}<div><dt>Foto’s</dt><dd>{version.value.photos.length} foto’s, in volgorde: {version.value.photos.map(p => p.alt).join(', ')}</dd></div></dl></div>)}</div><div className="a-actions"><button className="a-secondary" type="button" onClick={() => { const value = fromItem(conflict); meta.current = conflict; saved.current = JSON.stringify(value); latest.current = value; setDraft(value); setServerItem(conflict); setSavedAt(conflict.updatedAt || conflict.createdAt); setConflict(null); setError(''); setSaveState('saved'); blocked.current = false; try { localStorage.removeItem(recoveryKey); } catch {} }}>Opgeslagen versie gebruiken</button><button className="a-button" type="button" onClick={() => { meta.current = conflict; setConflict(null); void save(true); }}>Bewaren met mijn invoer</button></div></section>}
     {recoveryWarning && <p className="a-info" role="status">{recoveryWarning}</p>}
     {error && <div className="a-error pe-message" role="alert"><span>{error}</span><button type="button" aria-label="Melding sluiten" onClick={() => setError('')}><X size={16} /></button></div>}
-    {feedback && <div className="a-notice pe-message" role="status"><Check size={16} /><span>{feedback}</span></div>}
+
     <div className="pe-layout"><form ref={formRef} className="pe-form" aria-busy={correcting} onSubmit={(event: FormEvent) => { event.preventDefault(); void finish(); }}><fieldset className="pe-fieldset" disabled={correcting}>
       <section className="pe-section" aria-labelledby="material-heading"><div className="pe-section-title"><div><h2 id="material-heading">Een plek in je collectie</h2><p>Kies het materiaal. Het productnummer regelen wij.</p></div>{serverItem?.productNumber && <span className="pe-number">{serverItem.productNumber}<LockKeyhole size={13} /></span>}</div>
         {serverItem?.sourceReference && <p className="pe-hint">Overgezet uit fotomap {serverItem.sourceReference}.{(serverItem.sourcePhotoCount || 0) > 8 ? ` De eerste 8 van ${serverItem.sourcePhotoCount} foto’s staan op deze fiche. Alle foto’s blijven bewaard in de oorspronkelijke fotocollectie en het importarchief.` : ' Je kunt de voorlopige titel hieronder aanpassen.'}</p>}
@@ -253,7 +274,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
             <div className="pe-photo-image"><img src={`/api/images/${photo.id}?size=thumb`} alt={photo.alt} /><span className={`pe-photo-label ${index === 0 ? 'is-cover' : ''}`}>{index === 0 ? 'Hoofdfoto' : String(index + 1).padStart(2, '0')}</span><button type="button" className="pe-photo-remove" aria-label={`Foto ${index + 1} verwijderen`} onClick={() => { setRemoved({ photo, index }); updatePhotos(latest.current.photos.filter(p => p.id !== photo.id)); }}><X size={15} /></button></div>
             <div className="pe-photo-controls"><button type="button" className="pe-drag-handle" aria-label={`Foto ${index + 1} verslepen`} onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setDragPhoto(photo.id); }} onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) { const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-photo-id]'); setDropPhoto(target?.getAttribute('data-photo-id') || null); } }} onPointerUp={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) { const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-photo-id]')?.getAttribute('data-photo-id'); if (target) reorder(photo.id, target); e.currentTarget.releasePointerCapture(e.pointerId); } setDragPhoto(null); setDropPhoto(null); }} onPointerCancel={() => { setDragPhoto(null); setDropPhoto(null); }}><GripVertical size={17} /></button><span>Foto {index + 1}</span><button type="button" disabled={index === 0} aria-label={`Foto ${index + 1} eerder plaatsen`} onClick={() => reorder(photo.id, draft.photos[index - 1].id)}><ArrowLeft size={14} /></button><button type="button" disabled={index === draft.photos.length - 1} aria-label={`Foto ${index + 1} later plaatsen`} onClick={() => reorder(photo.id, draft.photos[index + 1].id)}><ArrowRight size={14} /></button></div>
             {index > 0 && <button type="button" className="pe-make-cover" aria-label={`Foto ${index + 1} als hoofdfoto instellen`} onClick={() => reorder(photo.id, latest.current.photos[0].id)}>Maak hoofdfoto</button>}
-            <details className="pe-photo-alt"><summary>Fotobeschrijving</summary><input aria-label={`Beschrijving foto ${index + 1}`} maxLength={240} value={photo.alt} onChange={e => updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: e.target.value } : p))} onBlur={() => { if (!photo.alt.trim()) updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: `Productfoto ${index + 1}` } : p)); }} /></details>
+            <details className="pe-photo-alt"><summary>Fotobeschrijving</summary><input aria-label={`Beschrijving foto ${index + 1}`} maxLength={240} value={photo.alt} onChange={e => updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: e.target.value } : p), false)} onBlur={() => { if (!photo.alt.trim()) updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: `Productfoto ${index + 1}` } : p), false); }} /></details>
           </div>)}{pending.map(p => <div className="pe-photo pe-pending" key={p.key}><div className="pe-photo-image"><img src={p.preview} alt={p.file.name} /><span className="pe-photo-label">{p.state === 'error' ? 'Niet gelukt' : 'Verwerken…'}</span></div><p>{p.state === 'error' ? p.error : p.file.name}</p>{p.state === 'error' ? <div className="pe-pending-actions"><button type="button" className="a-link" onClick={() => { p.state = 'waiting'; updateQueue(); void processQueue(); }}>Opnieuw</button><button type="button" aria-label={`Upload ${p.file.name} verwijderen`} onClick={() => { URL.revokeObjectURL(p.preview); queue.current = queue.current.filter(v => v.key !== p.key); updateQueue(); }}><X size={16} /></button></div> : <LoaderCircle className="a-spin" size={17} />}</div>)}
           {draft.photos.length + pending.length < 8 && draft.photos.length > 0 && <button className="pe-add-photo" type="button" onClick={() => fileInput.current?.click()}><ImagePlus size={23} /><span>Foto toevoegen</span></button>}</div>}
           {!draft.photos.length && !pending.length && <button className="pe-dropzone" type="button" onClick={() => fileInput.current?.click()}><span className="pe-upload-icon"><ImagePlus size={27} strokeWidth={1.4} /></span><strong>Sleep je foto’s hierheen</strong><span>of <u>kies foto’s op je computer</u></span><small>2 tot 8 foto’s · JPEG, PNG, WebP of AVIF · tot 15 MB per foto</small></button>}
@@ -262,7 +283,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
         {removed && <div className="pe-undo" role="status"><span>Foto verwijderd uit de fiche.</span><button type="button" onClick={() => { if (latest.current.photos.length + queue.current.length >= 8) { setError('Maak eerst een fotoplaats vrij om deze foto terug te zetten.'); return; } const photos = [...latest.current.photos]; photos.splice(removed.index, 0, removed.photo); updatePhotos(photos); setRemoved(null); }}><RotateCcw size={14} />Ongedaan maken</button></div>}
         {draft.photos.length > 8 && <p className="a-info">Deze bestaande fiche heeft meer dan 8 foto’s. Ze blijven behouden. Kies maximaal 8 foto’s om de fiche als klaar te markeren.</p>}
       </section>
-    {serverItem?.sourcePhotos && serverItem.sourcePhotos.some(photo => !draft.photos.some(p => p.id === photo.id)) && <section className="pe-section pe-import-photos"><details><summary>Andere foto’s uit deze fotomap</summary><p className="pe-hint">Alle aangeleverde foto’s blijven hier beschikbaar. {draft.photos.length >= 8 ? 'Haal eerst een foto van de fiche om plaats te maken; je kunt maximaal acht foto’s kiezen.' : 'Klik op een foto om deze achteraan aan je fiche toe te voegen.'}</p><div>{serverItem.sourcePhotos.filter(photo=>!draft.photos.some(p=>p.id===photo.id)).map(photo=><button key={photo.id} type="button" className="a-secondary" disabled={draft.photos.length >= 8} onClick={()=>change('photos',[...draft.photos,photo])}><img src={`/api/images/${photo.id}?size=thumb`} alt={photo.alt} loading="lazy" /><span>Aan fiche toevoegen</span></button>)}</div></details></section>}
+    {serverItem?.sourcePhotos && serverItem.sourcePhotos.some(photo => !draft.photos.some(p => p.id === photo.id)) && <section className="pe-section pe-import-photos"><details><summary>Andere foto’s uit deze fotomap</summary><p className="pe-hint">Alle aangeleverde foto’s blijven hier beschikbaar. {draft.photos.length >= 8 ? 'Haal eerst een foto van de fiche om plaats te maken; je kunt maximaal acht foto’s kiezen.' : 'Klik op een foto om deze achteraan aan je fiche toe te voegen.'}</p><div>{serverItem.sourcePhotos.filter(photo=>!draft.photos.some(p=>p.id===photo.id)).map(photo=><button key={photo.id} type="button" className="a-secondary" disabled={draft.photos.length >= 8} onClick={()=>void updatePhotos([...latest.current.photos,photo])}><img src={`/api/images/${photo.id}?size=thumb`} alt={photo.alt} loading="lazy" /><span>Aan fiche toevoegen</span></button>)}</div></details></section>}
       <section className="pe-section" aria-labelledby="story-heading"><div className="pe-section-title"><div><h2 id="story-heading">Het verhaal van je product</h2><p>Schrijf zelf of gebruik een tekst die je al hebt.</p></div><button type="button" className={`a-secondary pe-paste-trigger ${showText ? 'is-selected' : ''}`} aria-expanded={showText} aria-controls="pe-text-assistant" onClick={() => setShowText(!showText)}><ClipboardPaste size={16} />Bestaande tekst gebruiken</button></div>
         {showText && <TextAssistant draft={draft} onApply={fields => { const next = { ...latest.current, ...fields, editorReady: false }; latest.current = next; setDraft(next); blocked.current = false; setFeedback('Tekst verdeeld. Kijk de velden nog even na.'); }} />}
         <div className="pe-fields"><EditorField id="title" label="Titel" hint="Een korte, herkenbare naam voor dit product." wide><input id="product-title" value={draft.title} maxLength={180} placeholder="Bijvoorbeeld: groene vaas met druipglazuur" onChange={e => change('title', e.target.value)} /></EditorField><EditorField id="description" label="Beschrijving" wide><textarea id="product-description" rows={5} maxLength={6000} value={draft.description} placeholder="Wat maakt dit object bijzonder? Vertel over de vorm, het materiaal of een mooi detail." onChange={e => change('description', e.target.value)} /><span className="pe-character-count">{draft.description.length.toLocaleString('nl-BE')} / 6.000</span></EditorField></div>

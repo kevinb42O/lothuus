@@ -280,3 +280,42 @@ test('photo ordering is persisted across database reloads before completing a dr
   assert.equal(reloaded.priceUnset, true);
   assert.equal(reloaded.publication, 'draft');
 });
+
+
+test('public source catalogue follows the saved photo order without publishing draft fields', async () => {
+  const { objects: sources } = await import('../collection');
+  const source = sources.find(item => item.id === 'K003')!;
+  const s = initialStore();
+  const importedPhotos = source.photos!.map((photo, index) => ({ id: randomUUID(), alt: `Privébeschrijving ${index}` }));
+  command(s, { action: 'save-item', item: { title: 'Privétitel', category: 'keramiek', description: 'Privéconcepttekst', priceCents: 12345, date: '', material: '', dimensions: '', maker: '', condition: '', publication: 'draft', photos: importedPhotos } });
+  const item = s.items[0];
+  item.sourceReference = source.id;
+  item.sourcePhotos = [...importedPhotos];
+  command(s, { action: 'save-item-photos', id: item.id, version: item.version, photos: [importedPhotos[1], importedPhotos[2], importedPhotos[0], importedPhotos[3]] });
+  const projection = catalogue(s).objects.find(item => item.id === source.id)!;
+  assert.equal(projection.image, source.photos![1].src);
+  assert.deepEqual(projection.photos!.map(photo => photo.id), [source.photos![1].id, source.photos![2].id, source.photos![0].id, source.photos![3].id]);
+  assert.equal(projection.version, 1, 'source reservation versions remain compatible');
+  assert.equal(projection.title, source.title);
+  assert.equal(projection.description, source.description);
+  assert.equal(projection.priceCents, undefined);
+  assert.ok(!JSON.stringify(projection).includes('Privé'));
+  assert.equal(s.items[0].publication, 'draft');
+});
+
+test('private uploads in an imported draft are never exposed through the public source catalogue', async () => {
+  const { objects: sources } = await import('../collection');
+  const source = sources.find(item => item.id === 'K003')!;
+  const s = fixture();
+  const item = s.items[0];
+  item.publication = 'draft';
+  item.sourceReference = source.id;
+  item.sourcePhotos = source.photos!.map((photo, index) => ({ id: randomUUID(), alt: `Import ${index}` }));
+  const privatePhoto = { id: randomUUID(), alt: 'Geheime nieuwe foto' };
+  item.photos = [privatePhoto, item.sourcePhotos[2], item.sourcePhotos[0]];
+  const projection = catalogue(s).objects.find(item => item.id === source.id)!;
+  assert.equal(projection.image, source.photos![2].src);
+  assert.deepEqual(projection.photos!.map(photo => photo.id), [source.photos![2].id, source.photos![0].id]);
+  assert.ok(!JSON.stringify(projection).includes(privatePhoto.id));
+  assert.ok(!JSON.stringify(projection).includes(privatePhoto.alt));
+});

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useToast } from './toasts';
 import { ArrowDownUp, ArrowRight, ArrowUpRight, Check, ChevronRight, Clock3, FileText, ImagePlus, LayoutGrid, List, LockKeyhole, Plus, Search, X } from 'lucide-react';
 import { objects as suppliedObjects } from '@/lib/collection';
 import { availability, money, type AdminStore, type Item } from '@/lib/backend/types';
@@ -28,6 +29,7 @@ export function Inventory({ store, onEdit, onNew, initialFilter = 'all' }: { sto
   const [sort, setSort] = useState('recent');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [exportNotice, setExportNotice] = useState('');
+  const { notify } = useToast();
   const counts = useMemo(() => Object.fromEntries(filters.map(f => [f.id, store.items.filter(i => f.id === 'all' ? i.publication !== 'archived' : itemState(store, i) === f.id).length])), [store]);
   const rows = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('nl-BE');
@@ -36,7 +38,7 @@ export function Inventory({ store, onEdit, onNew, initialFilter = 'all' }: { sto
   function exportProducts() {
     const cell = (value: string) => `"${(/^[=+@\-\t\r]/.test(value) ? "'" : '') + value.replaceAll('"', '""')}"`;
     const body = '\uFEFF' + [['Productnummer', 'Titel', 'Materiaal', 'Beschrijving', 'Stijl / Periode', 'Afmetingen', 'Staat', 'Prijs EUR', 'Status'], ...rows.map(i => [i.productNumber || '', i.title, materialName(i.materialGroup), i.description, i.date, i.dimensions, i.condition, i.priceUnset ? '' : (i.priceCents / 100).toFixed(2).replace('.', ','), stateName(itemState(store, i)) || ''])].map(row => row.map(cell).join(';')).join('\r\n');
-    const url = URL.createObjectURL(new Blob([body], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = 'lothuus-producten.csv'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setExportNotice(`${rows.length} producten geëxporteerd. Foto’s zijn niet inbegrepen.`);
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = 'lothuus-producten.csv'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); const message = `${rows.length} producten geëxporteerd. Foto’s zijn niet inbegrepen.`; setExportNotice(message); notify({ id: 'product-export', tone: 'success', message });
   }
   return <div className="inventory"><div className="inv-tabs" role="group" aria-label="Productstatus">{filters.map(f => <button key={f.id} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label}<span>{counts[f.id]}</span></button>)}</div><div className="inv-toolbar"><label className="inv-search"><Search size={18} /><input type="search" aria-label="Zoek producten" placeholder="Zoek op nummer, titel of beschrijving…" value={query} onChange={e => setQuery(e.target.value)} /></label><select aria-label="Filter op materiaal" value={material} onChange={e => setMaterial(e.target.value)}><option value="all">Alle materialen</option>{materialGroups.map(m => <option value={m.code} key={m.code}>{m.label}</option>)}</select><div className="inv-sort"><ArrowDownUp size={15} /><select aria-label="Sorteer producten" value={sort} onChange={e => setSort(e.target.value)}><option value="recent">Laatst bewerkt</option><option value="number">Productnummer</option><option value="title">Titel A–Z</option><option value="price">Prijs oplopend</option></select></div><div className="inv-view" role="group" aria-label="Weergave"><button aria-label="Rasterweergave" aria-pressed={view === 'grid'} onClick={() => setView('grid')}><LayoutGrid size={17} /></button><button aria-label="Lijstweergave" aria-pressed={view === 'list'} onClick={() => setView('list')}><List size={19} /></button></div></div>
     <div className="inv-result-line"><span>{rows.length} {rows.length === 1 ? 'product' : 'producten'}{material !== 'all' ? ` in ${materialName(material).toLowerCase()}` : ''}</span><div>{(query || material !== 'all' || filter !== 'all') && <button onClick={() => { setQuery(''); setMaterial('all'); setFilter('all'); }}><X size={13} />Filters wissen</button>}<button disabled={!rows.length} onClick={exportProducts}>Producten exporteren<ArrowUpRight size={13} /></button></div></div>{exportNotice && <p className="a-notice" role="status"><Check size={15} />{exportNotice}</p>}

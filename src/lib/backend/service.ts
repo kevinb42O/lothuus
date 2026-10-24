@@ -17,7 +17,18 @@ export function limit(s: Store, key: string, max: number, milliseconds: number) 
 export function catalogue(s: Store) {
   const objects: PublicObject[] = s.items.filter(i => i.publication === 'published').map(i => ({ id: i.id, title: i.title, category: i.category, description: i.description, date: i.date, material: i.material, dimensions: i.dimensions, maker: i.maker, image: `/api/images/${i.photos[0]?.id}?size=grid`, source: '', credit: '', imageSource: '', license: '', priceCents: i.priceCents, condition: i.condition, availability: availability(s, i.id), version: i.version, photos: i.photos }));
   const reservedSources = new Set(s.reservations.flatMap(r => reservationLines(r).map(line => line.itemId)));
-  const sourceObjects = suppliedObjects.filter(o => !objects.length || reservedSources.has(o.id)).map(o => ({ ...o, version: 1, availability: availability(s, o.id) }));
+  const importedItems = new Map(s.items.filter(item => item.sourceReference).map(item => [item.sourceReference, item]));
+  const sourceObjects = suppliedObjects.filter(o => !objects.length || reservedSources.has(o.id)).map(o => {
+    const item = importedItems.get(o.id);
+    // Follow the editor's selection using photos that are already public in the source catalogue.
+    // Private uploads and unfinished product text stay private until publication.
+    const selected = item?.photos.flatMap(photo => {
+      const index = item.sourcePhotos?.findIndex(source => source.id === photo.id) ?? -1;
+      return index >= 0 && o.photos?.[index]?.src ? [o.photos[index]] : [];
+    }) || [];
+    const photos = selected.length ? selected : o.photos;
+    return { ...o, image: photos?.[0]?.src || o.image, photos, version: 1, availability: availability(s, o.id) };
+  });
   const hasInventory = objects.length > 0;
   const { businessName, pickup, terms, privacy, termsVersion, deadlineDays } = s.settings;
   return { objects: [...objects, ...sourceObjects], hasInventory, settings: { businessName, pickup, terms, privacy, termsVersion, deadlineDays, acceptsReservations: s.settings.requestsEnabled !== false, ready: ready(s) }, local: true };
