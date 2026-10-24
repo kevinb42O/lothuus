@@ -74,11 +74,10 @@ function Detail({ object, saved, onSave, onClose, onSelection, count }: { object
 export function Lothuus() {
   const [objects, setObjects] = useState<CollectionObject[]>(suppliedObjects);
   const [publicSettings, setPublicSettings] = useState<PublicSettings | null>(null);
-  const [catalogueError, setCatalogueError] = useState('');
   const [isSuppliedCollection, setIsSuppliedCollection] = useState(true);
   const refreshCatalogue = useCallback(async () => {
-    try { const response = await fetch('/api/catalogue', { cache: 'no-store' }); if (!response.ok) throw new Error(); const data = await response.json(); setObjects(current => { const next = data.objects; return JSON.stringify(current) === JSON.stringify(next) ? current : next; }); setIsSuppliedCollection(!data.hasInventory); setPublicSettings(data.settings); setCatalogueError(''); }
-    catch { setPublicSettings(null); setCatalogueError('De actuele beschikbaarheid kan niet worden opgehaald. Reserveren is tijdelijk niet mogelijk.'); }
+    try { const response = await fetch('/api/catalogue', { cache: 'no-store' }); if (!response.ok) throw new Error(); const data = await response.json(); setObjects(current => { const next = data.objects; return JSON.stringify(current) === JSON.stringify(next) ? current : next; }); setIsSuppliedCollection(!data.hasInventory); setPublicSettings(data.settings); }
+    catch { setPublicSettings(null); }
   }, []);
   useEffect(() => { void refreshCatalogue(); const refresh = () => { if (!document.hidden) void refreshCatalogue(); }; const interval = setInterval(refresh, 15000); window.addEventListener('focus', refresh); return () => { clearInterval(interval); window.removeEventListener('focus', refresh); }; }, [refreshCatalogue]);
   const [filter, setFilter] = useState<Category | 'alles'>('alles');
@@ -144,7 +143,6 @@ export function Lothuus() {
           <div className="category-filters" role="group" aria-label="Filter de collectie">{countedCategories.map(category => <button key={category.id} aria-pressed={filter === category.id} aria-label={`${category.label}, ${category.count} ${category.count === 1 ? 'object' : 'objecten'}`} onClick={() => chooseFilter(category.id)}><span>{category.label}</span><sup className="category-count" aria-hidden="true">{category.count}</sup></button>)}</div>
           <button className="selection-button" onClick={openSelection} aria-label={`Mijn selectie, ${saved.length} ${saved.length === 1 ? 'object' : 'objecten'}`}><Heart size={18} strokeWidth={1.4} /><span className="selection-label">Mijn selectie</span><span className="selection-count">{String(saved.length).padStart(2, '0')}</span></button>
         </header>
-        {catalogueError && <p className="catalogue-notice" role="alert">{catalogueError}</p>}
         {!isSuppliedCollection && <p className="catalogue-notice">Eigen collectie · lokale testomgeving. Reserveringen worden opgeslagen; e-mails worden nog niet verstuurd.</p>}
         {filtered.length ? <Mosaic objects={filtered} filterKey={filter} focused={filter !== 'alles'} saved={saved} onToggle={toggleSaved} onOpen={setDetail} /> : <p className="catalogue-empty">Binnenkort vind je hier nieuwe objecten. Kom gerust nog eens kijken.</p>}
         <div className="collection-bottom"><span>{String(filtered.length).padStart(3, '0')} objecten met een verleden</span><p>Het mooiste vind je als je even blijft kijken.</p><button className="text-link" onClick={() => setPanel('how')}>Over dit archief <Plus size={14} /></button></div>
