@@ -35,7 +35,11 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next-github-check/types/**/*.ts",
-    ".next-github-check/dev/types/**/*.ts"
+    ".next-github-check/dev/types/**/*.ts",
+    ".next-house-check/types/**/*.ts",
+    ".next-house-check/dev/types/**/*.ts",
+    ".next-door-check/types/**/*.ts",
+    ".next-door-check/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

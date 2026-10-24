@@ -88,8 +88,8 @@ export function Lothuus() {
     const toolbar = filterAnchor.current;
     if (toolbar) {
       const top = toolbar.getBoundingClientRect().top;
-      if (top < 24 || top > window.innerHeight * .45) {
-        window.scrollTo({ top: window.scrollY + top - 24, behavior: 'instant' });
+      if (top < -1 || top > window.innerHeight * .45) {
+        window.scrollTo({ top: window.scrollY + top, behavior: 'instant' });
       }
     }
     setFilter(next);
@@ -135,21 +135,21 @@ export function Lothuus() {
   }
   return <>
     <a href="#collectie" className="skip-link">Naar de collectie</a>
-    <header className="site-header">
-      <a href="#" className="brand-link" aria-label="LOTHUUS, naar boven"><Wordmark /></a>
-      <nav aria-label="Hoofdnavigatie"><a href="#huis" className="house-nav">Het huis</a><a href="#collectie" className="current-link">Vintage <span className="nav-dot" /></a><button className="how-nav" onClick={() => setPanel('how')}>Hoe werkt het?</button></nav>
-      <button className="selection-button" onClick={openSelection} aria-label={`Mijn selectie, ${saved.length} ${saved.length === 1 ? 'object' : 'objecten'}`}><Heart size={18} strokeWidth={1.4} /><span>Mijn selectie</span><span className="selection-count">{String(saved.length).padStart(2, '0')}</span></button>
-    </header>
     <main>
-      <DoorwayHero />
-      <section id="collectie" className="collection-section" aria-labelledby="collection-heading">
-        <div className="collection-title-row"><h2 id="collection-heading">Een verzameling om in te verdwalen.</h2><span className="archive-total">{objects.length} objecten</span></div>
-        <div ref={filterAnchor} aria-hidden="true" /><div className="collection-toolbar"><div className="category-filters" role="group" aria-label="Filter de collectie">{countedCategories.map(category => <button key={category.id} aria-pressed={filter === category.id} aria-label={`${category.label}, ${category.count} ${category.count === 1 ? 'object' : 'objecten'}`} onClick={() => chooseFilter(category.id)}><span>{category.label}</span><sup className="category-count" aria-hidden="true">{category.count}</sup></button>)}</div><span className="hover-hint"><span className="hint-dot" /><span className="desktop-hint">Bekijk van dichtbij. Beweeg over een foto.</span><span className="touch-hint">Tik op een foto voor alle details.</span></span></div>
+      <DoorwayHero>
+      <section id="collectie" tabIndex={-1} className="collection-section" aria-label="LOTHUUS vintagecollectie">
+        <div ref={filterAnchor} aria-hidden="true" />
+        <header className="collection-toolbar collection-navbar">
+          <a href="#collectie" className="brand-link" aria-label="LOTHUUS, naar het begin van de collectie"><Wordmark /></a>
+          <div className="category-filters" role="group" aria-label="Filter de collectie">{countedCategories.map(category => <button key={category.id} aria-pressed={filter === category.id} aria-label={`${category.label}, ${category.count} ${category.count === 1 ? 'object' : 'objecten'}`} onClick={() => chooseFilter(category.id)}><span>{category.label}</span><sup className="category-count" aria-hidden="true">{category.count}</sup></button>)}</div>
+          <button className="selection-button" onClick={openSelection} aria-label={`Mijn selectie, ${saved.length} ${saved.length === 1 ? 'object' : 'objecten'}`}><Heart size={18} strokeWidth={1.4} /><span className="selection-label">Mijn selectie</span><span className="selection-count">{String(saved.length).padStart(2, '0')}</span></button>
+        </header>
         {catalogueError && <p className="catalogue-notice" role="alert">{catalogueError}</p>}
         {!isSuppliedCollection && <p className="catalogue-notice">Eigen collectie · lokale testomgeving. Reserveringen worden opgeslagen; e-mails worden nog niet verstuurd.</p>}
         {filtered.length ? <Mosaic objects={filtered} filterKey={filter} focused={filter !== 'alles'} saved={saved} onToggle={toggleSaved} onOpen={setDetail} /> : <p className="catalogue-empty">Binnenkort vind je hier nieuwe objecten. Kom gerust nog eens kijken.</p>}
         <div className="collection-bottom"><span>{String(filtered.length).padStart(3, '0')} objecten met een verleden</span><p>Het mooiste vind je als je even blijft kijken.</p><button className="text-link" onClick={() => setPanel('how')}>Over dit archief <Plus size={14} /></button></div>
       </section>
+      </DoorwayHero>
       <section className="house-section" id="huis" aria-labelledby="house-heading">
         <div className="house-photographs">
           <figure className="house-photo"><Image src="/house/lothuus-today-restored.png" alt="LOTHUUS vandaag: de okerkleurige gevel met donkere ramen, balkon en de boom voor het huis" width={1604} height={981} sizes="(max-width: 540px) 100vw, 45vw" loading="eager" /><figcaption><span>Het huis, vandaag</span><span>LOTHUUS</span></figcaption></figure>
@@ -157,6 +157,7 @@ export function Lothuus() {
         </div>
         <div className="house-copy"><span className="house-small-wordmark"><Wordmark /></span><h2 id="house-heading">Een huis voor cultuur<br />en <em>ontmoeting</em></h2><p>Sommige plekken brengen iets samen. Mensen en ideeën. Kunst en muziek. Het vertrouwde en het onverwachte.</p><p>LOTHUUS is zo’n plek. Ook onze liefde voor vintage begint hier: bij dingen die blijven boeien, en de verhalen die we met elkaar delen.</p><div className="house-topics"><span>CONCERTS</span><span>ART</span><span>MEETINGS</span><span>EVENTS</span></div><button className="text-link" onClick={() => setPanel('contact')}>Laten we kennismaken <ArrowUpRight size={17} /></button></div>
       </section>
+      <a className="house-explorer-route text-link" href="/huis">Verken het huis vrij in 3D <ArrowUpRight size={17}/></a>
     </main>
     <footer className="site-footer"><div className="footer-top"><a href="#" aria-label="LOTHUUS, naar boven"><Wordmark footer /></a><p>Een huis voor cultuur<br />en ontmoeting.</p><button onClick={() => setPanel('contact')}>Kom in contact <ArrowUpRight size={16} /></button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} LOTHUUS</span><span>Met aandacht verzameld. Met liefde doorgegeven.</span><span>LOTHUUS collectie · <a href="/admin">Beheer</a></span></div></footer>
     <div className={`selection-feedback ${feedback ? 'is-visible' : ''}`} role="status" aria-live="polite">{feedback && <><Heart size={16} fill="currentColor" /><span>{feedback}</span><button onClick={openSelection}>Bekijk selectie<ArrowUpRight size={15} /></button></>}</div>

@@ -29,7 +29,7 @@ export function useElasticGrid(container: RefObject<HTMLDivElement | null>, colu
       const scroll = window.scrollY;
       const delta = scroll - lastScroll;
       lastScroll = scroll;
-      if (document.body.style.overflow === 'hidden' || document.hidden) {
+      if (document.body.style.overflow === 'hidden' || document.hidden || grid.closest('[inert]')) {
         clear(); scrolling.current = false; frame = 0; return;
       }
       let moving = false;
@@ -50,6 +50,9 @@ export function useElasticGrid(container: RefObject<HTMLDivElement | null>, colu
     }
     function scroll() {
       // Ignore scroll events from the product dialog; those do not move the page.
+      if (grid.closest('[inert]')) {
+        clear(); scrolling.current = false; lastScroll = window.scrollY; return;
+      }
       const bounds = grid.getBoundingClientRect();
       if (bounds.bottom < -120 || bounds.top > window.innerHeight + 120 || document.body.style.overflow === 'hidden') {
         lastScroll = window.scrollY; return;

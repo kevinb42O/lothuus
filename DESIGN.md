@@ -215,3 +215,45 @@ Product dialogs fit the actual selected photograph. Portraits on desktop use a h
 
 
 **Not canonized:** some secondary footer and dialog credits still use 7–9px type; this is not a reusable reading scale. Archive captions have been raised to a more legible scale. Uppercase dialog metadata remains local rather than a reusable eyebrow pattern.
+
+
+### 3D entrance hero
+
+The homepage opens on the actual authored house, edge to edge across the full browser width, without a logo or invitation overlay. Native scroll drives one critically damped entrance progress: approach the real door, open it early, cross the threshold, and reveal the existing live collection directly. All door ironwork uses the accepted refined geometry. The stage stays in place with native sticky positioning across 2.4 viewport heights; GSAP tracks scroll without intercepting input. The live collection sits behind it during entry and returns to untransformed flow at the boundary so its category toolbar remains sticky. Reverse scroll reverses the complete entrance. Reduced motion keeps the static house above the collection with no pinned journey. `/huis` remains the full orbit/film explorer. The earlier generated-window and photographic-portal hero compositions are superseded.
+
+
+The hero doorway is a true transparent view onto the live collection from the moment the door opens. Scene depth preserves the stone frame and steps; a door-only coverage mask keeps the complete iron-and-glass leaf in front of the products. No interior is shown through the opening, and the facade does not crossfade over the collection. The reveal grows naturally as the camera approaches the threshold.
+
+
+The collection stands farther back on a virtual plane beyond the entire inward door swing. Its scale and position follow the camera projection; after crossing the threshold the camera continues toward the products until the live grid reaches its natural viewport size. The door opens in front of the distant collection rather than cutting into a screen-sized wall of products.
+
+
+The hero entrance begins directly in front of the doorway at x=0, z=23.4 m and an elevated 3.6 m eye position. The closer starting distance follows the supplied facade reference, with viewport-adaptive framing. A continuous straight approach descends smoothly to walking height before the door opens. The same reversible progress spring drives the entire shot; there are no camera cuts or separate timed phases. The complete opening door and distant live collection remain unchanged.
+
+
+During the entrance, the distant collection reads as an uninterrupted photo wall. A repeated atlas of the actual mosaic images fills the entire doorway, including the area above and beside the scaled page. It shares the live grid's photo crops, pitch and projected origin. The atlas fades into the aligned interactive mosaic only at arrival, with the title and category filters appearing then. Blank page margins and tiny page headings are never presented as the view inside the door.
+
+
+LOADING ENTRANCE: An opaque full-viewport paper surface covers the scene and collection from the server-rendered first view. Centred heavy-LO/light-THUUS lettering, the existing “Een huis voor cultuur en ontmoeting.” slogan and one 200px hairline are the entire loading identity. The bar follows actual initialization milestones, without a percentage counter. After the first complete WebGL frame and the final fill, the paper surface dissolves over 2400ms into the house; the header returns with it. Reduced motion switches directly. Collection/keyboard skip links dismiss the loader; a failed scene offers retry and collection access. The wordmark remains over the revealed house and becomes part of the scroll entrance.
+
+The entrance always initializes at the facade, including reloads with a remembered scroll position or #collectie hash. Scroll is locked while loading. The live collection and decorative photo wall stay explicitly hidden until the rendered camera opens the door; reversing back before the opening hides them again. Explicit collection links remain available.
+
+
+LETTERING FLIGHT — requested experiment: The white loading surface dissolves independently over 2.4 seconds; its slogan, hairline and skip label retire over 600ms. The same LOTHUUS lettering stays in place without a duplicate or a handoff. A virtual billboard at z=18 uses the existing camera distance and field of view to grow in perspective. It stays on the optical axis as the architectural lens descends, settles the original 36px upward offset onto the centre of the flight, and retires only at the plane crossing. Reverse scrolling restores the lettering. The grid remains hidden until the doorway opens. Reduced motion removes the lettering flight and slow dissolve.
+
+
+LETTERING FLIGHT REFINEMENT: The white outline was rejected and removed; the charcoal letters retain their original clean edges. The camera briefly holds its starting elevation, tilts upward to 1.8 degrees toward the wordmark, then settles through a restrained 0.8-degree downward pitch and returns to level by 60% progress, before the doorway. The lettering centre aligns with the flight as the camera reaches its plane, rather than escaping toward the top of the viewport. The entrance remains driven by the same reversible progress spring.
+
+
+FOCUS REFINEMENT: The house starts with a restrained 7px optical defocus, while LOTHUUS stays sharp and has no outline. Focus resolves continuously with the rendered camera progress, from 1.5% to 28% of the entrance: the facade comes into focus as the visitor approaches and passes the letters. A maximum 3.5% canvas overscan keeps blurred edges covered. Both filter and overscan are removed entirely at focus, before the door opens, preserving accurate portal alignment and avoiding a permanent filter layer. Reverse scroll restores defocus; reduced motion uses a sharp static house.
+
+
+AUTOMATIC ENTRANCE — supersedes the scroll-driven homepage journey: Once the scene has rendered, the camera starts immediately while the white surface dissolves over 2.4 seconds. The 18-second take follows the existing lettering, focus, tilt, opening door and projected collection path. A modest nonzero initial speed removes the perceived hold; a continuous cubic easing gently accelerates and settles to zero velocity at arrival. There is no additional delay before movement. The page itself stays at scrollY=0; no visitor scroll input or programmatic document scrolling drives the take. At arrival the stage collapses and the same live collection returns to ordinary flow at its existing screen coordinates, with header space already reserved. The hero toggles playback on click/tap or keyboard activation, with a quiet centred pause glyph visible only while manually paused. No visible Pause/Continue button or instruction text is shown. A separate Skip link remains available; hidden tabs pause the clock without skipping ahead, and a manual pause persists. Reduced motion keeps the static house and ordinary collection, without autoplay. ScrollTrigger no longer drives the homepage hero. Immediate camera samples retain the static shadow cache until the door actually changes angle.
+
+
+COMPACT COLLECTION NAVIGATION — 24 October 2026: At collection arrival, show only the heavy-LO/light-THUUS wordmark, category filters with counts, and the heart / Mijn selectie checkout entry in one sticky 76px desktop row. Remove the separate global navigation, editorial collection title, duplicate total and hover instruction. Products begin 12px below the rule. Remove the entrance world's old header reservation and section top padding so arrival has no empty header band. Phones use a compact logo/selection row and horizontally scrollable filter row; all labels, pressed states and selection functionality remain accessible. How-to information remains available below the collection.
+
+
+GRID EDGE REFINEMENT — 24 October 2026: Only the photo grid breaks out of the page inset and maximum width. Keep a 12px viewport edge on desktop/tablet and 8px on phones. The navigation retains its existing inset and 1584px content cap. Container-relative sizing excludes the scrollbar and follows the live collection during the entrance.
+
+The loading wordmark begins in charcoal and transitions to white over 1.6 seconds immediately when loading completes, alongside the dissolving paper and immediate camera departure. There is no outline.

@@ -1,0 +1,52 @@
+.house-explorer { margin: 0 48px 110px; scroll-margin-top: 90px; }
+.house-explorer-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.house-explorer-heading h2 { margin: 0; font-size: clamp(32px, 3.6vw, 53px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; }
+.house-explorer-heading p { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.house-explorer button { font: inherit; cursor: pointer; color: var(--ink); border: 0; background: transparent; }
+.house-explorer button:focus-visible, .house-explorer a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.house-explorer button:disabled { opacity: .4; cursor: default; }
+.house-explorer-stage { aspect-ratio: 1604 / 981; position: relative; background: #eef1ef; overflow: hidden; }
+.house-explorer-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.house-explorer-canvas canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+.house-explorer-canvas canvas.is-dragging { cursor: grabbing; }
+.house-explorer-canvas.is-hidden { visibility: hidden; }
+.house-explorer-status, .house-explorer-instruction { position: absolute; bottom: 18px; left: 20px; display: flex; align-items: center; gap: 10px; padding: 10px 13px; background: rgb(250 250 247 / .94); color: var(--ink); font-size: 11px; line-height: 1.5; pointer-events: none; }
+.house-loading-mark { width: 12px; height: 12px; border: 1px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: house-loading 1.2s linear infinite; }
+@keyframes house-loading { to { transform: rotate(360deg); } }
+.house-explorer-error { position: absolute; inset: auto 20px 20px; background: var(--paper); padding: 16px 20px; max-width: 420px; }
+.house-explorer-error p { margin: 0 0 10px; font-size: 12px; line-height: 1.7; }
+.house-explorer-error button { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent); }
+.house-explorer-stage .house-explorer-fullscreen { position: absolute; right: 20px; bottom: 18px; width: 40px; height: 40px; display: grid; place-items: center; background: rgb(250 250 247 / .94); }
+.house-explorer-stage:fullscreen { width: 100vw; height: 100vh; aspect-ratio: auto; }
+.house-explorer-toolbar { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.house-explorer-views { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.house-explorer-views button { font-size: 12px; padding: 8px 0; }
+.house-explorer-views button[aria-pressed=true], .house-explorer-wind[aria-pressed=true] { color: var(--accent); }
+.house-explorer-views button:hover:not(:disabled), .house-explorer-tools button:hover:not(:disabled) { color: var(--accent); }
+.house-explorer-tools, .house-explorer-zoom { display: flex; gap: 4px; align-items: center; }
+.house-explorer-tools { gap: 18px; }
+.house-explorer-zoom button { width: 36px; height: 36px; display: grid; place-items: center; }
+.house-explorer-wind { display: flex; align-items: center; gap: 7px; font-size: 12px !important; padding: 8px 0; }
+.house-explorer-caption { display: flex; justify-content: space-between; align-items: start; gap: 30px; margin-top: 13px; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.house-explorer-caption p { margin: 0; max-width: 75ch; }
+.house-explorer-caption a { display: flex; align-items: center; gap: 8px; white-space: nowrap; text-decoration: none; color: var(--ink); }
+.house-view-page { padding-top: 30px; }
+.house-view-page > header { display: flex; justify-content: space-between; align-items: center; margin: 0 48px 50px; }
+.house-view-page > header a { color: var(--ink); text-decoration: none; font-size: 12px; }
+.house-view-page .house-view-wordmark { font-size: 28px; font-weight: 300; letter-spacing: -.04em; }
+.house-view-wordmark b { font-weight: 850; }
+.house-view-page .house-explorer { margin-bottom: 36px; }
+.house-view-page .house-explorer-caption a { display: none; }
+@media(max-width: 800px) { .house-explorer { margin: 0 32px 80px; } .house-explorer-heading { align-items: start; flex-direction: column; gap: 16px; } .house-explorer-caption { flex-direction: column; gap: 10px; } .house-view-page > header { margin: 0 32px 40px; } }
+@media(max-width: 540px) { .house-explorer { margin: 0 20px 65px; } .house-explorer-heading { margin-bottom: 18px; } .house-explorer-heading h2 { font-size: 32px; } .house-explorer-views { gap: 17px; } .house-explorer-views button { font-size: 11px; min-height: 40px; } .house-explorer-toolbar { flex-wrap: wrap; gap: 0; padding: 8px 0; } .house-explorer-tools { justify-content: space-between; width: 100%; } .house-explorer-zoom { gap: 4px; } .house-explorer-zoom button { width: 40px; height: 40px; } .house-explorer-instruction, .house-explorer-status { left: 10px; bottom: 10px; padding: 7px 9px; font-size: 10px; max-width: calc(100% - 65px); } .house-explorer-stage .house-explorer-fullscreen { right: 10px; bottom: 10px; width: 32px; height: 32px; } .house-view-page > header { margin: 0 20px 36px; } }
+@media(prefers-reduced-motion: reduce) { .house-loading-mark { animation: none; } }
+
+.house-explorer-open { display: flex; align-items: center; gap: 8px; color: var(--ink); text-decoration: none; font-size: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+.house-explorer-status { inset: 0; justify-content: center; background: transparent; font-size: 13px; }
+.house-view-page .house-explorer-open { display: none; }
+
+.house-explorer-film { display: flex; align-items: center; gap: 7px; font-size: 12px !important; min-height: 40px; padding: 8px 0; white-space: nowrap; }
+.house-explorer-film[aria-pressed=true] { color: var(--accent); }
+.house-explorer button:active:not(:disabled) { opacity: .65; }
+@media (max-width: 1100px) { .house-explorer-toolbar { flex-wrap: wrap; } .house-explorer-tools { margin-left: auto; } }
+@media (max-width: 540px) { .house-explorer-tools { margin-left: 0; gap: 12px; } .house-explorer-instruction { max-width: calc(100% - 64px); } }
