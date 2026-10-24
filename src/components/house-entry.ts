@@ -1,5 +1,22 @@
 /** Shared, reversible entrance choreography. Distances are metres in the real model. */
 export const ENTRY_SCROLL_LENGTH = 2.4;
+export const HOUSE_ENTRY_DURATION = 10;
+
+/** Keep the facade legible, accelerate through the open door, then brake briefly.
+ * The cubic Hermite approach starts moving immediately (speed .65) and joins
+ * the final half-second quadratic brake at the same position and speed (1.8).
+ * Only time is remapped: door clearance and grid projection share the same path.
+ */
+export function houseEntryTiming(time:number) {
+  const t=Math.max(0,Math.min(1,time));
+  if(t>=.95){
+    const remaining=(1-t)/.05;
+    return 1-.045*remaining*remaining;
+  }
+  const u=t/.95;
+  return .6175*u-.08*u*u+.4175*u*u*u;
+}
+
 export function entryEase(start:number,end:number,value:number) {
   const t=Math.max(0,Math.min(1,(value-start)/(end-start)));
   return t*t*(3-2*t);

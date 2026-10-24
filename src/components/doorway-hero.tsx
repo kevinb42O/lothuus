@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { entryEase, sampleHouseEntry } from './house-entry';
+import { entryEase, sampleHouseEntry, HOUSE_ENTRY_DURATION, houseEntryTiming } from './house-entry';
 import { createEntryPhotoWall, entryPhotoWallKey, type EntryPhotoWall } from './house-entry-wall';
 import { needsPhotoEntrance } from './house-device';
 import type { HouseScene, HouseCollectionProjection, HouseWordmarkProjection } from './house-scene';
@@ -152,11 +152,11 @@ export function DoorwayHero({children}:{children:ReactNode}) {
           setArrived(true);setPaused(false);
         });});
       };
-      // Begin moving immediately beneath the dissolving white surface. A
-      // modest initial speed avoids a perceived hold; arrival still eases to rest.
+      // Preserve the architectural approach, carry speed through the open door,
+      // and reserve only the final half-second for settling into the live grid.
       const tween=gsap.to(clock,{
-        value:1,duration:18,paused:true,
-        ease:(t:number)=>.65*t+1.7*t*t-1.35*t*t*t,
+        value:1,duration:HOUSE_ENTRY_DURATION,paused:true,
+        ease:houseEntryTiming,
         onUpdate:()=>seek(clock.value),onComplete:finish,
       });
       entrance.current={

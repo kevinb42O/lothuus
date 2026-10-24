@@ -1,9 +1,27 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as T from 'three';
-import { sampleHouseEntry, houseWordmarkProjection, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z, HOUSE_COLLECTION_ARRIVAL_Z } from './house-entry';
+import { sampleHouseEntry, houseWordmarkProjection, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z, HOUSE_COLLECTION_ARRIVAL_Z, HOUSE_ENTRY_DURATION, houseEntryTiming } from './house-entry';
 import { HouseCameraRig } from './house-camera';
 import { needsPhotoEntrance } from './house-device';
+
+test('ten-second entrance carries speed through the door and brakes without a jump',()=>{
+  assert.equal(HOUSE_ENTRY_DURATION,10);
+  assert.equal(houseEntryTiming(0),0);
+  assert.equal(houseEntryTiming(1),1);
+  let previous=0,fullyOpenAt=0;
+  for(let i=1;i<=10000;i++){
+    const time=i/10000,progress=houseEntryTiming(time);
+    assert.ok(progress>previous&&progress<=1,'Advance continuously without reversing or overshooting');
+    if(!fullyOpenAt&&sampleHouseEntry(progress).z<=7.5)fullyOpenAt=time*HOUSE_ENTRY_DURATION;
+    previous=progress;
+  }
+  assert.ok(fullyOpenAt>=7.5&&fullyOpenAt<=8.2,'Keep the approach readable, then reach the grid within 2.5 seconds of full opening');
+  const h=1e-6,speed=(time:number)=>(houseEntryTiming(time+h)-houseEntryTiming(time-h))/(2*h);
+  assert.ok(speed(.85)>speed(.6),'Accelerate through the doorway rather than easing out early');
+  assert.ok(Math.abs(speed(.95-h)-speed(.95+h))<.001,'Join the short brake without a velocity discontinuity');
+  assert.ok((1-houseEntryTiming(1-h))/h<.001,'Arrive at rest for the untransformed live grid');
+});
 
 test('iOS selects the photo entrance, including other browsers and iPad desktop mode',()=>{
   for(const userAgent of [
