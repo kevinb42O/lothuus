@@ -21,7 +21,7 @@ export function Dialog({ children, title, onClose, className = '', style }: { ch
     onAnimationEnd={event => { if (closing && event.target === event.currentTarget) onClose(); }}
     onCancel={event => { event.preventDefault(); requestClose(); }}
     onClick={event => { if (event.target === ref.current) { const rect = ref.current.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) requestClose(); } }}>
-    <button className="close-dialog icon-button" aria-label="Sluiten" onClick={requestClose}><X size={22} strokeWidth={1.4} /></button>
+    <button className="close-dialog" aria-label="Sluiten" onClick={requestClose}><X size={30} strokeWidth={1.8} /></button>
     {children}
   </dialog>;
 }
