@@ -12,6 +12,8 @@ test('the native collection keeps all product controls without transformed tiles
   assert.match(html,/class="mosaic-native"/);
   assert.equal((html.match(/data-object="/g)||[]).length,objects.length);
   assert.equal((html.match(/data-present="true"/g)||[]).length,objects.length);
+  assert.deepEqual(new Set([...html.matchAll(/data-column="(\d+)"/g)].map(match=>match[1])),new Set(['0','1','2']));
+  assert.match(html,/data-row="64"/);
   assert.doesNotMatch(html,/transform:|will-change:|<img\b|<canvas\b/);
   assert.match(html,/aria-pressed="true"/);
   assert.match(html,/195 objecten in de collectie/);

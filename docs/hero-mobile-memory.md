@@ -63,3 +63,19 @@ Desktop continues to use `AnimatedMosaic`.
 A native-render regression checks all 195 product controls, saved state and the
 absence of tile transforms/canvas/startup image requests. The full suite,
 typecheck and production build pass. Physical iPhone confirmation remains pending.
+
+## Confirmed native-grid result and restored mobile entrance
+
+The user confirms the native-grid deployment stops the iPhone crash. At their
+request, the live 3D opener and 7px-to-sharp focus effect are restored on mobile.
+The iOS native grid remains; the device policy now explicitly names that choice
+`needsNativeGrid`, independently of the opener.
+
+The entrance atlas accepts both grid variants, with native tiles exposing their
+actual row/column and category layout metadata. At automatic arrival, the scene
+effect disposes the renderer and the atlas effect disconnects its observers and
+revokes its image URL. Collection scrolling therefore retains neither the hero's
+GPU resources nor its photo-atlas rebuilding. Reduced-motion behavior remains.
+
+The restored opener uses the shared 10-second timing, including its accelerated
+doorway approach and short final brake, on mobile as well as desktop.

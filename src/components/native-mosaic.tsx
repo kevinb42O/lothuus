@@ -23,9 +23,9 @@ export function NativeMosaic({objects,filterKey,focused,saved,onToggle,onOpen}:P
     observer.observe(element);return()=>observer.disconnect();
   },[]);
   return <div className="mosaic-wrap">
-    <div ref={grid} className="mosaic-native" data-filter={filterKey} aria-label="Objectencollectie"
+    <div ref={grid} className="mosaic-native" data-filter={filterKey} data-focused={focused} aria-label="Objectencollectie"
       style={{gridTemplateColumns:`repeat(${columns}, minmax(0, 1fr))`,gap}}>
-      {objects.map((object,index)=><div key={object.id} className="object-tile" data-id={object.id} data-present="true">
+      {objects.map((object,index)=><div key={object.id} className="object-tile" data-id={object.id} data-present="true" data-column={index%columns} data-row={Math.floor(index/columns)}>
         <button className="object-button" data-object={object.id}
           aria-label={`${object.title}, ${categoryLabel(object.category)}. ${object.availability==='reserved'?'Gereserveerd. ':object.availability==='sold'?'Verkocht. ':''}Bekijk het object`}
           onClick={()=>onOpen(object)}

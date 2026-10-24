@@ -1,20 +1,17 @@
 'use client';
 
 import { ArrowDown, Pause, RotateCcw } from 'lucide-react';
-import Image from 'next/image';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { entryEase, sampleHouseEntry, HOUSE_ENTRY_DURATION, houseEntryTiming } from './house-entry';
 import { createEntryPhotoWall, entryPhotoWallKey, type EntryPhotoWall } from './house-entry-wall';
-import { needsPhotoEntrance } from './house-device';
 import type { HouseScene, HouseCollectionProjection, HouseWordmarkProjection } from './house-scene';
 
 gsap.registerPlugin(useGSAP);
 
 /** One real 3D entrance, with the existing live collection immediately behind it. */
 export function DoorwayHero({children}:{children:ReactNode}) {
-  const [photoEntrance,setPhotoEntrance]=useState(false);
   const pausedRef=useRef(false),readyRef=useRef(false);
   const entrance=useRef<{play:()=>void;pause:()=>void;resume:()=>void}|null>(null);
   const [automatic,setAutomatic]=useState(false),[paused,setPaused]=useState(false),[arrived,setArrived]=useState(false);
@@ -40,8 +37,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     // fully resolved before the door exposes the live collection behind it.
     const defocus=pinned.current?1-entryEase(.015,.28,value):0;
     if(canvas.current){
-      // CSS disables these effects on touch devices, including before hydration.
-      // Keep them in variables so inline styles cannot override that safeguard.
+      // Reduced-motion CSS can disable the optical focus effect.
       canvas.current.style.setProperty('--entry-focus-filter',defocus>0?`blur(${(7*defocus).toFixed(3)}px)`:'none');
       canvas.current.style.setProperty('--entry-focus-transform',defocus>0?`scale(${1+.035*defocus})`:'none');
     }
@@ -71,7 +67,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   }
 
   useEffect(()=>{
-    if(needsPhotoEntrance(navigator))return;
+    if(arrived)return;
     const collection=world.current;if(!collection)return;
     let cancelled=false,revision=0,queued=0,key='';
     const rebuild=async()=>{
@@ -89,10 +85,10 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     const observer=new MutationObserver(queue);observer.observe(collection,{childList:true,subtree:true});
     const resize=new ResizeObserver(queue);resize.observe(collection);queue();
     return()=>{cancelled=true;revision++;observer.disconnect();resize.disconnect();cancelAnimationFrame(queued);if(atlas.current){URL.revokeObjectURL(atlas.current.url);atlas.current=null;}};
-  },[]);
+  },[arrived]);
 
   useEffect(()=>{
-    if(needsPhotoEntrance(navigator)){setPhotoEntrance(true);return;}
+    if(arrived)return;
     const element=canvas.current;if(!element)return;
     let cancelled=false,owned:HouseScene|null=null,readyTimer=0,readyFrame=0;
     setStatus('loading');setLoadProgress(.04);setLoaderDismissed(false);
@@ -108,7 +104,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     const lost=()=>{cancelAnimationFrame(readyFrame);clearTimeout(readyTimer);setStatus('error');owned?.dispose();owned=null;scene.current=null;};
     element.addEventListener('house-context-lost',lost);
     return()=>{cancelled=true;cancelAnimationFrame(readyFrame);clearTimeout(readyTimer);element.removeEventListener('house-context-lost',lost);if(scene.current===owned)scene.current=null;owned?.dispose();};
-  },[attempt]);
+  },[attempt,arrived]);
 
   useEffect(()=>{
     const dismiss=(event:MouseEvent)=>{
@@ -126,7 +122,6 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   },[status]);
 
   useGSAP(()=>{
-    if(needsPhotoEntrance(navigator))return;
     const element=root.current!,collection=world.current!;
     const restoration=window.history.scrollRestoration;
     window.history.scrollRestoration='manual';
@@ -196,18 +191,6 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     const next=!paused;pausedRef.current=next;setPaused(next);
     if(next)entrance.current?.pause();else entrance.current?.resume();
   }
-
-  if(photoEntrance)return <div className="house-entry-experience house-entry-photo-entrance">
-    <section className="house-entry-photo-introduction" aria-label="Welkom bij LOTHUUS Vintage">
-      <div className="house-entry-photo-heading">
-        <h1 className="wordmark" aria-label="LOTHUUS"><b>LO</b><span>THUUS</span></h1>
-        <p>Een huis voor cultuur en ontmoeting.</p>
-      </div>
-      <Image src="/house/lothuus-mobile-entrance.webp" width={960} height={587} unoptimized loading="eager" alt="De gevel van LOTHUUS met de voordeur en het balkon"/>
-      <a className="house-entry-photo-link" href="#collectie">Naar de collectie <ArrowDown size={16}/></a>
-    </section>
-    <div className="house-entry-world">{children}</div>
-  </div>;
 
   return <div ref={root} className="house-entry-experience">
     <div className={`house-entry-loader ${status==='ready'||loaderDismissed?'is-complete':''}`} aria-hidden={status==='ready'||loaderDismissed} inert={status==='ready'||loaderDismissed}>

@@ -5,7 +5,7 @@
 export type EntryPhotoWall={url:string;width:number;height:number;x:number;y:number;worldWidth:number};
 
 export function entryPhotoWallKey(world:HTMLElement) {
-  const grid=world.querySelector<HTMLElement>('.mosaic-fluid');
+  const grid=world.querySelector<HTMLElement>('.mosaic-fluid, .mosaic-native');
   if(!grid)return '';
   const tiles=Array.from(grid.querySelectorAll<HTMLElement>('[data-id][data-present="true"]'));
   const photos=tiles.slice(0,64).map(tile=>tile.querySelector<HTMLImageElement>('.object-photograph img')?.currentSrc||tile.querySelector<HTMLImageElement>('img')?.src||'');
@@ -13,7 +13,7 @@ export function entryPhotoWallKey(world:HTMLElement) {
 }
 
 export async function createEntryPhotoWall(world:HTMLElement):Promise<EntryPhotoWall|null> {
-  const grid=world.querySelector<HTMLElement>('.mosaic-fluid');
+  const grid=world.querySelector<HTMLElement>('.mosaic-fluid, .mosaic-native');
   if(!grid||!grid.clientWidth)return null;
   const tiles=Array.from(grid.querySelectorAll<HTMLElement>('[data-id][data-present="true"]'));
   if(!tiles.length)return null;

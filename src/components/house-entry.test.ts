@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import * as T from 'three';
 import { sampleHouseEntry, houseWordmarkProjection, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z, HOUSE_COLLECTION_ARRIVAL_Z, HOUSE_ENTRY_DURATION, houseEntryTiming } from './house-entry';
 import { HouseCameraRig } from './house-camera';
-import { needsPhotoEntrance } from './house-device';
+import { needsNativeGrid } from './house-device';
 
 test('ten-second entrance carries speed through the door and brakes without a jump',()=>{
   assert.equal(HOUSE_ENTRY_DURATION,10);
@@ -23,16 +23,16 @@ test('ten-second entrance carries speed through the door and brakes without a ju
   assert.ok((1-houseEntryTiming(1-h))/h<.001,'Arrive at rest for the untransformed live grid');
 });
 
-test('iOS selects the photo entrance, including other browsers and iPad desktop mode',()=>{
+test('iOS selects the native grid, including other browsers and iPad desktop mode',()=>{
   for(const userAgent of [
     'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile Safari/604.1',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/140 Mobile Safari/604.1',
     'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15',
-  ])assert.equal(needsPhotoEntrance({userAgent,maxTouchPoints:5}),true);
-  assert.equal(needsPhotoEntrance({userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15',maxTouchPoints:0}),false);
-  assert.equal(needsPhotoEntrance({userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140',maxTouchPoints:10}),false);
-  assert.equal(needsPhotoEntrance({userAgent:'Mozilla/5.0 (Linux; Android 14) Chrome/140 Mobile',maxTouchPoints:5}),false);
+  ])assert.equal(needsNativeGrid({userAgent,maxTouchPoints:5}),true);
+  assert.equal(needsNativeGrid({userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15',maxTouchPoints:0}),false);
+  assert.equal(needsNativeGrid({userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140',maxTouchPoints:10}),false);
+  assert.equal(needsNativeGrid({userAgent:'Mozilla/5.0 (Linux; Android 14) Chrome/140 Mobile',maxTouchPoints:5}),false);
 });
 
 test('lettering stays bounded across the camera crossing on portrait and desktop screens',()=>{
