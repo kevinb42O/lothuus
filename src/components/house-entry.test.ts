@@ -1,8 +1,26 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as T from 'three';
-import { sampleHouseEntry, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z, HOUSE_COLLECTION_ARRIVAL_Z } from './house-entry';
+import { sampleHouseEntry, houseWordmarkProjection, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z, HOUSE_COLLECTION_ARRIVAL_Z } from './house-entry';
 import { HouseCameraRig } from './house-camera';
+
+test('lettering stays bounded across the camera crossing on portrait and desktop screens',()=>{
+  for(const [compact,initialFov,limit] of [[true,110,4],[false,36,8]] as const){
+    const initial=houseWordmarkProjection(23.4,initialFov,initialFov,compact);
+    assert.deepEqual(initial,{scale:1,opacity:1});
+    let previousOpacity=1;
+    for(let i=0;i<=10000;i++){
+      const p=i/10000,pose=sampleHouseEntry(p);
+      const fov=initialFov+((compact?46:36)-initialFov)*pose.lens;
+      const projection=houseWordmarkProjection(pose.z,fov,initialFov,compact);
+      assert.ok(Number.isFinite(projection.scale)&&projection.scale<=limit);
+      assert.ok(projection.opacity<=previousOpacity);
+      if(projection.opacity===0)assert.equal(projection.scale,1);
+      previousOpacity=projection.opacity;
+    }
+    for(const z of [18.08,18,17.99,-1])assert.deepEqual(houseWordmarkProjection(z,46,initialFov,compact),{scale:1,opacity:0});
+  }
+});
 
 test('scroll enters continuously, opens the door early and reveals products at the threshold',()=>{
   let previous=sampleHouseEntry(0);

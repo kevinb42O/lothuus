@@ -25,6 +25,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
 
   function paint(value:number,projection?:HouseCollectionProjection,wordmark?:HouseWordmarkProjection) {
     if(wordmark&&lettering.current){
+      lettering.current.style.display=wordmark.opacity===0?'none':'';
       lettering.current.style.setProperty('--brand-x',`${wordmark.x}px`);
       lettering.current.style.setProperty('--brand-y',`${wordmark.y}px`);
       lettering.current.style.setProperty('--brand-scale',String(wordmark.scale));

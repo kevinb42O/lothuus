@@ -5,7 +5,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { CachedHouseAO, CachedHouseShadow, indexStaticScene, orderHeroInstances, prepareExteriorGlass } from './house-rendering';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { sampleHouseEntry, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z } from './house-entry';
+import { sampleHouseEntry, houseWordmarkProjection, collectionPlaneScale, HOUSE_COLLECTION_PLANE_Z } from './house-entry';
 import { HouseCameraRig, stepCameraSpring, type HouseView } from './house-camera';
 import { buildArchitecture, type MaterialSet } from './house-architecture';
 import { buildLandscape, type WindUniforms } from './house-landscape';
@@ -181,8 +181,6 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   const collectionCenter=new T.Vector3();
   // A virtual lettering plane in front of the facade, projected by the same
   // camera as the house. DOM lettering stays crisp while we pass its position.
-  const wordmarkZ=18;
-  const wordmarkDistance=sampleHouseEntry(0).z-wordmarkZ;
   let wordmarkFov=36;
   function fitWordmark(){
     wordmarkFov=T.MathUtils.radToDeg(2*Math.atan(Math.tan(T.MathUtils.degToRad(18))*Math.max(1,(1604/981)/camera.aspect)));
@@ -190,8 +188,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
   function reportProgress(){
     camera.updateMatrixWorld(true);
     collectionCenter.set(0,2.03,HOUSE_COLLECTION_PLANE_Z).project(camera);
-    const distance=camera.position.z-wordmarkZ;
-    const wordmarkScale=wordmarkDistance/Math.max(.08,distance)*Math.tan(T.MathUtils.degToRad(wordmarkFov/2))/Math.tan(T.MathUtils.degToRad(camera.fov/2));
+    const wordmark=houseWordmarkProjection(camera.position.z,camera.fov,wordmarkFov,element.clientWidth<600);
     options.onProgress?.(rig.scrollProgress,{
       x:collectionCenter.x*element.clientWidth/2,
       y:-collectionCenter.y*element.clientHeight/2,
@@ -201,8 +198,7 @@ export async function mountHouse(element:HTMLElement,onFilmChange?:(playing:bool
       // descends, so the journey passes through the letters rather than below.
       x:0,
       y:36*T.MathUtils.smoothstep(rig.scrollProgress,0,.18),
-      scale:wordmarkScale,
-      opacity:T.MathUtils.smoothstep(distance,.08,.7),
+      ...wordmark,
     });
   }
   function animate(time:number){

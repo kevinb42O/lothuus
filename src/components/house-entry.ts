@@ -4,6 +4,18 @@ export function entryEase(start:number,end:number,value:number) {
   const t=Math.max(0,Math.min(1,(value-start)/(end-start)));
   return t*t*(3-2*t);
 }
+
+/** Fade the lettering before its perspective scale can exhaust compositor memory. */
+export function houseWordmarkProjection(cameraZ:number,fov:number,initialFov:number,compact:boolean) {
+  const distance=cameraZ-18;
+  const limit=compact?4:8;
+  if(distance<=.08)return {scale:1,opacity:0};
+  const scale=(sampleHouseEntry(0).z-18)/distance*
+    Math.tan(initialFov*Math.PI/360)/Math.tan(fov*Math.PI/360);
+  const opacity=entryEase(.08,.7,distance)*(1-entryEase(limit*.75,limit,scale));
+  // Reset even an invisible transform: opacity alone can retain a large layer.
+  return {scale:opacity===0?1:Math.min(scale,limit),opacity};
+}
 export function sampleHouseEntry(progress:number) {
   const p=Math.max(0,Math.min(1,progress));
   const z=23.4+(-1-23.4)*p;
