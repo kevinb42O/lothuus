@@ -1,17 +1,20 @@
 'use client';
 
 import { ArrowDown, Pause, RotateCcw } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { entryEase, sampleHouseEntry } from './house-entry';
 import { createEntryPhotoWall, entryPhotoWallKey, type EntryPhotoWall } from './house-entry-wall';
+import { needsPhotoEntrance } from './house-device';
 import type { HouseScene, HouseCollectionProjection, HouseWordmarkProjection } from './house-scene';
 
 gsap.registerPlugin(useGSAP);
 
 /** One real 3D entrance, with the existing live collection immediately behind it. */
 export function DoorwayHero({children}:{children:ReactNode}) {
+  const [photoEntrance,setPhotoEntrance]=useState(false);
   const pausedRef=useRef(false),readyRef=useRef(false);
   const entrance=useRef<{play:()=>void;pause:()=>void;resume:()=>void}|null>(null);
   const [automatic,setAutomatic]=useState(false),[paused,setPaused]=useState(false),[arrived,setArrived]=useState(false);
@@ -68,6 +71,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   }
 
   useEffect(()=>{
+    if(needsPhotoEntrance(navigator))return;
     const collection=world.current;if(!collection)return;
     let cancelled=false,revision=0,queued=0,key='';
     const rebuild=async()=>{
@@ -88,6 +92,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   },[]);
 
   useEffect(()=>{
+    if(needsPhotoEntrance(navigator)){setPhotoEntrance(true);return;}
     const element=canvas.current;if(!element)return;
     let cancelled=false,owned:HouseScene|null=null,readyTimer=0,readyFrame=0;
     setStatus('loading');setLoadProgress(.04);setLoaderDismissed(false);
@@ -121,6 +126,7 @@ export function DoorwayHero({children}:{children:ReactNode}) {
   },[status]);
 
   useGSAP(()=>{
+    if(needsPhotoEntrance(navigator))return;
     const element=root.current!,collection=world.current!;
     const restoration=window.history.scrollRestoration;
     window.history.scrollRestoration='manual';
@@ -190,6 +196,18 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     const next=!paused;pausedRef.current=next;setPaused(next);
     if(next)entrance.current?.pause();else entrance.current?.resume();
   }
+
+  if(photoEntrance)return <div className="house-entry-experience house-entry-photo-entrance">
+    <section className="house-entry-photo-introduction" aria-label="Welkom bij LOTHUUS Vintage">
+      <div className="house-entry-photo-heading">
+        <h1 className="wordmark" aria-label="LOTHUUS"><b>LO</b><span>THUUS</span></h1>
+        <p>Een huis voor cultuur en ontmoeting.</p>
+      </div>
+      <Image src="/house/lothuus-mobile-entrance.webp" width={960} height={587} unoptimized loading="eager" alt="De gevel van LOTHUUS met de voordeur en het balkon"/>
+      <a className="house-entry-photo-link" href="#collectie">Naar de collectie <ArrowDown size={16}/></a>
+    </section>
+    <div className="house-entry-world">{children}</div>
+  </div>;
 
   return <div ref={root} className="house-entry-experience">
     <div className={`house-entry-loader ${status==='ready'||loaderDismissed?'is-complete':''}`} aria-hidden={status==='ready'||loaderDismissed} inert={status==='ready'||loaderDismissed}>

@@ -257,3 +257,5 @@ COMPACT COLLECTION NAVIGATION — 24 October 2026: At collection arrival, show o
 GRID EDGE REFINEMENT — 24 October 2026: Only the photo grid breaks out of the page inset and maximum width. Keep a 12px viewport edge on desktop/tablet and 8px on phones. The navigation retains its existing inset and 1584px content cap. Container-relative sizing excludes the scrollbar and follows the live collection during the entrance.
 
 The loading wordmark begins in charcoal and transitions to white over 1.6 seconds immediately when loading completes, alongside the dissolving paper and immediate camera departure. There is no outline.
+
+IOS CRASH CONTAINMENT — 24 October 2026: After repeated full-page reloads on an iPhone 13 mini, iOS temporarily uses a lightweight photograph of the actual house with the existing slogan and a collection link, followed by the ordinary live collection. It does not initialize WebGL, the entrance photo atlas or the automatic flight. iPad desktop user agents with touch use the same fallback. Desktop retains the live 3D entrance. This contains the failing feature; the underlying device crash remains undiagnosed.

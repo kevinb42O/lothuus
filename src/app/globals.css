@@ -425,6 +425,12 @@ button.primary-button:disabled { opacity: .5; cursor: not-allowed; }
 body:has(.house-entry-experience) { max-width: none; margin: 0; border: 0; }
 body:has(.house-entry-experience) > main, body:has(.house-entry-experience) > .site-header { max-width: none; width: 100%; }
 .house-entry-experience { position: relative; isolation: isolate; width: 100%; }
+.house-entry-photo-introduction { padding-block: 32px 24px; }
+.house-entry-photo-heading { padding-inline: 20px; margin-bottom: 24px; }
+.house-entry-photo-heading .wordmark { font-size: clamp(40px, 10vw, 64px); }
+.house-entry-photo-heading p { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.house-entry-photo-introduction > img { display: block; width: 100%; height: auto; }
+.house-entry-photo-link { display: flex; align-items: center; gap: 10px; width: fit-content; min-height: 44px; margin: 16px 20px 0; color: var(--accent); font-size: 13px; }
 .house-entry-stage { position: relative; height: 100svh; min-height: 600px; overflow: hidden; background: #bad1e2; z-index: 2; }
 .house-entry-stage.is-ready { background: transparent; }
 .house-entry-photo-wall { position: absolute; inset: 0; background-repeat: repeat; visibility: hidden; pointer-events: none; }

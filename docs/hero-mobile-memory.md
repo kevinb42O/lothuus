@@ -21,3 +21,14 @@ Validation: all 28 mobile material/GLB image references exist and fit 512px;
 89 tests, typecheck and production build pass. Local browser control is disabled.
 Real-device confirmation and, if still failing, a Safari/WebKit crash trace are
 still required to establish the cause and resolution.
+
+## iOS containment after continued full-page reloads
+
+The user confirms the whole page still reloads on an iPhone 13 mini. iOS now
+uses a photo entrance and normal-flow collection. Device guards run before the
+dynamic Three import, photo-atlas observer and GSAP camera setup. The photo is
+a 960px WebP derived from the existing restored house image, without a new
+visual source. iPad desktop user agents with touch also use this path; desktop
+Macs and Windows keep the live entrance. This is a temporary feature fallback,
+not evidence that the underlying live 3D crash is fixed. Browser control remains
+disabled, so no physical-device or browser runtime validation is claimed.
