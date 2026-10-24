@@ -37,8 +37,10 @@ export function DoorwayHero({children}:{children:ReactNode}) {
     // fully resolved before the door exposes the live collection behind it.
     const defocus=pinned.current?1-entryEase(.015,.28,value):0;
     if(canvas.current){
-      canvas.current.style.filter=defocus>0?`blur(${(7*defocus).toFixed(3)}px)`:'none';
-      canvas.current.style.transform=defocus>0?`scale(${1+.035*defocus})`:'none';
+      // CSS disables these effects on touch devices, including before hydration.
+      // Keep them in variables so inline styles cannot override that safeguard.
+      canvas.current.style.setProperty('--entry-focus-filter',defocus>0?`blur(${(7*defocus).toFixed(3)}px)`:'none');
+      canvas.current.style.setProperty('--entry-focus-transform',defocus>0?`scale(${1+.035*defocus})`:'none');
     }
     const reveal=pinned.current?pose.reveal:0;
     foreground.style.opacity=String(scene.current?1:1-reveal);
