@@ -1,0 +1,6 @@
+Login-e-mailadres voor R2 en Supabase
+
+R2: josjosjos12345@gmail.com
+Supabase: josjosjos12345@gmail.com
+
+Voor beide diensten gebruik ik dus hetzelfde login-e-mailadres.

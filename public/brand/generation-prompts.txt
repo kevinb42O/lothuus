@@ -1,0 +1,17 @@
+BUILT-IN IMAGEGEN — INITIAL GENERATION
+
+Use case: logo-brand.
+Asset type: final transparent-background logo for the LOTHUUS VINTAGE website.
+Input image: reference-01-lothuus-homepage.jpg is a STYLE AND BRAND REFERENCE. Recreate ONLY the small object-letter LOTHUUS VINTAGE logo visible at bottom left, as a new clean high-resolution standalone logo. Do not reproduce the house photographs or the page.
+Primary request: faithfully improve the reference's playful photoreal vintage-object lettering, correcting its AI mistakes and missing/ambiguous letters. Premium art-directed product-photography collage, beautifully crafted, readable, credible physical objects with crisp silhouettes.
+Text verbatim on two lines:
+LOTHUUS
+VINTAGE
+Top line: precisely spelled L O T H U U S, elegant espresso-brown geometric sans serif, heavy bold LO and thin THUUS, centered, modest height, clean typography.
+Bottom line: EXACTLY SEVEN LETTERS, V I N T A G E, in this exact order, all unmistakable, individually separated by narrow even gaps. Every letter is made of believable vintage objects arranged in the letter's silhouette, all facing front, common baseline. V: two amber glazed ceramic tapered vessels angled into V. I: slender pale blue porcelain figurine on a small plinth with a clean straight readable I silhouette, graceful intact anatomy. N: honey-brown vintage wood joined in an exact capital N with two verticals and diagonal. T: dark walnut vintage furniture components arranged into a clear capital T with horizontal top and centered vertical stem. A: orange mid-century chair silhouette with a strong triangular A and crossbar, four coherent legs. G: olive-gold glazed ceramic sculptural G, clearly open at right with inward horizontal bar. E: warm walnut vintage shelf with one vertical spine and exactly three horizontal shelves, clearly capital E. Small mustard enamel kettle sitting discreetly just below the right end, like the reference, with one handle, one spout, coherent geometry.
+Preserve the original's warm amber, rust orange, pale blue, olive and walnut tones. Real ceramic glaze, subtle wear, wood grain, coherent soft studio illumination. Logo isolated with real transparent alpha, no white or colored background, no rectangular backdrop, no checkerboard painted into image. Wide horizontal lockup, about 2.7:1, generous safe margin on all sides, avoid excessive blank space. No slogans or additional words, no garbled letters, no merged objects, no extra letters, no warped anatomy, no fake illegible labels. High quality final commercial brand asset, not a mockup.
+
+BUILT-IN IMAGEGEN — TARGETED CORRECTION
+
+undefined
+

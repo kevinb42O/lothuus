@@ -1,0 +1,28 @@
+{
+  "method": "Repeated read-only browser DOM rectangle sampling during keyboard-triggered transitions, 1px intersection tolerance. Counts are geometry samples, not an FPS measurement.",
+  "desktop": {
+    "expansion": {
+      "samples": 147,
+      "samplesWithEnlargedTile": 98,
+      "enlargedTileOverlapSamples": 0
+    },
+    "activeChange": {
+      "samples": 128,
+      "samplesWithEnlargedTile": 87,
+      "enlargedTileOverlapSamples": 0
+    },
+    "contraction": {
+      "samples": 113,
+      "samplesWithEnlargedTile": 13,
+      "enlargedTileOverlapSamples": 0
+    }
+  },
+  "scope": "Verifies enlarged object bounds against neighbours during sampled transitions. Not exhaustive path verification for ordinary unit tiles and not a 60fps performance claim.",
+  "phone": {
+    "expansion": {
+      "samples": 166,
+      "samplesWithEnlargedTile": 131,
+      "enlargedTileOverlapSamples": 0
+    }
+  }
+}

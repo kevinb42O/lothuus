@@ -1,0 +1,6 @@
+{
+  "source": "website.pages / Data/download-34.jpg",
+  "tool": "Built-in image_gen",
+  "operation": "Photograph extraction and conservative AI restoration/upscale",
+  "prompt": "Use case: precise-object-edit. Edit target: provided LOTHUUS screenshot. Extract ONLY the actual HISTORIC SEPIA photograph on the LEFT, inside approximate x=70 to559, y=291 to587 of the1264x843 source. Output just that photograph as a clean rectangular landscape photo. Remove the thick antique rounded picture border and the surrounding website/page completely. Conservative restoration and upscale of the SAME archival photograph, not a new view: retain exact building geometry, steep roof and gable, existing windows and doors, chimney, perspective, street edge, subtle age and soft sepia. Keep original photographic character. Remove only compression artifacts and unhelpful blur; lightly improve tonal separation and readability. Preserve authentic worn details. Do not modernise the building, recolour the photo, add objects/windows/people, straighten away its original perspective, invent architectural ornament, or include any frame, lettering, logo, paper outside the photograph, or watermark."
+}

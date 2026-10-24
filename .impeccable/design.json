@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-21T15:58:41.357548+00:00",
+  "title": "Design System: LOTHUUS",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "canonical": "#f4f1e9",
+        "tonalRamp": [
+          "oklch(15% 0.011 84)",
+          "oklch(26% 0.011 84)",
+          "oklch(38% 0.011 84)",
+          "oklch(49% 0.011 84)",
+          "oklch(61% 0.011 84)",
+          "oklch(72% 0.011 84)",
+          "oklch(84% 0.011 84)",
+          "oklch(95% 0.011 84)"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Espresso Ink",
+        "canonical": "#382a21",
+        "tonalRamp": [
+          "oklch(15% 0.03 53)",
+          "oklch(26% 0.03 53)",
+          "oklch(38% 0.03 53)",
+          "oklch(49% 0.03 53)",
+          "oklch(61% 0.03 53)",
+          "oklch(72% 0.03 53)",
+          "oklch(84% 0.03 53)",
+          "oklch(95% 0.03 53)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "canonical": "#776b5d",
+        "tonalRamp": [
+          "oklch(15% 0.028 72)",
+          "oklch(26% 0.028 72)",
+          "oklch(38% 0.028 72)",
+          "oklch(49% 0.028 72)",
+          "oklch(61% 0.028 72)",
+          "oklch(72% 0.028 72)",
+          "oklch(84% 0.028 72)",
+          "oklch(95% 0.028 72)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Archival Hairline",
+        "canonical": "#d8d1c5",
+        "tonalRamp": [
+          "oklch(15% 0.017 83)",
+          "oklch(26% 0.017 83)",
+          "oklch(38% 0.017 83)",
+          "oklch(49% 0.017 83)",
+          "oklch(61% 0.017 83)",
+          "oklch(72% 0.017 83)",
+          "oklch(84% 0.017 83)",
+          "oklch(95% 0.017 83)"
+        ]
+      },
+      "tile": {
+        "role": "neutral",
+        "displayName": "Object Ground",
+        "canonical": "#e7e2d8",
+        "tonalRamp": [
+          "oklch(15% 0.015 83)",
+          "oklch(26% 0.015 83)",
+          "oklch(38% 0.015 83)",
+          "oklch(49% 0.015 83)",
+          "oklch(61% 0.015 83)",
+          "oklch(72% 0.015 83)",
+          "oklch(84% 0.015 83)",
+          "oklch(95% 0.015 83)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Archive Brown",
+        "canonical": "#906341",
+        "tonalRamp": [
+          "oklch(15% 0.075 59)",
+          "oklch(26% 0.075 59)",
+          "oklch(38% 0.075 59)",
+          "oklch(49% 0.075 59)",
+          "oklch(61% 0.075 59)",
+          "oklch(72% 0.075 59)",
+          "oklch(84% 0.075 59)",
+          "oklch(95% 0.075 59)"
+        ]
+      },
+      "button-hover": {
+        "role": "primary",
+        "displayName": "Action Hover",
+        "canonical": "#65462e",
+        "tonalRamp": [
+          "oklch(15% 0.055 59)",
+          "oklch(26% 0.055 59)",
+          "oklch(38% 0.055 59)",
+          "oklch(49% 0.055 59)",
+          "oklch(61% 0.055 59)",
+          "oklch(72% 0.055 59)",
+          "oklch(84% 0.055 59)",
+          "oklch(95% 0.055 59)"
+        ]
+      },
+      "saved": {
+        "role": "secondary",
+        "displayName": "Saved Olive",
+        "canonical": "#615c43",
+        "tonalRamp": [
+          "oklch(15% 0.04 100)",
+          "oklch(26% 0.04 100)",
+          "oklch(38% 0.04 100)",
+          "oklch(49% 0.04 100)",
+          "oklch(61% 0.04 100)",
+          "oklch(72% 0.04 100)",
+          "oklch(84% 0.04 100)",
+          "oklch(95% 0.04 100)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Border",
+        "canonical": "#b9ac9b",
+        "tonalRamp": [
+          "oklch(15% 0.028 77)",
+          "oklch(26% 0.028 77)",
+          "oklch(38% 0.028 77)",
+          "oklch(49% 0.028 77)",
+          "oklch(61% 0.028 77)",
+          "oklch(72% 0.028 77)",
+          "oklch(84% 0.028 77)",
+          "oklch(95% 0.028 77)"
+        ]
+      },
+      "icon-hover": {
+        "role": "neutral",
+        "displayName": "Icon Hover Ground",
+        "canonical": "#ded6c8",
+        "tonalRamp": [
+          "oklch(15% 0.02 83)",
+          "oklch(26% 0.02 83)",
+          "oklch(38% 0.02 83)",
+          "oklch(49% 0.02 83)",
+          "oklch(61% 0.02 83)",
+          "oklch(72% 0.02 83)",
+          "oklch(84% 0.02 83)",
+          "oklch(95% 0.02 83)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Editorial Lead",
+        "purpose": "Oversized introduction; responsive overrides are documented in DESIGN.md."
+      },
+      "editorial-display": {
+        "displayName": "Editorial Italic",
+        "purpose": "Actual italic face for expressive display spans."
+      },
+      "headline": {
+        "displayName": "Section Headline",
+        "purpose": "House section heading."
+      },
+      "title": {
+        "displayName": "Object Title",
+        "purpose": "Expanded object caption."
+      },
+      "body": {
+        "displayName": "Body Base",
+        "purpose": "Global base; reading components use local sizes and leading."
+      },
+      "label": {
+        "displayName": "Action Label",
+        "purpose": "Compact navigation and action text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "modal",
+        "value": "0 24px 90px #251b2133",
+        "purpose": "Separates native modal dialogs from the archive."
+      }
+    ],
+    "motion": [
+      {
+        "name": "archive-evacuation-spring",
+        "value": "stiffness: 650; damping: 42; mass: 0.7; restDelta: 0.15; restSpeed: 3",
+        "purpose": "Contract the expanded tile, await spring completion, then move unit tiles to packed destinations and await completion before expansion. Each stage uses duration 0 for reduced motion."
+      },
+      {
+        "name": "archive-expansion-spring",
+        "value": "stiffness: 360; damping: 34; mass: 0.8; restDelta: 0.15; restSpeed: 3",
+        "purpose": "Grow the newly active tile only after its reserved cells are vacant and settled; interrupted sequences are invalidated."
+      },
+      {
+        "name": "editorial-ease",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "850ms introduction reveal, 300ms dialog entrance, and 400ms detail zoom."
+      },
+      {
+        "name": "underline",
+        "value": "220ms",
+        "purpose": "Navigation/filter underlines and directional action feedback."
+      },
+      {
+        "name": "hover-intent",
+        "value": "85ms",
+        "purpose": "Pointer intent delay before archive expansion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "540px"
+      },
+      {
+        "name": "tablet",
+        "value": "800px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1100px"
+      },
+      {
+        "name": "outer-frame",
+        "value": "1700px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width action for selection and enquiry.",
+      "html": "<button class=\"ds-primary\">Bewaar in mijn selectie<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></button>",
+      "css": ".ds-primary{font-family:var(--font-sans, Manrope),sans-serif;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--ink,#382a21);color:var(--paper,#f4f1e9);padding:17px 20px;font-size:11px;border:0;border-radius:0;cursor:pointer;transition:background 200ms}.ds-primary:hover{background:#65462e}.ds-primary:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    },
+    {
+      "name": "Saved Button",
+      "kind": "button",
+      "refersTo": "button-primary-saved",
+      "description": "Saved selection state.",
+      "html": "<button class=\"ds-primary ds-saved\" aria-pressed=\"true\">Bewaard in mijn selectie<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></button>",
+      "css": ".ds-primary{font-family:var(--font-sans, Manrope),sans-serif;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--ink,#382a21);color:var(--paper,#f4f1e9);padding:17px 20px;font-size:11px;border:0;border-radius:0;cursor:pointer;transition:background 200ms}.ds-primary:hover{background:#65462e}.ds-primary:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }.ds-saved{background:#615c43}"
+    },
+    {
+      "name": "Text Action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Fine underline and a directional cue.",
+      "html": "<button class=\"ds-text\">Ontdek de collectie<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></button>",
+      "css": ".ds-text{font-family:var(--font-sans, Manrope),sans-serif;display:inline-flex;align-items:center;justify-content:space-between;gap:30px;font-size:11px;color:var(--ink,#382a21);background:transparent;border:0;border-bottom:1px solid currentColor;padding:6px 0;cursor:pointer}.ds-text svg{transition:transform 220ms}.ds-text:hover svg{transform:translate(2px,-2px)}.ds-text:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Square tonal utility control.",
+      "html": "<button class=\"ds-icon\" aria-label=\"Sluiten\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" aria-hidden=\"true\"><path d=\"m6 6 12 12M6 18 18 6\"/></svg></button>",
+      "css": ".ds-icon{font-family:var(--font-sans, Manrope),sans-serif;display:inline-grid;place-items:center;width:38px;height:38px;border:0;background:var(--paper,#f4f1e9);color:var(--ink,#382a21);cursor:pointer}.ds-icon:hover{background:#ded6c8}.ds-icon:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    },
+    {
+      "name": "Enquiry Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Square transparent field with a visible focus outline.",
+      "html": "<label class=\"ds-label\">Naam<input class=\"ds-input\" autocomplete=\"name\" placeholder=\"Je naam\" required></label>",
+      "css": ".ds-label{font-family:var(--font-sans, Manrope),sans-serif;display:block;font-size:11px;color:var(--ink,#382a21)}.ds-input{font-family:var(--font-sans, Manrope),sans-serif;width:100%;display:block;border:1px solid #b9ac9b;border-radius:0;background:transparent;color:var(--ink,#382a21);padding:12px;margin-top:8px;font-size:12px;caret-color:var(--accent,#906341)}.ds-input::placeholder{color:#817364}.ds-input:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    },
+    {
+      "name": "Category Filter",
+      "kind": "chip",
+      "description": "Text-only category selector with an active underline.",
+      "html": "<button class=\"ds-filter\" aria-pressed=\"true\">Alle objecten</button>",
+      "css": ".ds-filter{font-family:var(--font-sans, Manrope),sans-serif;position:relative;background:transparent;border:0;color:var(--muted,#776b5d);padding:5px 0 9px;font-size:11px;cursor:pointer;transition:color 200ms}.ds-filter::after{content:\"\";position:absolute;bottom:0;left:0;width:100%;height:1px;background:var(--ink,#382a21);transform:scaleX(0);transform-origin:left;transition:transform 220ms}.ds-filter:hover,.ds-filter[aria-pressed=\"true\"]{color:var(--ink,#382a21)}.ds-filter[aria-pressed=\"true\"]::after{transform:scaleX(1)}.ds-filter:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "description": "Compact current collection link with the archival dot.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Hoofdnavigatie\"><a class=\"ds-nav-link\" href=\"#huis\">Het huis</a><a class=\"ds-nav-link ds-current\" href=\"#collectie\">Vintage <span class=\"ds-dot\"></span></a></nav>",
+      "css": ".ds-nav{font-family:var(--font-sans, Manrope),sans-serif;display:flex;align-items:center;gap:35px;font-size:12px;color:var(--ink,#382a21)}.ds-nav-link{position:relative;padding:10px 0;color:inherit;text-decoration:none}.ds-nav-link::after{content:\"\";position:absolute;bottom:3px;left:0;width:100%;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform 220ms}.ds-nav-link:hover::after{transform:scaleX(1)}.ds-current{display:flex;align-items:center;gap:8px}.ds-dot{width:4px;height:4px;background:currentColor;border-radius:50%}.ds-nav-link:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    },
+    {
+      "name": "Archive Caption",
+      "kind": "card",
+      "refersTo": "archive-tile",
+      "description": "Paper caption exposed beneath an expanded object photograph.",
+      "html": "<button class=\"ds-caption\"><span class=\"ds-category\">Keramiek · 1900</span><strong class=\"ds-title\">Object met een verhaal</strong><span class=\"ds-explore\">Ontdek het object <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></span></button>",
+      "css": ".ds-caption{font-family:var(--font-sans, Manrope),sans-serif;display:flex;flex-direction:column;align-items:stretch;text-align:left;width:260px;padding:15px 17px 17px;border:0;border-radius:0;background:var(--paper,#f4f1e9);color:var(--ink,#382a21);cursor:pointer}.ds-category{text-transform:uppercase;font-size:8px;letter-spacing:.1em;color:var(--muted,#776b5d)}.ds-title{font-size:18px;font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-top:6px}.ds-explore{display:flex;align-items:center;justify-content:space-between;font-size:9px;margin-top:14px}.ds-caption:focus-visible { outline:2px solid var(--accent, #906341); outline-offset:5px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Living Editorial Archive",
+    "overview": "A European decorative-arts archive translated into an interactive editorial wall. Warm paper, espresso lettering, fine rules, and object photography create a quiet cultural identity with a densely inhabited collection.\n\nThe typography pairs a precise sans serif with a restrained italic editorial voice. Surfaces stay flat; physical movement belongs to the collection and its reserved-cell expansion. The heavy LO and fine THUUS lettering remain the identifying brand gesture.",
+    "keyCharacteristics": [
+      "Warm paper and espresso with restrained brown accents.",
+      "Oversized sans serif headlines with italic editorial contrast.",
+      "Square, flat surfaces, fine rules, and architectural whitespace.",
+      "Object-led density with deliberate, accessible physical motion."
+    ],
+    "rules": [
+      {
+        "name": "The Paper and Ink Rule",
+        "body": "Use warm paper for the reading ground and espresso for primary content; keep the accent for focus and small signals.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Use Manrope for structure and reading; use the editorial italic for a brief expressive counterpoint. Preserve heavy LO and fine THUUS.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Archive Rule",
+        "body": "Keep page surfaces flat. Reserve ambient shadow and a blurred backdrop for modal separation.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve heavy LO and fine THUUS in the wordmark.",
+      "Do use fine rules, square containers, and paper-to-ink contrast to establish hierarchy.",
+      "Do let expanded objects reserve real layout cells and displace neighboring objects.",
+      "Do provide visible focus, keyboard exploration, touch expansion, and reduced motion."
+    ],
+    "donts": [
+      "Don't use artificial grain or heavy interface chrome.",
+      "Don't turn flat archive tiles into floating shadow cards.",
+      "Don't overlay enlarged objects on their neighbors.",
+      "Don't use editorial italics for all navigation or body copy."
+    ]
+  }
+}

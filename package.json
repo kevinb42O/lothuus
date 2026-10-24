@@ -1,0 +1,47 @@
+{
+  "name": "lothuus",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start",
+    "test": "tsx --test src/lib/elastic-scroll.test.ts src/lib/grid-layout.test.ts src/lib/filter-transition.test.ts src/lib/detail-layout.test.ts src/lib/pointer-intent.test.ts src/lib/backend/backend.test.ts src/lib/inventory.test.ts",
+    "typecheck": "tsc --noEmit",
+    "owner:setup": "node scripts/setup-owner.mjs",
+    "backup": "node scripts/backup.mjs",
+    "images:cleanup": "node scripts/cleanup-images.mjs",
+    "backup:verify": "node --env-file=.env.local --import tsx scripts/verify-backup.ts",
+    "collection:import": "node --env-file=.env.local --import tsx scripts/import-collection.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1156.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.118.0",
+    "lucide-react": "^0.468.0",
+    "motion": "^12.23.0",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "supabase": "2.122.0",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "wrangler": "4.152.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "overrides": {
+    "glob": "10.5.0",
+    "undici": "7.30.1"
+  }
+}

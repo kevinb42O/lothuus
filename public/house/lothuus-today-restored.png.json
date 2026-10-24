@@ -1,0 +1,6 @@
+{
+  "source": "website.pages / Data/download-34.jpg",
+  "tool": "Built-in image_gen",
+  "operation": "Photograph extraction and conservative AI restoration/upscale",
+  "prompt": "Use case: precise-object-edit. Edit target: the provided LOTHUUS screenshot. Extract ONLY the real contemporary COLOUR house photograph on the RIGHT, bounded approximately by x=693 to1210 and y=282 to598 in the1264x843 source. Output that photograph alone as an opaque landscape image, with tightly cropped clean rectangular edges. Remove the surrounding cream picture frame, paper page, typography, and every other part of the screenshot. Faithfully preserve this particular house and the actual photograph: exact facade proportions, roofline, chimney, all window and door positions, balcony, large tree on the right, street and planting. Conservative photographic restoration only: reduce JPEG artifacts, modest clarity and natural detail recovery, balanced exposure, retain authentic muted colours. It must remain the SAME photograph with the SAME building; no reinterpretation, no invented architecture, no extra windows, no changing landscaping, no added signage, no beautification or reconstruction beyond faithful detail recovery. Do not include text, borders, logos, or watermark."
+}
