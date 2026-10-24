@@ -69,6 +69,13 @@
 .a-login-form form { margin-top: 36px; }
 .a-login-form .a-field > span { font-size: 13px; }
 .a-login-form .a-button { min-height: 49px; }
+.a-login-password > label { font-size: 13px; font-weight: 550; }
+.a-password-input { position: relative; }
+.admin-shell .a-password-input > input { padding-right: 52px; }
+.a-password-toggle { position: absolute; inset: 1px 1px 1px auto; width: 44px; min-height: 44px; display: grid; place-items: center; border-radius: 5px; color: var(--a-muted); }
+.a-password-toggle:hover { color: var(--a-ink); background: var(--a-soft); }
+.admin-shell .a-password-toggle:focus-visible { outline-offset: -4px; }
+
 .a-login-private { display: flex; align-items: center; gap: 9px; font-size: 11px; color: var(--a-muted); margin-top: 24px; }
 .a-login > .a-login-art { width: auto; background: #e6ebdf; padding: 12% 13% 8%; display: flex; flex-direction: column; justify-content: center; gap: 42px; overflow: hidden; }
 .a-login-art > img { width: 100%; height: auto; aspect-ratio: 4/5; object-fit: cover; border-radius: 100% 100% 4px 4px; }

@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Bell, LayoutDashboard, Package, Users, ShoppingBag, Mail, Settings2, ChevronRight, ShieldCheck, ArrowLeft, ArrowUpRight, Check, ChevronDown, Download, LogOut, Plus, Search, X } from 'lucide-react';
+import { Bell, Eye, EyeOff, LayoutDashboard, Package, Users, ShoppingBag, Mail, Settings2, ChevronRight, ShieldCheck, ArrowLeft, ArrowUpRight, Check, ChevronDown, Download, LogOut, Plus, Search, X } from 'lucide-react';
 import { availability, dateTime, money, netPaid, reservationLines, type AdminStore, type Customer, type Item, type Settings } from '@/lib/backend/types';
 import { ProductEditor } from './product-editor';
 import { Inventory, WorkspaceOverview } from './inventory';
@@ -14,6 +14,19 @@ const orderAmount = (r: R) => r.pricePending ? 'Prijs te bevestigen' : money(r.p
 const labelStatus = (r: R) => r.status === 'active' && r.paymentPending ? r.pricePending ? 'Prijs en betaalafspraak bevestigen' : 'Betaalafspraak klaarzetten' : r.status === 'expired' ? netPaid(r) > 0 ? 'Late betaling · controleren' : 'Vervallen' : r.status === 'cancelled' ? 'Geannuleerd' : r.status === 'completed' ? 'Verkocht' : netPaid(r) > r.priceCents ? 'Te veel ontvangen' : netPaid(r) === r.priceCents ? 'Betaald' : netPaid(r) > 0 ? 'Deels betaald' : Date.parse(r.deadline) < Date.now() ? 'Bank controleren' : 'Wacht op betaling';
 const stockLabel = (s: AdminStore, id: string) => ({ available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht' })[availability(s, id)];
 function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) { return <label className={`a-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</label>; }
+function LoginPasswordField() {
+  const [visible, setVisible] = useState(false);
+  const toggleLabel = visible ? 'Wachtwoord verbergen' : 'Wachtwoord tonen';
+  return <div className="a-field a-login-password">
+    <label htmlFor="owner-password">Je wachtwoord</label>
+    <div className="a-password-input">
+      <input id="owner-password" name="password" type={visible ? 'text' : 'password'} autoComplete="current-password" placeholder="Vul je eigenaarswachtwoord in" required maxLength={200} />
+      <button type="button" className="a-password-toggle" aria-label={toggleLabel} aria-controls="owner-password" title={toggleLabel} onClick={() => setVisible(value => !value)}>
+        {visible ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
+      </button>
+    </div>
+  </div>;
+}
 function Empty({ title, children }: { title: string; children: ReactNode }) { return <div className="a-empty"><h3>{title}</h3><p>{children}</p></div>; }
 function download(name: string, body: string, type = 'text/plain') { const url = URL.createObjectURL(new Blob([body], { type })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 let storeCache: AdminStore | undefined;
@@ -54,7 +67,7 @@ export function Admin() {
   const productFilter = async (filter: typeof inventoryFilter) => { if (await navigate('items')) setInventoryFilter(filter); };
   async function login(e: FormEvent<HTMLFormElement>) { e.preventDefault(); setBusy(true); setError(''); const form = new FormData(e.currentTarget); const password = form.get('password'); try { await api('/api/session', { password, email: form.get('email') }); setAuthenticated(true); await reload(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
   if (authenticated === null) return <div className="admin-shell a-loading" role="status"><div className="a-loading-lines"><span /><span /><span /></div><p>Je werkruimte wordt klaargezet…</p></div>;
-  if (!authenticated) return <div className="admin-shell a-login"><div className="a-login-content"><a className="a-wordmark" href="/"><b>LO</b>THUUS<span>VINTAGE</span></a><div className="a-login-form"><h1>Welkom in<br />je werkruimte.</h1><p>Een plek voor je vondsten, hun verhaal<br />en alles wat nog mag groeien.</p>{!configured ? <div className="a-setup"><h2>Je eerste keer hier</h2><p>Je werkruimte wordt nog ingericht. Probeer het straks opnieuw.</p><button onClick={() => location.reload()} className="a-button">Toegang opnieuw controleren<ArrowUpRight size={16} /></button></div> : <form onSubmit={login}>{onlineAccount && <Field label="Je e-mailadres"><input name="email" type="email" autoComplete="username" defaultValue="katrien@lothuus.be" required maxLength={180} /></Field>}<Field label="Je wachtwoord"><input name="password" type="password" autoComplete="current-password" placeholder="Vul je eigenaarswachtwoord in" required maxLength={200} /></Field><button className="a-button" disabled={busy}>{busy ? 'Je werkruimte openen…' : 'Werkruimte openen'}<ArrowUpRight size={17} /></button></form>}{error && <p className="a-error" role="alert">{error}</p>}<span className="a-login-private"><ShieldCheck size={15} />Alleen toegankelijk voor de eigenaar</span></div><a className="a-link" href="/"><ArrowLeft size={14} />Terug naar LOTHUUS</a></div><div className="a-login-art"><img src="/collection/K001/K001-01.webp" alt="Keramiek uit de LOTHUUS fotocollectie" /><div><span>Bijzondere objecten.</span><span>Met aandacht verzameld.</span></div></div></div>;
+  if (!authenticated) return <div className="admin-shell a-login"><div className="a-login-content"><a className="a-wordmark" href="/"><b>LO</b>THUUS<span>VINTAGE</span></a><div className="a-login-form"><h1>Welkom in<br />je werkruimte.</h1><p>Een plek voor je vondsten, hun verhaal<br />en alles wat nog mag groeien.</p>{!configured ? <div className="a-setup"><h2>Je eerste keer hier</h2><p>Je werkruimte wordt nog ingericht. Probeer het straks opnieuw.</p><button onClick={() => location.reload()} className="a-button">Toegang opnieuw controleren<ArrowUpRight size={16} /></button></div> : <form onSubmit={login}>{onlineAccount && <Field label="Je e-mailadres"><input name="email" type="email" autoComplete="username" defaultValue="katrien@lothuus.be" required maxLength={180} /></Field>}<LoginPasswordField /><button className="a-button" disabled={busy}>{busy ? 'Je werkruimte openen…' : 'Werkruimte openen'}<ArrowUpRight size={17} /></button></form>}{error && <p className="a-error" role="alert">{error}</p>}<span className="a-login-private"><ShieldCheck size={15} />Alleen toegankelijk voor de eigenaar</span></div><a className="a-link" href="/"><ArrowLeft size={14} />Terug naar LOTHUUS</a></div><div className="a-login-art"><img src="/collection/K001/K001-01.webp" alt="Keramiek uit de LOTHUUS fotocollectie" /><div><span>Bijzondere objecten.</span><span>Met aandacht verzameld.</span></div></div></div>;
   if (!store) return <div className="admin-shell a-loading"><p role="status">Gegevens laden…</p>{error && <><p role="alert">{error}</p><button className="a-button" onClick={reload}>Opnieuw proberen</button></>}</div>;
   const q = search.toLocaleLowerCase('nl'); const match = (value: string) => value.toLocaleLowerCase('nl').includes(q);
   const notifications = (store.notifications || []).filter(n => !n.resolved);
