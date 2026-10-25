@@ -10,7 +10,7 @@ export function parseSupabaseUsage(usage: ProviderUsage, subscription: { current
   return { value: Math.ceil(value!), limit: configured, measuredAt: new Date().toISOString(), periodStart: new Date(start).toISOString(), periodEnd: new Date(end).toISOString(), level: value! >= configured * .85 ? 'danger' : value! >= configured * .7 ? 'warning' : 'normal' };
 }
 export async function refreshSupabaseUsage() {
-  if (!cloudMode()) return { skipped: true };
+  if (!cloudMode() || !process.env.SUPABASE_USAGE_TOKEN) return { skipped: true };
   const db = serverDatabase(), id = randomUUID();
   const claim = await db.rpc('lothuus_maintenance_claim', { job_name: 'supabase-usage', job_id: id });
   if (claim.error) throw new Error('Usage maintenance claim failed');
