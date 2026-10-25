@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Activity, BarChart3, LockKeyhole, ChevronDown, ChevronLeft, ChevronRight, Clock3, Monitor, RefreshCw } from 'lucide-react';
 import { deviceNames, periods, type AnalyticsReport, type Period, type Point } from '@/lib/analytics/types';
+import { hasExtendedAnalytics } from '@/lib/hosting/access';
+import type { HostingPlan } from '@/lib/hosting/catalogue';
 import './visitors.css';
 
 const number = new Intl.NumberFormat('nl-BE');
@@ -82,6 +84,7 @@ function Details({ report, onPage, loading }: { report: AnalyticsReport; onPage:
 
 export function Visitors() {
   const [selected, setSelected] = useState<Period>('7d'), [report, setReport] = useState<AnalyticsReport | null>(null);
+  const [plan, setPlan] = useState<HostingPlan>();
   const [loading, setLoading] = useState(true), [error, setError] = useState(''), [revision, setRevision] = useState(0);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const current = useRef<AbortController | null>(null), version = useRef(0), mounted = useRef(false);
@@ -94,9 +97,17 @@ export function Visitors() {
     const params = new URLSearchParams({ period, page: String(page) });
     if (page > 1 || page === 1 && shown.current?.period === period && automatic === false && shown.current.page > 1) params.set('to', shown.current!.to);
     try {
-      const response = await fetch(`/api/admin/analytics?${params}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
+      let response = await fetch(`/api/admin/analytics?${params}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
+      if (response.status === 403 && period !== '24h' && period !== '7d') {
+        if (!mounted.current || requestId !== version.current) return;
+        selection.current = '7d'; period = '7d'; setSelected('7d'); setPlan('basis');
+        cache.current.clear(); setReport(null); shown.current = null;
+        response = await fetch('/api/admin/analytics?period=7d', { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
+      }
       const result = await response.json(); if (!response.ok) throw new Error(result.error || 'De bezoekerscijfers konden niet worden geladen.');
       if (!mounted.current || requestId !== version.current) return;
+      setPlan(result.plan);
+      if (!hasExtendedAnalytics(result.plan)) cache.current.clear();
       setReport(result); shown.current = result; cache.current.set(period, result); setRevision(n => n + 1);
     } catch (e) { if (mounted.current && requestId === version.current && !controller.signal.aborted) setError((e as Error).message || 'De verbinding is onderbroken. Probeer opnieuw.'); }
     finally { if (mounted.current && requestId === version.current) { current.current = null; setLoading(false); } }
@@ -117,7 +128,7 @@ export function Visitors() {
     return () => { mounted.current = false; ++version.current; current.current?.abort(); current.current = null; window.removeEventListener('resize', revealNavigation); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
   }, [load]);
   const choose = (period: Period) => {
-    if ((!report || report.plan === 'basis') && period !== '24h' && period !== '7d') return;
+    if (!hasExtendedAnalytics(plan) && period !== '24h' && period !== '7d') return;
     if (selection.current === period) return;
     selection.current = period; setSelected(period);
     const saved = cache.current.get(period) || null; setReport(saved); shown.current = saved;
@@ -127,7 +138,7 @@ export function Visitors() {
   const headingActions = <div className="av-header-actions"><span className="av-updated"><Clock3 size={15} aria-hidden="true" />{report ? `Bijgewerkt ${day.format(date(report.updatedAt))}, ${hour.format(date(report.updatedAt))}` : 'Bezoekers ophalen'}</span><button className="a-button" disabled={loading} onClick={refresh}><RefreshCw size={16} className={loading ? 'av-spinning' : ''} aria-hidden="true" />Vernieuwen</button></div>;
   return <div className="av-root" data-loading={loading}>
     {target && createPortal(headingActions, target)}
-    <div className="av-period"><span id="av-period-label">Periode</span><div className="av-period-options" role="group" aria-labelledby="av-period-label">{periods.map(([key, label]) => { const locked = (!report || report.plan === 'basis') && key !== '24h' && key !== '7d'; return <button key={key} aria-pressed={selected === key} aria-label={locked ? label + ', beschikbaar vanaf Pro' : label} title={locked ? 'Uitgebreide analytics zijn beschikbaar vanaf Pro' : undefined} disabled={locked} onClick={e => { choose(key); e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduced ? 'instant' : 'smooth' }); }}>{label}{locked && <LockKeyhole size={12} aria-hidden="true" />}</button>; })}</div>{(!report || report.plan === 'basis') && <p className="av-period-note">Op Free zijn periodes tot en met 7 dagen beschikbaar. Uitgebreide analytics zijn beschikbaar vanaf Pro.</p>}<div className="av-range"><span>{report ? `${selected === 'all' ? 'Sinds de meetstart' : selected === 'year' ? 'Dit jaar' : `Afgelopen ${periods.find(([key]) => key === selected)![1]}`} · ${rangeLabel(report)}` : `Afgelopen ${periods.find(([key]) => key === selected)![1]}`}</span><span className={`av-load-indicator ${loading ? 'is-loading' : ''}`} aria-hidden="true"><i /><i /><i /></span></div></div>
+    <div className="av-period"><span id="av-period-label">Periode</span><div className="av-period-options" role="group" aria-labelledby="av-period-label">{periods.map(([key, label]) => { const locked = !hasExtendedAnalytics(plan) && key !== '24h' && key !== '7d'; return <button key={key} aria-pressed={selected === key} aria-label={locked ? label + ', beschikbaar vanaf Pro' : label} title={locked ? 'Uitgebreide analytics zijn beschikbaar vanaf Pro' : undefined} disabled={locked} onClick={e => { choose(key); e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduced ? 'instant' : 'smooth' }); }}>{label}{locked && <LockKeyhole size={12} aria-hidden="true" />}</button>; })}</div>{!hasExtendedAnalytics(plan) && <p className="av-period-note">Op Free zijn periodes tot en met 7 dagen beschikbaar. Uitgebreide analytics zijn beschikbaar vanaf Pro.</p>}<div className="av-range"><span>{report ? `${selected === 'all' ? 'Sinds de meetstart' : selected === 'year' ? 'Dit jaar' : `Afgelopen ${periods.find(([key]) => key === selected)![1]}`} · ${rangeLabel(report)}` : `Afgelopen ${periods.find(([key]) => key === selected)![1]}`}</span><span className={`av-load-indicator ${loading ? 'is-loading' : ''}`} aria-hidden="true"><i /><i /><i /></span></div></div>
     <div className="sr-only" role="status">{loading ? 'Bezoekerscijfers laden.' : error ? '' : 'Bezoekerscijfers bijgewerkt.'}</div>
     {error && <div className="av-error" role="alert"><Activity size={19} aria-hidden="true" /><div><strong>De cijfers konden niet worden bijgewerkt</strong><p>{error}</p></div><button className="a-secondary" onClick={refresh}>Opnieuw proberen</button></div>}
     <AnimatePresence mode="wait" initial={false}>

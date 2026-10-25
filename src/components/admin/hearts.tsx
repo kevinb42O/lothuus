@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight, Heart, RefreshCw, Search, ChevronLeft, Chevron
 import { dateTime, type Item } from '@/lib/backend/types';
 import { categories } from '@/lib/collection';
 import type { HeartReport } from '@/lib/hearts/types';
+import { hasExtendedAnalytics } from '@/lib/hosting/access';
 import './hearts.css';
 const statusLabel: Record<string,string> = { available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht', archived: 'Gearchiveerd', missing: 'Niet meer gepubliceerd' };
 const dayLabel = (day: string) => new Intl.DateTimeFormat('nl-BE', {day:'numeric',month:'short'}).format(new Date(`${day}T12:00:00Z`));
@@ -20,13 +21,13 @@ function Trend({ report }: { report: HeartReport }) {
   </section>;
 }
 export function Hearts({ items, onEdit }: { items: Item[]; onEdit: (item: Item) => void }) {
-  const [period,setPeriod]=useState('30'),[query,setQuery]=useState(''),[category,setCategory]=useState(''),[status,setStatus]=useState(''),[sort,setSort]=useState('added'),[page,setPage]=useState(1),[object,setObject]=useState('');
+  const [period,setPeriod]=useState('7'),[query,setQuery]=useState(''),[category,setCategory]=useState(''),[status,setStatus]=useState(''),[sort,setSort]=useState('added'),[page,setPage]=useState(1),[object,setObject]=useState('');
   const [report,setReport]=useState<HeartReport|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[changing,setChanging]=useState(false),[debounced,setDebounced]=useState('');
   const request = useRef(0); const heading = useRef<HTMLHeadingElement>(null);
   useEffect(()=>{ const timer=setTimeout(()=>{ setDebounced(query); setPage(1); },250); return ()=>clearTimeout(timer); },[query]);
   const reload=useCallback(async(signal?:AbortSignal)=>{
     const version=++request.current; setLoading(true);
-    try { const params=new URLSearchParams({period,q:debounced,category,status,sort,page:String(page),object}); const response=await fetch(`/api/admin/hearts?${params}`,{cache:'no-store',signal: signal || AbortSignal.timeout(15000)}); const body=await response.json(); if(!response.ok) throw new Error(body.error); if(version===request.current){setReport(body);setError('');} }
+    try { const params=new URLSearchParams({period,q:debounced,category,status,sort,page:String(page),object}); const response=await fetch(`/api/admin/hearts?${params}`,{cache:'no-store',signal: signal || AbortSignal.timeout(15000)}); const body=await response.json(); if(response.status===403 && period!=='7' && version===request.current){setReport(null);setPeriod('7');setPage(1);return;} if(!response.ok) throw new Error(body.error); if(version===request.current){setReport(body);setError('');} }
     catch(e){if(version===request.current && (e as Error).name!=='AbortError')setError((e as Error).message || 'De hartjes konden niet worden opgehaald. Probeer opnieuw.');}
     finally{if(version===request.current)setLoading(false);}
   },[period,debounced,category,status,sort,page,object]);
@@ -37,7 +38,8 @@ export function Hearts({ items, onEdit }: { items: Item[]; onEdit: (item: Item) 
   const detail=report?.detail;
   const completeAdded=report?.series.slice(0,-1).reduce((n,d)=>n+d.added,0)||0;
   return <div className="hi-workspace" aria-busy={loading}>
-    <div className="hi-controls"><label>Periode<select value={period} onChange={e=>{setPeriod(e.target.value);setPage(1);}}><option value="7">Laatste 7 dagen</option><option value="30">Laatste 30 dagen</option><option value="90">Laatste 90 dagen</option><option value="all">Sinds de meetstart</option></select></label><button className="a-secondary" onClick={()=>void reload()} disabled={loading}><RefreshCw size={15} className={loading?'a-spin':''} />Vernieuwen</button><span className="hi-updated" role="status">{loading?'Gegevens bijwerken…':report?`Bijgewerkt ${dateTime(report.updatedAt)}`:'Gegevens ophalen…'}</span></div>
+    <div className="hi-controls"><label>Periode<select value={period} onChange={e=>{setPeriod(e.target.value);setPage(1);}}><option value="7">Laatste 7 dagen</option><option value="30" disabled={!hasExtendedAnalytics(report?.plan)}>Laatste 30 dagen · Pro</option><option value="90" disabled={!hasExtendedAnalytics(report?.plan)}>Laatste 90 dagen · Pro</option><option value="all" disabled={!hasExtendedAnalytics(report?.plan)}>Sinds de meetstart · Pro</option></select></label><button className="a-secondary" onClick={()=>void reload()} disabled={loading}><RefreshCw size={15} className={loading?'a-spin':''} />Vernieuwen</button><span className="hi-updated" role="status">{loading?'Gegevens bijwerken…':report?`Bijgewerkt ${dateTime(report.updatedAt)}`:'Gegevens ophalen…'}</span></div>
+    {!hasExtendedAnalytics(report?.plan) && <p className="a-subtle">Op Free zijn periodes tot en met 7 dagen beschikbaar. Uitgebreide analytics zijn beschikbaar vanaf Pro.</p>}
     {error && <div className="a-error" role="alert">{error} {report && 'De laatst geladen cijfers blijven zichtbaar.'}<button className="a-link" onClick={()=>void reload()}>Opnieuw proberen</button></div>}
     {!report && !error && <p role="status">De interesse in je collectie wordt opgehaald…</p>}
     {report && <>
@@ -45,7 +47,7 @@ export function Hearts({ items, onEdit }: { items: Item[]; onEdit: (item: Item) 
       {object && <button className="a-back" onClick={()=>setObject('')}><ArrowLeft size={15} />Alle objecten bekijken</button>}
       {detail && <section className="hi-object-detail">{detail.image && <img src={detail.image} alt="" width={110} height={130} />}<div><h2 tabIndex={-1} ref={heading}>{detail.title}</h2><p>{detail.reference} · {statusLabel[detail.availability]}</p><p>{detail.recent} recent bewaard · {detail.reservations} webreserveringen in deze periode{detail.cancelled>0?` (${detail.cancelled} geannuleerd of vervallen)`:''}</p>{detail.itemId && <button className="a-link" onClick={()=>{const item=items.find(i=>i.id===detail.itemId);if(item)onEdit(item);}}>Productfiche openen<ArrowUpRight size={14} /></button>}</div></section>}
       <dl className="hi-totals"><div><dt>Toegevoegde hartjes</dt><dd>{report.totals.added}</dd></div><div><dt>Handmatig verwijderd</dt><dd>{report.totals.removed}</dd></div><div><dt>Objecten met nieuwe interesse</dt><dd>{report.totals.objects}</dd></div></dl>
-      <p className="hi-comparison">{report.comparable ? `${completeAdded} toevoegingen in de ${report.series.length-1} volledige dagen vóór vandaag, tegenover ${report.previousAdded} in de even lange periode ervoor.` : 'Nog onvoldoende meetgegevens voor een vergelijking van volledige periodes.'}</p>
+      {hasExtendedAnalytics(report.plan) && <p className="hi-comparison">{report.comparable ? `${completeAdded} toevoegingen in de ${report.series.length-1} volledige dagen vóór vandaag, tegenover ${report.previousAdded} in de even lange periode ervoor.` : 'Nog onvoldoende meetgegevens voor een vergelijking van volledige periodes.'}</p>}
       {report.totals.added===0 && report.totals.removed===0 && <div className="hi-empty"><Heart size={24} strokeWidth={1.4} /><div><h2>{object?'Nog geen nieuwe hartjes in deze periode.':'Hier krijgt belangstelling een gezicht.'}</h2><p>{query||category||status?'Geen hartjes binnen deze periode en filters. Probeer een ruimere selectie.':'Zodra bezoekers objecten bewaren, zie je hier welke stukken aandacht krijgen. Bestaande selecties tellen als beginstand, niet als nieuwe hartjes.'}</p></div></div>}
       <Trend report={report} />
       {!object && <section aria-labelledby="hi-list-title"><div className="hi-section-heading"><div><h2 id="hi-list-title">Welke objecten worden bewaard?</h2><p>Gerangschikt op gemeten belangstelling.</p></div></div>

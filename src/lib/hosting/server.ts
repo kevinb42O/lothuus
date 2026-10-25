@@ -72,7 +72,7 @@ export async function refreshHosting(force=false) {
         const traffic=await cloudflareTraffic();
         await hostingRpc('lothuus_hosting_traffic',{days:traffic.days});
         results.push({metric:'direct',value:traffic.value,status:'ready',periodStart:traffic.start,periodEnd:traffic.end});
-      }
+      } else throw new Error('Traffic configuration missing');
     } catch { console.error('[hosting] traffic refresh failed');results.push({metric:'direct',status:'error'}); }
   } finally { await hostingRpc('lothuus_hosting_finish',{job_id:jobId,results,scan_complete:complete}); }
   return {complete,failed:results.some(result=>result.status==='error')};

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { expireOrders, type Store } from './types';
 import { BusinessError } from './service';
+import { PLANS } from '../hosting/catalogue';
 export const cloudMode = () => process.env.BACKEND_MODE === 'supabase';
 export function serverDatabase() {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
@@ -12,7 +13,7 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
   if (!cloudMode()) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online opslag ontbreekt.', 503);
     const { transact } = await import('./repository');
-    return transact(state => { const count=state.items.length; const result=operation(state); if(state.items.length>count && state.items.length>150) throw new BusinessError('Je objectlimiet is bereikt. Verhoog je capaciteit via Hosting & capaciteit om nieuwe objecten toe te voegen.',409); return result; });
+    return transact(state => { const count=state.items.length; const result=operation(state); if(state.items.length>count && state.items.length>PLANS.basis.objects) throw new BusinessError('Je objectlimiet is bereikt. Verhoog je capaciteit via Hosting & capaciteit om nieuwe objecten toe te voegen.',409); return result; });
   }
   const db = serverDatabase();
   for (let attempt = 0; attempt < 8; attempt++) {

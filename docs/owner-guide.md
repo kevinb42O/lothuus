@@ -52,6 +52,8 @@ Hartjes tellen automatisch mee; er staat geen meetcheckbox of privacyuitleg in d
 
 ## Bezoekers
 
+Op **Free** kun je de laatste 24 uur of 7 dagen bekijken. Langere periodes blijven zichtbaar maar zijn geblokkeerd. **Pro** en **Enterprise** bieden alle beschikbare periodes. Ook bij Hartjes is Free begrensd tot 7 dagen.
+
 Open **Bezoekers** in de beheernavigatie om het websitebezoek te volgen. Kies een periode bovenaan; de grafiek en apparatenverdeling tonen steeds dezelfde periode. Met **Vernieuwen** haal je nieuwe cijfers op. Tijdens het ophalen blijven reeds geladen cijfers zichtbaar.
 
 Beweeg over de grafiek of tik op een punt voor het aantal bezoeken. Met het toetsenbord gebruik je links/rechts en Home/End. Onder de grafiek kun je de cijfers per dag of uur uitklappen. Bij lange perioden heeft de dagtabel meerdere pagina’s.

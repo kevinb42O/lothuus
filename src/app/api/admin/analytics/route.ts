@@ -5,6 +5,7 @@ import { analyticsRaw } from '@/lib/analytics/server';
 import { buildReport } from '@/lib/analytics/report';
 import { localDay, periodStart } from '@/lib/analytics/time';
 import { periods, type Period } from '@/lib/analytics/types';
+import { hasExtendedAnalytics } from '@/lib/hosting/access';
 import { hostingReport } from '@/lib/hosting/server';
 export const runtime = 'nodejs';
 const headers = { 'Cache-Control': 'private, no-store' };
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const params = request.nextUrl.searchParams, period = (params.get('period') || '7d') as Period;
     if (!periods.some(([key]) => key === period)) throw new BusinessError('Kies een geldige periode.');
     const hosting = await hostingReport();
-    if (hosting.plan === 'basis' && period !== '24h' && period !== '7d') throw new BusinessError('Uitgebreide analytics zijn beschikbaar vanaf Pro.', 403);
+    if (!hasExtendedAnalytics(hosting.plan) && period !== '24h' && period !== '7d') throw new BusinessError('Uitgebreide analytics zijn beschikbaar vanaf Pro.', 403);
     const now = Date.now(), to = params.has('to') ? Date.parse(params.get('to')!) : now;
     const page = Number(params.get('page') || 1);
     if (!Number.isFinite(to) || to > now + 1000 || to < now - 15 * 60000 || !Number.isInteger(page) || page < 1 || page > 100000) throw new BusinessError('Vernieuw de cijfers om deze periode te bekijken.');

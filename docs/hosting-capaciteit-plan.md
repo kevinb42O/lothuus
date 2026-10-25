@@ -1,5 +1,7 @@
 # Hosting en capaciteit — bouwplan
 
+> Actuele pakketafspraken sinds 25 oktober 2026: **Free 200, Pro 500, Enterprise 1.000 objecten**. De onderstaande oorspronkelijke planning en opleverhistorie bevatten oudere waarden. Zie [het actuele auditrapport](hosting-analytics-audit-2026-10-25.md) voor de geldende limieten, analyticsrechten en verificatie.
+
 Status: geïmplementeerd op 25 oktober 2026; productiecontrole wordt hieronder bijgehouden. Het oorspronkelijke bouwplan blijft als ontwerpreferentie bewaard.
 
 ## Opdracht en beslissingen
