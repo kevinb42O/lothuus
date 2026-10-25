@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, ArrowUpRight, Check, Copy, Database, HardDrive, Layers3, RefreshCw, ShoppingBag, AlertCircle } from 'lucide-react';
 import { Dialog } from '../dialog';
 import { dateTime, money } from '@/lib/backend/types';
@@ -7,7 +7,7 @@ import { HOSTING_BANK, PLANS, PRODUCTS, formatBytes, objectUsage, type HostingMe
 import './hosting.css';
 const statusLabel:Record<HostingOrder['status'],string>={pending_payment:'Wacht op betaling',payment_review:'Betaling gemeld · in controle',active:'Actief',cancelled:'Geannuleerd'};
 async function request(body?:unknown,signal?:AbortSignal):Promise<HostingReport>{const r=await fetch('/api/admin/hosting',{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)});const data=await r.json();if(!r.ok)throw new Error(data.error||'Ophalen is niet gelukt. Probeer opnieuw.');return data;}
-function Usage({title,metric,limit,icon:Icon,note}:{title:string;metric:HostingMetric;limit:number;icon:typeof Database;note:string}) {
+function Usage({title,metric,limit,icon:Icon,note}:{title:string;metric:HostingMetric;limit:number;icon:typeof Database;note:ReactNode}) {
  const known=metric.value!==null,percentage=known?metric.value!/limit*100:0;
  const na=metric.status==='not_applicable',stale=metric.measuredAt&&Date.now()-Date.parse(metric.measuredAt)>26*3600000;
  const over=known&&percentage>=100;
@@ -19,7 +19,7 @@ function Operations({report}:{report:HostingReport}) {
  const metric:HostingMetric={value:usage.value,measuredAt:usage.measuredAt,status:usage.status==='ready'?'ready':usage.status==='error'?'error':'unavailable',periodStart:usage.periodStart,periodEnd:usage.periodEnd};
  const backupStale=backup.lastSuccess&&Date.now()-Date.parse(backup.lastSuccess)>36*3600000;
  const warning=usage.value!==null&&usage.value>=usage.limit*.7;
- return <><Usage title="Supabase-dataverkeer" metric={metric} limit={usage.limit} icon={Activity} note={warning?'Je dataverkeer nadert de inbegrepen limiet.':'Organisatietotaal voor de huidige facturatieperiode.'}/><section className="hc-usage" aria-label="Reservekopie"><div className="hc-usage-title"><h2>Reservekopie</h2><Database size={19} aria-hidden="true"/></div><p className="hc-amount" role="status">{backup.status==='error'?'Bijwerken mislukt':backup.status==='running'?'Wordt bijgewerkt':backupStale?'Nieuwe kopie nodig':backup.lastSuccess?'Veilig bewaard':'Nog niet bevestigd'}</p>{backup.lastSuccess&&<p className="hc-timestamp">Laatst bevestigd {dateTime(backup.lastSuccess)}</p>}<p className="hc-note">Producten, bestellingen, hostingrechten en geaggregeerde meetgegevens worden dagelijks bewaard.</p>{usage.value===null&&<p className="hc-note">De Supabase-verkeersmeting is nog niet beschikbaar. <a href="https://supabase.com/dashboard/organizations" target="_blank" rel="noreferrer">Controleer het providerverbruik</a>.</p>}</section></>;
+ return <><Usage title="Supabase-dataverkeer" metric={metric} limit={usage.limit} icon={Activity} note={usage.value===null?<>De Supabase-verkeersmeting is nog niet beschikbaar. <a href="https://supabase.com/dashboard/organizations" target="_blank" rel="noreferrer">Controleer het providerverbruik</a>.</>:warning?'Je dataverkeer nadert de inbegrepen limiet.':'Organisatietotaal voor de huidige facturatieperiode.'}/><section className="hc-usage" aria-label="Reservekopie"><div className="hc-usage-title"><h2>Reservekopie</h2><Database size={19} aria-hidden="true"/></div><p className="hc-amount" role="status">{backup.status==='error'?'Bijwerken mislukt':backup.status==='running'?'Wordt bijgewerkt':backupStale?'Nieuwe kopie nodig':backup.lastSuccess?'Veilig bewaard':'Nog niet bevestigd'}</p>{backup.lastSuccess&&<p className="hc-timestamp">Laatst bevestigd {dateTime(backup.lastSuccess)}</p>}<p className="hc-note">Producten, bestellingen, hostingrechten en geaggregeerde meetgegevens worden dagelijks bewaard.</p></section></>;
 }
 function Payment({initial,report,onClose,onReport}:{initial:HostingProduct;report:HostingReport;onClose:()=>void;onReport:(r:HostingReport)=>void}) {
  const [code,setCode]=useState(initial),[busy,setBusy]=useState(false),[error,setError]=useState(''),[copied,setCopied]=useState(false);
