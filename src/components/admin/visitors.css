@@ -9,9 +9,12 @@
 .av-period > span { display: block; font-size: 12px; font-weight: 650; margin-bottom: 10px; }
 .av-period-options { display: flex; gap: 5px; padding: 5px; background: #f0f3ec; border: 1px solid var(--a-line); border-radius: 8px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #b4bfae transparent; }
 .av-period-options > button { flex-shrink: 0; position: relative; padding: 11px 18px; min-height: 44px; border-radius: 5px; font-size: 12px; font-weight: 600; color: #586550; border: 1px solid transparent; transition: background 160ms, border-color 160ms, color 160ms; }
-.av-period-options > button:hover { background: #e6ecdf; color: var(--av-green); }
+.av-period-options > button:not(:disabled):hover { background: #e6ecdf; color: var(--av-green); }
 .av-period-options > button[aria-pressed="true"] { background: #fff; border-color: #c5d1bc; color: var(--av-green); box-shadow: 0 1px 3px #354c3910; }
 .av-period-options > button:focus-visible { outline-offset: -3px; }
+.av-period-options > button:disabled { color: #858b80; background: #e7e9e3; border-color: transparent; cursor: not-allowed; }
+.av-period-options > button:disabled svg { display: inline-block; vertical-align: -2px; margin-left: 6px; }
+.av-period-note { margin: 10px 0 0; color: var(--av-muted); font-size: 11px; line-height: 1.6; }
 .av-range { display: flex; align-items: center; justify-content: space-between; min-height: 32px; margin-top: 8px; gap: 12px; color: var(--av-muted); font-size: 11px; }
 .av-load-indicator { display: flex; gap: 4px; opacity: 0; transition: opacity 150ms; }
 .av-load-indicator.is-loading { opacity: 1; }

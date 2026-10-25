@@ -15,4 +15,5 @@ export type AnalyticsReport = {
   granularity: 'hour' | 'day' | 'month'; total: number; points: Point[];
   devices: { device: Device; visits: number }[];
   details: Point[]; page: number; pages: number; detailCount: number;
+  plan?: 'basis' | 'pro' | 'premium';
 };
