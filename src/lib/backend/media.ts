@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { cloudMode, serverDatabase } from './cloud';
 import { BusinessError } from './service';
+import { registerHostingMedia } from '../hosting/server';
 async function putObject(key:string,body:Uint8Array) {
   if (process.env.NODE_ENV !== 'production' && process.env.R2_USE_WRANGLER === 'true') { const {developmentR2}=await import('./r2-development'); return developmentR2(key,'PUT',body); }
   const { S3Client,PutObjectCommand }=await import('@aws-sdk/client-s3');
@@ -25,6 +26,8 @@ export async function savePhoto(file:File) {
     for(const [size,body] of variants) await putObject(`variants/${id}-${size}.webp`,body);
     const registered=await serverDatabase().rpc('lothuus_register_media',{media_id:id,original_key:original,width,height,bytes:file.size});
     if(registered.error) throw new BusinessError('De foto kon niet volledig worden opgeslagen. Probeer opnieuw.',503);
+    // Upload remains usable if bookkeeping fails; daily reconciliation restores every physical object.
+    try { await registerHostingMedia([{key:original,bytes:file.size},...variants.map(([size,body])=>({key:`variants/${id}-${size}.webp`,bytes:body.byteLength}))]); } catch { console.error('[hosting] media bookkeeping awaits reconciliation'); }
   } else {
     if(process.env.NODE_ENV==='production') throw new BusinessError('Online foto-opslag ontbreekt.',503);
     const {mkdir,writeFile}=await import('node:fs/promises'),{join}=await import('node:path'),{dataDirectory}=await import('./repository');
