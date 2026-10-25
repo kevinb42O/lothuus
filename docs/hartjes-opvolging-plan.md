@@ -100,7 +100,7 @@ CSV-export van geaggregeerde cijfers, materiaaltrends en vergelijking tussen ope
 
 Het tabblad Verkoop → Hartjes, de periodefilters, volledige-dagenvergelijking, grafiek met tabelalternatief, zoek-/categorie-/voorraadfilters, sortering, paginering en objectdetail zijn gebouwd. De eerste versie legt de nadruk op populaire objecten en trends. Bronobjecten behouden hun oorspronkelijke identiteit wanneer hun geïmporteerde productfiche wordt gepubliceerd.
 
-De bezoeker kiest zelf via **Mijn selectie → Privacy van je hartjes → Mijn hartjes mogen meetellen**. Zonder die keuze wordt geen meetidentificatie aangemaakt. Intrekken verwijdert de browsergebonden servertoestand; bij netwerkuitval wordt de verwijdering bij terugkeer opnieuw geprobeerd. Dagtotalen bevatten geen browsercode en blijven behouden. De eigenaar kan de volledige meting pauzeren in het tabblad.
+De bezoeker kiest zelf via **Mijn selectie → Mijn hartjes mogen meetellen**. Zonder die keuze wordt geen meetidentificatie aangemaakt. Intrekken verwijdert de browsergebonden servertoestand; bij netwerkuitval wordt de verwijdering bij terugkeer opnieuw geprobeerd. Dagtotalen bevatten geen browsercode en blijven behouden. De eigenaar kan de volledige meting pauzeren in het tabblad.
 
 Registratie staat los van de bedrijfsaggregate. De client gebruikt afzonderlijke Web Locks voor de lokale wachtrij en netwerkverzending: volgende klikken kunnen meteen worden opgeslagen tijdens een trage aanvraag. Dubbele en vertraagde updates worden aan de serverkant afgewezen op volgnummer. Herladen en reconciliëren leggen alleen een beginstand vast. De wachtrij is begrensd en wordt na een dag als beginstand hersteld, zonder klikmomenten te verzinnen. Een meetstoring blokkeert de selectie of bestelling niet.
 
