@@ -126,7 +126,7 @@ export function Lothuus() {
     const source = suppliedObjects.find(object => object.id === id);
     return { id, title: snapshots.current[id]?.title || source?.title || 'Object niet meer beschikbaar', image: snapshots.current[id]?.image || source?.image || '', category: source?.category || 'objecten', date: '', material: '', dimensions: '', maker: '', source: '', credit: '', imageSource: '', license: '', description: 'Dit object is niet meer beschikbaar in de actuele collectie.', missing: true };
   });
-  const currentDetail = objects.find(o => o.id === detail?.id || o.sourceReference === detail?.id) || detail;
+  const currentDetail = detail ? objects.find(o => o.id === detail.id || o.sourceReference === detail.id) || detail : null;
   const filtered = useMemo(() => filter === 'alles' ? objects : objects.filter(object => object.category === filter), [objects, filter]);
   const countedCategories = categories.map(category => ({
     ...category,
