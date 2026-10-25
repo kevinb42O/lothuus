@@ -15,7 +15,10 @@ test('automatic tracking: idle visits, offline retry, parallel clicks, pause, co
  try{
   values.set('lothuus-heart-consent','no');await syncHeartSelection([]);assert.equal(sent.length,0);assert.equal(values.has(key),false);assert.equal(values.has('lothuus-heart-consent'),false);
   values.set('lothuus-selection',JSON.stringify(['K001']));await trackHeart('K001',true,[]);
+  assert.equal(sent.length,1,'A click must not be followed by an empty sync.');
   assert.equal(sent.flatMap(r=>r.actions).filter(a=>a.id==='K001' && a.selected && !a.baseline).length,1);
+  await syncHeartSelection(['K001']);await syncHeartSelection(['K001']);await syncHeartSelection(['K001']);assert.equal(sent.length,1,'An unchanged selection needs no repeated heartbeat.');
+  const heartbeat=JSON.parse(values.get(key)!);heartbeat.checkedAt=Date.now()-24*60*60000-1;values.set(key,JSON.stringify(heartbeat));await syncHeartSelection(['K001']);assert.equal(sent.length,2);assert.equal(sent.at(-1)!.actions.length,0);
   offline=true;values.set('lothuus-selection','[]');await trackHeart('K001',false,['K001']);assert.ok(JSON.parse(values.get(key)!).actions.length>0);
   offline=false;await syncHeartSelection([]);assert.equal(JSON.parse(values.get(key)!).actions.length,0);assert.equal(sent.flatMap(r=>r.actions).filter(a=>a.id==='K001'&&!a.selected&&!a.baseline).length,1);
   pause=new Promise<void>(r=>{release=r;});values.set('lothuus-selection',JSON.stringify(['K002']));void trackHeart('K002',true,[]);await tick();
@@ -24,7 +27,7 @@ test('automatic tracking: idle visits, offline retry, parallel clicks, pause, co
   release();pause=null;await tick();
   enabled=false;values.set('lothuus-selection',JSON.stringify(['K003']));await trackHeart('K003',true,[]);assert.equal(JSON.parse(values.get(key)!).needsBaseline,true);assert.equal(JSON.parse(values.get(key)!).actions.length,0);
   enabled=true;const before=sent.length;await syncHeartSelection(['K003']);const resumed=sent.slice(before).flatMap(r=>r.actions);assert.ok(resumed.some(a=>a.id==='K003' && a.selected && a.baseline));assert.ok(resumed.every(a=>a.baseline));
-  const old=JSON.parse(values.get(key)!);old.actions=[{}];values.set(key,JSON.stringify(old));values.set('lothuus-selection',JSON.stringify(['K004']));await syncHeartSelection(['K004']);assert.ok(sent.at(-2)?.actions.every(a=>typeof a.id==='string'));
+  const old=JSON.parse(values.get(key)!);old.actions=[{}];values.set(key,JSON.stringify(old));values.set('lothuus-selection',JSON.stringify(['K004']));await syncHeartSelection(['K004']);assert.ok(sent.at(-1)?.actions.every(a=>typeof a.id==='string'));
   // No Web Locks: a session-local journal still counts without racing another tab's queue.
   Object.defineProperty(globalThis,'navigator',{value:{},configurable:true});values.set('lothuus-selection',JSON.stringify(['K005']));const fallbacks=sent.length;await trackHeart('K005',true,[]);assert.ok(session.has(key));assert.ok(sent.slice(fallbacks).flatMap(r=>r.actions).some(a=>a.id==='K005'&&!a.baseline));
   // Storage-disabled browsers retain an in-memory selection/measurement for this visit.

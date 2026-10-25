@@ -29,8 +29,10 @@ export function paymentDeadline(days: number, timestamp = Date.now()) {
 }
 export const netPaid = (r: Pick<Reservation, 'payments'>) => r.payments.reduce((n, p) => n + (p.type === 'receipt' ? p.amountCents : -p.amountCents), 0);
 export const reservationLines = (r: Pick<Reservation, 'itemId' | 'title' | 'image' | 'priceCents' | 'lines'>): OrderLine[] => r.lines || [{ itemId: r.itemId, title: r.title, image: r.image, productNumber: '', priceCents: r.priceCents }];
-export const availability = (s: { reservations: { itemId: string; status: string; lines?: OrderLine[]; payments?: Payment[]; priceCents?: number }[] }, id: string): 'available' | 'reserved' | 'sold' => {
-  const matches = s.reservations.filter(r => r.itemId === id || r.lines?.some(line => line.itemId === id));
+export const availability = (s: { items?: Pick<Item, 'id' | 'sourceReference'>[]; reservations: { itemId: string; status: string; lines?: OrderLine[]; payments?: Payment[]; priceCents?: number }[] }, id: string): 'available' | 'reserved' | 'sold' => {
+  const item = s.items?.find(item => item.id === id || item.sourceReference === id);
+  const ids = new Set([id, ...(item ? [item.id, item.sourceReference].filter((value): value is string => !!value) : [])]);
+  const matches = s.reservations.filter(r => ids.has(r.itemId) || r.lines?.some(line => ids.has(line.itemId)));
   if (matches.some(r => r.status === 'completed' || r.status === 'active' && r.payments && r.priceCents && netPaid({ payments: r.payments }) >= r.priceCents)) return 'sold';
   return matches.some(r => r.status === 'active') ? 'reserved' : 'available';
 };

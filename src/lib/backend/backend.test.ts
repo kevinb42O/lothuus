@@ -61,8 +61,38 @@ function fixture() {
 }
 function payload(s: Store, email = 'customer@example.com') { return { itemId: s.items[0].id, expectedPrice: s.items[0].priceCents, expectedVersion: s.items[0].version, contact: { name: 'Test Klant', email, phone: '', channel: 'email' }, emailConfirmation: email, message: 'Een test', termsVersion: s.settings.termsVersion, accepted: true, website: '', key: randomUUID() }; }
 test('IBAN checksum and complete settings gate online reservations', () => { assert.equal(validIban('BE68539007547034'), true); assert.equal(validIban('BE68539007547035'), false); assert.equal(ready(initialStore()), false); assert.equal(ready(fixture()), true); });
+test('source reservations protect the imported inventory record, its price and its permanent number', async () => {
+  const { checkout } = await import('./service');
+  const s = fixture(), item = s.items[0];
+  Object.assign(item, { sourceReference: 'K001', publication: 'draft', materialGroup: 'K', productNumber: 'K1' });
+  checkout(s, { items: [{ itemId: 'K001', expectedPrice: null, expectedVersion: 1 }], contact: payload(s).contact, message: '', termsVersion: s.settings.termsVersion, accepted: true, website: '', key: randomUUID() });
+  assert.equal(availability(s, item.id), 'reserved');
+  assert.throws(() => command(s, { action: 'change-material', id: item.id, version: item.version, materialGroup: 'G' }), /reservering/);
+  assert.throws(() => command(s, { action: 'save-item', item: { ...item, priceCents: 20000 } }), /prijs tijdens/);
+  s.reservations[0].status = 'completed';
+  assert.equal(availability(s, item.id), 'sold');
+  assert.equal(availability(s, 'K001'), 'sold');
+});
 test('reservation blocks stock and creates two separate local email previews', () => { const s = fixture(); const result = reserve(s, payload(s)); assert.equal(availability(s, s.items[0].id), 'reserved'); assert.equal(s.emails.length, 2); assert.deepEqual(s.emails.map(m => m.to).sort(), ['customer@example.com', 'owner@example.com']); assert.equal(netPaid(s.reservations[0]), 0); assert.ok(s.emails.find(m => m.kind === 'customer')!.body.includes(`/reservation#${result.token}`)); assert.ok(!s.emails.find(m => m.kind === 'owner')!.body.includes(result.token!)); });
 test('idempotent retry recovers original token and rejects changed payload', () => { const s = fixture(); const input = payload(s); const first = reserve(s, input); assert.deepEqual(reserve(s, input), first); assert.equal(s.reservations.length, 1); assert.equal(s.emails.length, 2); assert.throws(() => reserve(s, { ...input, message: 'changed' }), /aanvraagcode/); });
+test('closing reservations also blocks the legacy single-object endpoint while preserving a confirmed retry', () => {
+  const s = fixture(), input = payload(s), first = reserve(s, input);
+  s.settings.requestsEnabled = false;
+  assert.deepEqual(reserve(s, input), first);
+  assert.throws(() => reserve(s, { ...input, key: randomUUID() }), /tijdelijk gesloten/);
+});
+test('complete product saves reject duplicate photos just like photo-only saves', () => {
+  const s = fixture(), item = s.items[0];
+  assert.throws(() => command(s, { action: 'save-item', item: { ...item, photos: [item.photos[0], item.photos[0]] } }), /foto mag maar één keer/);
+});
+test('extending a payment deadline cannot shorten the existing agreement', () => {
+  const s = fixture(); reserve(s, payload(s)); const r = s.reservations[0], before = r.deadline;
+  assert.throws(() => command(s, { action: 'reservation', id: r.id, version: r.version, operation: 'extend', deadline: new Date(Date.now() + 3600000).toISOString() }), /na de huidige/);
+  assert.equal(r.deadline, before);
+  const later = new Date(Date.parse(before) + 86400000).toISOString();
+  command(s, { action: 'reservation', id: r.id, version: r.version, operation: 'extend', deadline: later });
+  assert.equal(r.deadline, later);
+});
 test('a competing buyer cannot reserve the same item', () => { const s = fixture(); reserve(s, payload(s)); assert.throws(() => reserve(s, payload(s, 'other@example.com')), /gereserveerd of verkocht/); assert.equal(s.customers.length, 1); assert.equal(s.emails.length, 2); });
 test('stale price, terms, mismatched email and honeypot are rejected', () => { const s = fixture(); const p = payload(s); assert.throws(() => reserve(s, { ...p, expectedPrice: 1 }), /gewijzigd/); assert.throws(() => reserve(s, { ...p, termsVersion: 'old' }), /voorwaarden/); assert.throws(() => reserve(s, { ...p, emailConfirmation: 'wrong@example.com' })); assert.throws(() => reserve(s, { ...p, website: 'spam' })); assert.equal(s.reservations.length, 0); });
 test('anonymous returning contacts do not overwrite established customer information', () => { const s = fixture(); reserve(s, payload(s)); const r = s.reservations[0]; command(s, { action: 'reservation', id: r.id, version: r.version, operation: 'cancel' }); const second = payload(s); second.contact.name = 'Different name'; reserve(s, second); assert.equal(s.customers.length, 1); assert.equal(s.customers[0].name, 'Test Klant'); assert.equal(s.reservations[0].contact.name, 'Different name'); });

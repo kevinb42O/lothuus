@@ -1,7 +1,8 @@
 'use client';
 import { heartDay, type HeartAction } from './types';
 const key = 'lothuus-heart-measurement';
-type Journal = { browser: string; sequence: number; seenAt: number; actions: HeartAction[]; known: string[]; queuedAt?: number; needsBaseline?: boolean };
+type Journal = { browser: string; sequence: number; seenAt: number; actions: HeartAction[]; known: string[]; queuedAt?: number; needsBaseline?: boolean; checkedAt?: number };
+const heartbeat = 24 * 60 * 60000;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 let memory: Journal | null = null, fallbackTail: Promise<unknown> = Promise.resolve(), delivering = false;
 const id = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 128;
@@ -49,14 +50,19 @@ function boundQueue(j: Journal, ids: string[]) {
 async function deliver() {
   for (let batch=0;batch<10;batch++) {
     const snapshot = await locked(()=>read()); if(!snapshot)return;
-    const actions = snapshot.actions.slice(0,100), response = await send(snapshot, actions);
-    await locked(()=>{
+    const actions = snapshot.actions.slice(0,100);
+    const elapsed = Date.now() - (snapshot.checkedAt || 0);
+    if (!actions.length && (!snapshot.known.length || elapsed >= 0 && elapsed < heartbeat)) return;
+    const response = await send(snapshot, actions);
+    const remaining = await locked(()=>{
       const current=read(); if(!current || current.browser!==snapshot.browser)return;
       if(response.enabled===false || response.excluded){current.actions=[];current.needsBaseline=true;}
       else { const delivered=new Set(actions.map(a=>a.sequence));current.actions=current.actions.filter(a=>!delivered.has(a.sequence));current.needsBaseline=false; }
+      current.checkedAt = Date.now();
       if(!current.actions.length)delete current.queuedAt;save(current);
+      return current.actions.length;
     });
-    if(!actions.length || response.enabled===false || response.excluded)return;
+    if(!remaining || response.enabled===false || response.excluded)return;
   }
 }
 async function flush() {

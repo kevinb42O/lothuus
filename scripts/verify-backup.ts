@@ -6,12 +6,31 @@ import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {developmentR2} from '../src/lib/backend/r2-development';
 import type {Item,Store} from '../src/lib/backend/types';
+import { validateBackup } from '../src/lib/maintenance/backup-format';
 async function main() {
  process.env.R2_BUCKET='lothuus-backups';
  const pointer=await developmentR2('database/latest.json','GET');assert(pointer,'Latest backup pointer missing');
  const latest=await pointer.json() as {key:string;sha256:string};assert(/^database\/[^/]+\.json$/.test(latest.key));
  const response=await developmentR2(latest.key,'GET');assert(response,'Backup missing');const bytes=new Uint8Array(await response.arrayBuffer());
  const digest=createHash('sha256').update(bytes).digest('hex');assert.equal(digest,latest.sha256,'Backup checksum mismatch');
+ const versioned=JSON.parse(new TextDecoder().decode(bytes));
+ if(versioned.schemaVersion===2){
+  const full=validateBackup(versioned);
+  await mkdir(resolve('.backups'),{recursive:true,mode:0o700});const folder=await mkdtemp(resolve('.backups/restore-test-'));
+  await writeFile(resolve(folder,'snapshot.json'),bytes,{mode:0o600});
+  const restored=new DatabaseSync(resolve(folder,'restore.sqlite'));
+  try{
+   restored.exec('CREATE TABLE restored_rows(table_name TEXT NOT NULL,position INTEGER NOT NULL,body TEXT NOT NULL,PRIMARY KEY(table_name,position))');
+   for(const [table,rows]of Object.entries(full.tables)){
+    rows.forEach((row,index)=>restored.prepare('INSERT INTO restored_rows VALUES(?,?,?)').run(table,index,JSON.stringify(row)));
+    const recovered=restored.prepare('SELECT body FROM restored_rows WHERE table_name=? ORDER BY position').all(table) as {body:string}[];
+    assert.deepEqual(recovered.map(row=>JSON.parse(row.body)),rows,`Restore mismatch: ${table}`);
+   }
+  }finally{restored.close();}
+  await chmod(resolve(folder,'restore.sqlite'),0o600);
+  await writeFile(resolve(folder,'verification.json'),JSON.stringify({schemaVersion:2,sha256:digest,source:latest.key,tables:Object.fromEntries(Object.entries(full.tables).map(([name,rows])=>[name,rows.length])),verifiedAt:new Date().toISOString()},null,2),{mode:0o600});
+  console.log({restored:true,schemaVersion:2,checksumVerified:true,tables:Object.keys(full.tables).length,directory:folder});return;
+ }
  const backup=JSON.parse(new TextDecoder().decode(bytes)) as {schemaVersion:number;store:{revision:number;state:Store};media:{id:string}[];productNumbers:{number:string;item_id:string}[]};
  assert.equal(backup.schemaVersion,1);assert.equal(backup.store.state.schemaVersion,1);
  const state=backup.store.state,media=new Set(backup.media.map(m=>m.id));

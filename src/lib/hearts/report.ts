@@ -19,7 +19,7 @@ export function buildHeartReport(raw: HeartRaw, store: Store, params: URLSearchP
     const hist = raw.days.filter(d => d.id === o.id), inPeriod = hist.filter(d => d.day >= from && d.day <= today);
     const recent = raw.recent.find(r => r.id === o.id);
     const orders = store.reservations.filter(r => r.source === 'web' && heartDay(r.createdAt) >= from && heartDay(r.createdAt) <= today && reservationLines(r).some(l => l.itemId === o.id || !!product && l.itemId === product.id));
-    const latest = hist.filter(d => d.added > 0).map(d => d.day).sort().at(-1);
+    const latest = raw.latest?.find(d => d.id === o.id)?.day || hist.filter(d => d.added > 0).map(d => d.day).sort().at(-1);
     return { ...o, title: product?.title || live?.title || o.title, reference: product?.productNumber || o.reference, image: product?.photos[0] ? `/api/images/${product.photos[0].id}?size=thumb` : live?.image || o.image, category: product?.category || o.category, availability: product?.publication === 'archived' ? 'archived' : live?.availability || 'missing', itemId: product?.id, added: inPeriod.reduce((n,d) => n+d.added,0), removed: inPeriod.reduce((n,d) => n+d.removed,0), ordered: inPeriod.reduce((n,d) => n+d.ordered,0), recent: recent?.count || 0, lastSeen: latest || null, reservations: orders.length, cancelled: orders.filter(r => r.status === 'cancelled' || r.status === 'expired').length };
   });
   const categories = [...new Set(rows.map(r => r.category))].sort();

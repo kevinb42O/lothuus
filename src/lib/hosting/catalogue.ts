@@ -1,3 +1,4 @@
+import type { OperationsReport } from '../maintenance/types';
 export type HostingPlan = 'basis' | 'pro' | 'premium';
 export const HOSTING_BANK = { beneficiary: 'Kevin Bourguignon', iban: 'BE43738004886701', formattedIban: 'BE43 7380 0488 6701' } as const;
 export const PLANS = {
@@ -18,7 +19,9 @@ export function paymentPayload(code: HostingProduct) {
   return `BCD\n002\n1\nSCT\n\n${HOSTING_BANK.beneficiary}\n${HOSTING_BANK.iban}\nEUR${(PRODUCTS[code].cents / 100).toFixed(2)}\n\n${PRODUCTS[code].bankLabel}`;
 }
 export function objectUsage(count: number, limit: number) {
-  const percentage = limit > 0 ? count / limit * 100 : 0;
+  // Store and render a stable one-decimal percentage; binary floating-point
+  // otherwise produces values such as 102.49999999999999 for 205 / 200.
+  const percentage = limit > 0 ? Math.round(count / limit * 1000) / 10 : 0;
   return { percentage, fill: Math.min(100, Math.max(0, percentage)), over: Math.max(0, count - limit), tone: count >= limit ? 'danger' : percentage >= 80 ? 'warning' : 'normal' };
 }
 export function formatBytes(bytes: number) {
@@ -26,4 +29,4 @@ export function formatBytes(bytes: number) {
 }
 export type HostingMetric = { value: number | null; measuredAt: string | null; status: 'ready' | 'unavailable' | 'not_applicable' | 'error'; periodStart?: string; periodEnd?: string };
 export type HostingOrder = { id: string; product: HostingProduct; cents: number; status: 'pending_payment' | 'payment_review' | 'active' | 'cancelled'; createdAt: string; activatedAt: string | null };
-export type HostingReport = { plan: HostingPlan; extra: number; count: number; limit: number; validUntil: string | null; metrics: { media: HostingMetric; database: HostingMetric; direct: HostingMetric; cached: HostingMetric }; orders: HostingOrder[]; updatedAt: string; local?: boolean };
+export type HostingReport = { plan: HostingPlan; extra: number; count: number; limit: number; validUntil: string | null; metrics: { media: HostingMetric; database: HostingMetric; direct: HostingMetric; cached: HostingMetric }; orders: HostingOrder[]; updatedAt: string; local?: boolean; operations?: OperationsReport };

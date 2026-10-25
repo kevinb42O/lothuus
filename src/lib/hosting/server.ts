@@ -8,12 +8,19 @@ export async function hostingRpc(name: string, args?: Record<string, unknown>) {
   if (error) { console.error('[hosting]', name, error.code); throw new BusinessError('De hostinggegevens zijn tijdelijk niet bereikbaar. Probeer opnieuw.', 503); }
   return data;
 }
-export async function hostingReport(): Promise<HostingReport> {
+export async function hostingReport(includeOperations = false): Promise<HostingReport> {
   if (cloudMode()) {
     const report = await hostingRpc('lothuus_hosting_report');
     if (!report || !['basis','pro','premium'].includes(report.plan)) throw new BusinessError('Je pakketgegevens zijn tijdelijk niet beschikbaar.',503);
     // An earlier month is never presented as this month’s usage.
     if (report.metrics.direct.periodStart && report.metrics.direct.periodStart.slice(0,7) !== new Date().toISOString().slice(0,7)) report.metrics.direct = { value: null, measuredAt: null, status: 'unavailable' };
+    if (includeOperations) {
+      const operations = await hostingRpc('lothuus_operations_report');
+      const sample = operations.supabase;
+      sample.limit = Number(process.env.SUPABASE_EGRESS_LIMIT_BYTES || 5000000000);
+      if (!Number.isFinite(sample.value) || !sample.periodEnd || Date.parse(sample.periodEnd) <= Date.now()) { sample.value = null; if (sample.status === 'ready') sample.status = 'unavailable'; }
+      report.operations = operations;
+    }
     return report;
   }
   if (process.env.NODE_ENV === 'production') throw new BusinessError('Online opslag ontbreekt.',503);
@@ -28,14 +35,14 @@ export async function changeHosting(raw: unknown) {
   const parsed=hostingCommand.safeParse(raw);
   if (!parsed.success) throw new BusinessError('Controleer je bestelling en probeer opnieuw.');
   const input=parsed.data;
-  if (input.action==='refresh') return hostingReport();
+    if (input.action==='refresh') return hostingReport(true);
   if (!cloudMode()) {
     if (process.env.NODE_ENV==='production') throw new BusinessError('Online opslag ontbreekt.',503);
     return (await import('./local')).localCommand(input);
   }
   if (input.action==='order') await hostingRpc('lothuus_hosting_order',{order_id:input.key,product_code:input.product,epc_payload:paymentPayload(input.product)});
   else await hostingRpc('lothuus_hosting_order_status',{order_id:input.id,next_status:input.status});
-  return hostingReport();
+  return hostingReport(true);
 }
 export async function registerHostingMedia(records: {key:string;bytes:number}[]) {
   if (cloudMode()) await hostingRpc('lothuus_hosting_media',{records});

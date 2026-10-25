@@ -142,7 +142,7 @@ Later kan optionele AI ook vrije tekst voorstellen laten verdelen, maar die blij
 - Voor import van K012 en G029: alle 9 respectievelijk 15 bronfoto's behouden, status Foto's kiezen; zij selecteert maximaal acht voor de fiche. Extra bronfoto's blijven privé bewaard en terug te kiezen. Dit mag niet botsen met de gewone 8-fotolimiet.
 - Alt-tekst met een bruikbaar voorstel en optioneel kunnen aanpassen. Geen reeks verplichte technische beschrijvingsvelden vóór zij verder mag.
 - JPEG, PNG, WebP en AVIF blijven uitgangspunt. HEIC van een telefoon afzonderlijk onderzoeken en op de echte verwerkingsomgeving testen; geen ondersteuning beloven op basis van alleen bestandsextensies.
-- Huidige uitgangspunt: maximaal 15 MB per foto, oriëntatie corrigeren en afgeleide webversies maken. Originelen privé bewaren met expliciete bewaarkeuze; GPS/EXIF niet doorgeven in publieke webversies.
+- Huidige implementatie op Vercel: maximaal 4 MB per foto, oriëntatie corrigeren en afgeleide webversies maken. Originelen privé bewaren met expliciete bewaarkeuze; GPS/EXIF niet doorgeven in publieke webversies.
 
 ## 7. Bewaren, gereedheid en zichtbaarheid zijn verschillende zaken
 

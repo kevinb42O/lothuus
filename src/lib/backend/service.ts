@@ -20,7 +20,7 @@ function publicAvailability(s: Store, id: string) {
   return states.includes('sold') ? 'sold' as const : states.includes('reserved') ? 'reserved' as const : 'available' as const;
 }
 export function catalogue(s: Store) {
-  const objects: PublicObject[] = s.items.filter(i => i.publication === 'published').map(i => ({ id: i.id, title: i.title, category: i.category, description: i.description, date: i.date, material: i.material, dimensions: i.dimensions, maker: i.maker, image: `/api/images/${i.photos[0]?.id}?size=grid`, source: '', credit: '', imageSource: '', license: '', priceCents: i.priceCents, condition: i.condition, availability: publicAvailability(s, i.id), version: i.version, photos: i.photos }));
+  const objects: PublicObject[] = s.items.filter(i => i.publication === 'published').map(i => ({ id: i.id, ...(i.sourceReference ? { sourceReference: i.sourceReference } : {}), title: i.title, category: i.category, description: i.description, date: i.date, material: i.material, dimensions: i.dimensions, maker: i.maker, image: `/api/images/${i.photos[0]?.id}?size=grid`, source: '', credit: '', imageSource: '', license: '', priceCents: i.priceCents, condition: i.condition, availability: publicAvailability(s, i.id), version: i.version, photos: i.photos }));
   const reservedSources = new Set(s.reservations.flatMap(r => reservationLines(r).map(line => line.itemId)));
   const importedItems = new Map(s.items.filter(item => item.sourceReference).map(item => [item.sourceReference, item]));
   const sourceObjects = suppliedObjects.filter(o => {
@@ -78,6 +78,7 @@ export function reserve(s: Store, raw: unknown) {
     if (previous.hash !== digest) throw new BusinessError('Deze aanvraagcode is al gebruikt voor andere gegevens.', 409);
     return publicReservation(s.reservations.find(r => r.id === previous.reservationId)!, previous.token);
   }
+  if (s.settings.requestsEnabled === false) throw new BusinessError('Nieuwe reserveringen zijn tijdelijk gesloten. Je selectie blijft bewaard.', 503);
   if (!ready(s)) throw new BusinessError('Online reserveren is nog niet ingesteld. Probeer het later opnieuw.', 503);
   if (input.termsVersion !== s.settings.termsVersion) throw new BusinessError('De voorwaarden zijn gewijzigd. Open het formulier opnieuw.', 409);
   const item = s.items.find(i => i.id === input.itemId);
@@ -169,6 +170,7 @@ export function command(s: Store, raw: unknown) {
     if (notification) { notification.read = true; if (c.action === 'resolve-notification') notification.resolved = true; }
   } else if (c.action === 'save-item') {
     const input = c.item;
+    if (new Set(input.photos.map(photo => photo.id)).size !== input.photos.length) throw new BusinessError('Een foto mag maar één keer op de fiche staan.');
     if (input.publication === 'published' && (input.title.trim().length < 2 || input.priceUnset || !input.description || input.priceCents <= 0 || !input.photos.length)) throw new BusinessError('Publiceren vereist een beschrijving, positieve prijs en minstens één foto.');
     // Media readiness is enforced by the persistence boundary (Postgres FK/check or local repository).
     const previousCreation = !input.id && input.creationKey ? s.items.find(i => i.creationKey === input.creationKey) : undefined;
@@ -269,7 +271,7 @@ export function command(s: Store, raw: unknown) {
         if (c.operation === 'cancel') { if (netPaid(r) !== 0) throw new BusinessError('Registreer eerst de terugbetaling voordat je het object vrijgeeft.'); r.status = 'cancelled'; queue(s, r, 'cancelled'); event(r, 'Geannuleerd door eigenaar na bankcontrole.'); }
         if (c.operation === 'complete') { if (r.paymentPending || r.pricePending || r.priceCents <= 0) throw new BusinessError('Bevestig eerst de prijs en volledige betaling.'); if (netPaid(r) < r.priceCents) throw new BusinessError('Registreer eerst de volledige betaling.'); if (netPaid(r) > r.priceCents) throw new BusinessError('Registreer eerst de terugbetaling van het te veel ontvangen bedrag.'); r.status = 'completed'; r.completedAt = now(); r.fulfilment = 'fulfilled'; event(r, 'Verkoop afgerond en object overgedragen.'); }
         if (c.operation === 'pickup') { if (r.paymentPending || r.pricePending || r.priceCents <= 0) throw new BusinessError('Bevestig eerst de prijs en volledige betaling.'); if (netPaid(r) < r.priceCents) throw new BusinessError('Bevestig eerst de volledige betaling voordat je ophalen vastlegt.'); r.fulfilment = 'pickup_arranged'; event(r, 'Ophalen afgesproken.'); }
-        if (c.operation === 'extend') { if (!c.deadline || Date.parse(c.deadline) <= Date.now()) throw new BusinessError('Kies een toekomstige datum.'); r.deadline = c.deadline; r.reminded = false; event(r, 'Betaaltermijn verlengd.'); }
+        if (c.operation === 'extend') { if (!c.deadline || Date.parse(c.deadline) <= Math.max(Date.now(), Date.parse(r.deadline))) throw new BusinessError('Kies een datum na de huidige betaaltermijn.'); r.deadline = c.deadline; r.reminded = false; event(r, 'Betaaltermijn verlengd.'); }
       }
     }
   }

@@ -6,7 +6,7 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/elastic-scroll.test.ts src/lib/grid-layout.test.ts src/lib/mosaic-reveal.test.ts src/lib/filter-transition.test.ts src/lib/detail-layout.test.ts src/lib/pointer-intent.test.ts src/lib/backend/backend.test.ts src/lib/inventory.test.ts src/components/house-rendering.test.ts src/components/house-camera.test.ts src/components/house-entry.test.ts src/components/house-entrance-cache.test.ts src/components/house-door.test.ts src/components/native-mosaic.test.ts src/lib/hearts/hearts.test.ts src/lib/hearts/client.test.ts src/lib/analytics/analytics.test.ts",
+    "test": "tsx --test 'src/**/*.test.ts' 'src/**/*.test.tsx' 'scripts/*.test.mjs'",
     "typecheck": "tsc --noEmit",
     "house:bake-entrance": "tsx scripts/bake-house-entrance.ts",
     "owner:setup": "node scripts/setup-owner.mjs",
@@ -34,11 +34,14 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
     "@tailwindcss/postcss": "^4.1.0",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/three": "^0.186.0",
+    "jsdom": "^29.1.1",
     "supabase": "2.122.0",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.20.0",

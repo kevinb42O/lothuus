@@ -83,6 +83,13 @@ test('persistent local writes deduplicate events, keep day totals and reject una
     assert.equal((await POST(request({ id: crypto.randomUUID(), route: '/' }, 'https://foreign.test'))).status, 403);
     assert.equal((await POST(request({ id: crypto.randomUUID(), route: '/', extra: 'no' }))).status, 400);
     const valid = await POST(request({ id: crypto.randomUUID(), route: '/' })); assert.equal(valid.status, 204); assert.equal(valid.headers.get('set-cookie'), null);
+    const previousTracking = process.env.NEXT_PUBLIC_VISITOR_TRACKING;
+    try {
+      const count = localRaw().days.reduce((total, day) => total + day.visits, 0);
+      process.env.NEXT_PUBLIC_VISITOR_TRACKING = 'false';
+      assert.equal((await POST(request({ id: crypto.randomUUID(), route: '/' }))).status, 204);
+      assert.equal(localRaw().days.reduce((total, day) => total + day.visits, 0), count, 'Disabling the tracker must also disable the server write.');
+    } finally { if (previousTracking === undefined) delete process.env.NEXT_PUBLIC_VISITOR_TRACKING; else process.env.NEXT_PUBLIC_VISITOR_TRACKING = previousTracking; }
   } finally {
     if (previous.data === undefined) delete process.env.LOTHUUS_DATA_DIR; else process.env.LOTHUUS_DATA_DIR = previous.data;
     if (previous.mode === undefined) delete process.env.BACKEND_MODE; else process.env.BACKEND_MODE = previous.mode;

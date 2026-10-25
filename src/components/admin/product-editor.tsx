@@ -6,15 +6,16 @@ import { useToast } from './toasts';
 import { categories, type Category } from '@/lib/collection';
 import { availability, money, type AdminStore, type Item, type Photo } from '@/lib/backend/types';
 import { divideText, inputCents, materialGroups, materialName, missingFields, textTargets, type MaterialGroup, type TextTarget } from '@/lib/inventory';
+import { MAX_PHOTO_BYTES } from '@/lib/media-limits';
 
 type Draft = { title: string; description: string; date: string; dimensions: string; condition: string; price: string; maker: string; material: string; materialGroup: MaterialGroup | ''; category: Category; publication: Item['publication']; photos: Photo[]; editorReady: boolean };
-type PendingPhoto = { key: string; file: File; preview: string; state: 'waiting' | 'uploading' | 'error'; error?: string };
+type PendingPhoto = { key: string; file: File; preview: string; state: 'waiting' | 'uploading' | 'error'; error?: string; authRequired?: boolean };
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 const fromItem = (item?: Item): Draft => ({ title: item?.title || '', description: item?.description || '', date: item?.date || '', dimensions: item?.dimensions || '', condition: item?.condition || '', price: item && !item.priceUnset ? (item.priceCents / 100).toLocaleString('nl-BE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', maker: item?.maker || '', material: item?.material || '', materialGroup: item?.materialGroup || '', category: item?.category || 'objecten', publication: item?.publication || 'draft', photos: item?.photos || [], editorReady: item?.editorReady || false });
 const asItem = (draft: Draft) => ({ ...draft, materialGroup: draft.materialGroup || undefined, priceCents: inputCents(draft.price) || 0, priceUnset: draft.price.trim() === '' });
 function EditorField({ id, label, hint, children, wide = false }: { id: string; label: string; hint?: string; children: ReactNode; wide?: boolean }) { return <div className={`pe-field ${wide ? 'pe-wide' : ''}`}><label htmlFor={`product-${id}`}>{label}</label>{children}{hint && <p className="pe-hint" id={`hint-${id}`}>{hint}</p>}</div>; }
 
-export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, registerLeave }: { item?: Item; store: AdminStore; onDirect: (itemId: string, customerId: string) => Promise<void>; onData: (store: AdminStore) => void; onBack: () => void; onNext: () => void; registerLeave: (handler: (() => Promise<boolean>) | null) => void }) {
+export function ProductEditor({ item, store, accountEmail, onDirect, onData, onBack, onNext, registerLeave }: { item?: Item; store: AdminStore; accountEmail: string; onDirect: (itemId: string, customerId: string) => Promise<void>; onData: (store: AdminStore) => void; onBack: () => void; onNext: () => void; registerLeave: (handler: (() => Promise<boolean>) | null) => void }) {
   const { notify } = useToast();
   const [draft, setDraft] = useState<Draft>(() => fromItem(item));
   const [creationKey] = useState(() => crypto.randomUUID());
@@ -193,7 +194,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
         const body = new FormData(); body.append('file', next.file);
         const response = await fetch('/api/images', { method: 'POST', body });
         const photo = await response.json();
-        if (!response.ok) throw new Error(photo.error || 'Deze foto kon niet worden verwerkt.');
+        if (!response.ok) { if (response.status === 401) { next.authRequired = true; setSessionExpired(true); } throw new Error(photo.error || 'Deze foto kon niet worden verwerkt.'); }
         if (!alive.current) break;
         await updatePhotos([...latest.current.photos, photo]);
         notify({ id: 'product-upload', tone: 'success', message: 'Foto geüpload.' });
@@ -201,6 +202,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
         URL.revokeObjectURL(next.preview);
       } catch (e) { next.state = 'error'; next.error = (e as Error).message; notify({ id: 'product-upload', tone: 'error', message: next.error }); }
       updateQueue();
+      if (next.authRequired) break;
     }
     uploading.current = false;
   }
@@ -208,8 +210,8 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
     const list = Array.from(files);
     if (!list.length) return;
     if (latest.current.photos.length + queue.current.length + list.length > 8) { setError('Je kunt maximaal 8 foto’s gebruiken. Kies minder bestanden of verwijder eerst een foto.'); return; }
-    const unsupported = list.find(f => !/\.(jpe?g|png|webp|avif)$/i.test(f.name) || f.size > 15000000);
-    if (unsupported) { setError(`${unsupported.name}: kies JPEG, PNG, WebP of AVIF van maximaal 15 MB.`); return; }
+    const unsupported = list.find(f => !/\.(jpe?g|png|webp|avif)$/i.test(f.name) || f.size === 0 || f.size > MAX_PHOTO_BYTES);
+    if (unsupported) { setError(`${unsupported.name}: kies JPEG, PNG, WebP of AVIF van maximaal 4 MB.`); return; }
     queue.current.push(...list.map(file => ({ key: crypto.randomUUID(), file, preview: URL.createObjectURL(file), state: 'waiting' as const })));
     setError(''); updateQueue(); void processQueue();
   }
@@ -262,11 +264,23 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
     const text = [draft.title, draft.description, `Stijl / Periode: ${draft.date}`, `Afmetingen: ${draft.dimensions}`, `Staat: ${draft.condition}`, `Vaste Lothuus-prijs: ${draft.price ? money(inputCents(draft.price) || 0) : 'Nog in te vullen'}`].filter(Boolean).join('\n\n');
     try { await navigator.clipboard.writeText(text); setFeedback('Producttekst gekopieerd.'); } catch { setError('Kopiëren is niet gelukt. Selecteer de tekst en kopieer met je toetsenbord.'); }
   }
+  async function renewSession(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); const form = event.currentTarget; const password = new FormData(form).get('password');
+    setLoginBusy(true); setError('');
+    try {
+      const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, email: accountEmail }), signal: AbortSignal.timeout(15000) });
+      const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Inloggen is niet gelukt.');
+      form.reset(); setSessionExpired(false); await save(true, retryPhotosOnly.current);
+      for (const photo of queue.current) if (photo.authRequired) { photo.authRequired = false; photo.state = 'waiting'; photo.error = undefined; }
+      updateQueue(); void processQueue();
+    } catch (e) { setError((e as Error).message); }
+    finally { setLoginBusy(false); }
+  }
 
   return <div className="product-workspace">
     <div className="pe-topbar"><button className="a-back" onClick={onBack}><ArrowLeft size={16} />Alle producten</button><div className={`pe-save-state ${saveState === 'error' ? 'is-error' : ''}`} role="status">{saveState === 'saving' ? <LoaderCircle size={15} className="a-spin" /> : saveState === 'error' ? <RotateCcw size={15} /> : <Check size={15} />}<span>{saveState === 'saving' ? 'Wijzigingen bewaren…' : saveState === 'error' ? 'Nog niet bewaard' : dirty ? 'Wijzigingen klaar om te bewaren' : savedAt ? `Opgeslagen om ${new Intl.DateTimeFormat('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }).format(new Date(savedAt))}` : 'Begin waar je wilt'}</span>{saveState === 'error' && <button onClick={() => void save(true, retryPhotosOnly.current)}>Opnieuw proberen</button>}</div></div>
     {recovery && <div className="pe-recovery"><div><strong>Er staat nog invoer in deze browser.</strong><p>Herstel je vorige wijzigingen of ga verder met de opgeslagen versie.</p></div><button className="a-secondary" onClick={() => { setDraft(recovery.draft); latest.current = recovery.draft; setRecoveredKey(recovery.creationKey); setRecovery(null); blocked.current = false; notify({ id: 'product-action', tone: 'info', message: 'Je vorige invoer is hersteld.' }); }}>Invoer herstellen</button><button className="a-link" onClick={() => { localStorage.removeItem(recoveryKey); setRecovery(null); notify({ id: 'product-action', tone: 'success', message: 'De opgeslagen versie blijft behouden.' }); }}>Opgeslagen versie houden</button></div>}
-    {sessionExpired && <form className="pe-session" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const password = new FormData(form).get('password'); setLoginBusy(true); setError(''); try { const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, email: 'katrien@lothuus.be' }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Inloggen is niet gelukt.'); form.reset(); setSessionExpired(false); await save(true, retryPhotosOnly.current); } catch (e) { setError((e as Error).message); } finally { setLoginBusy(false); } }}><div><h2>Even opnieuw inloggen</h2><p>Je invoer blijft op deze pagina staan. Na het inloggen bewaren we verder.</p></div><label htmlFor="renew-password">Je wachtwoord<input id="renew-password" type="password" name="password" autoComplete="current-password" required maxLength={200} /></label><button className="a-button" disabled={loginBusy}>{loginBusy ? 'Inloggen…' : 'Inloggen en bewaren'}</button></form>}
+    {sessionExpired && <form className="pe-session" onSubmit={renewSession}><div><h2>Even opnieuw inloggen</h2><p>Je invoer blijft op deze pagina staan. Na het inloggen bewaren we verder.</p></div><label htmlFor="renew-password">Je wachtwoord<input id="renew-password" type="password" name="password" autoComplete="current-password" required maxLength={200} /></label><button className="a-button" disabled={loginBusy}>{loginBusy ? 'Inloggen…' : 'Inloggen en bewaren'}</button></form>}
     {conflict && <section className="pe-conflict" tabIndex={-1} aria-label="Gewijzigd in een ander venster"><h2>Dit product is ook in een ander venster gewijzigd.</h2><p>Je eigen invoer blijft hier staan. Vergelijk de versies en kies welke je wilt bewaren.</p><div className="pe-conflict-versions">{[{ label: 'Jouw invoer', value: draft }, { label: 'Opgeslagen versie', value: fromItem(conflict) }].map(version => <div key={version.label}><h3>{version.label}</h3><dl>{textTargets.map(target => <div key={target.key}><dt>{target.label}</dt><dd>{version.value[target.key] || 'Nog leeg'}</dd></div>)}<div><dt>Foto’s</dt><dd>{version.value.photos.length} foto’s, in volgorde: {version.value.photos.map(p => p.alt).join(', ')}</dd></div></dl></div>)}</div><div className="a-actions"><button className="a-secondary" type="button" onClick={() => { const value = fromItem(conflict); meta.current = conflict; saved.current = JSON.stringify(value); latest.current = value; setDraft(value); setServerItem(conflict); setSavedAt(conflict.updatedAt || conflict.createdAt); setConflict(null); setError(''); setSaveState('saved'); blocked.current = false; try { localStorage.removeItem(recoveryKey); } catch {} }}>Opgeslagen versie gebruiken</button><button className="a-button" type="button" onClick={() => { meta.current = conflict; setConflict(null); void save(true); }}>Bewaren met mijn invoer</button></div></section>}
     {recoveryWarning && <p className="a-info" role="status">{recoveryWarning}</p>}
     {error && <div className="a-error pe-message" role="alert"><span>{error}</span><button type="button" aria-label="Melding sluiten" onClick={() => setError('')}><X size={16} /></button></div>}
@@ -288,7 +302,7 @@ export function ProductEditor({ item, store, onDirect, onData, onBack, onNext, r
             <details className="pe-photo-alt"><summary>Fotobeschrijving</summary><input aria-label={`Beschrijving foto ${index + 1}`} maxLength={240} value={photo.alt} onChange={e => updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: e.target.value } : p), false)} onBlur={() => { if (!photo.alt.trim()) updatePhotos(latest.current.photos.map(p => p.id === photo.id ? { ...p, alt: `Productfoto ${index + 1}` } : p), false); }} /></details>
           </div>)}{pending.map(p => <div className="pe-photo pe-pending" key={p.key}><div className="pe-photo-image"><img src={p.preview} alt={p.file.name} /><span className="pe-photo-label">{p.state === 'error' ? 'Niet gelukt' : 'Verwerken…'}</span></div><p>{p.state === 'error' ? p.error : p.file.name}</p>{p.state === 'error' ? <div className="pe-pending-actions"><button type="button" className="a-link" onClick={() => { p.state = 'waiting'; updateQueue(); void processQueue(); }}>Opnieuw</button><button type="button" aria-label={`Upload ${p.file.name} verwijderen`} onClick={() => { URL.revokeObjectURL(p.preview); queue.current = queue.current.filter(v => v.key !== p.key); updateQueue(); }}><X size={16} /></button></div> : <LoaderCircle className="a-spin" size={17} />}</div>)}
           {draft.photos.length + pending.length < 8 && draft.photos.length > 0 && <button className="pe-add-photo" type="button" onClick={() => fileInput.current?.click()}><ImagePlus size={23} /><span>Foto toevoegen</span></button>}</div>}
-          {!draft.photos.length && !pending.length && <button className="pe-dropzone" type="button" onClick={() => fileInput.current?.click()}><span className="pe-upload-icon"><ImagePlus size={27} strokeWidth={1.4} /></span><strong>Sleep je foto’s hierheen</strong><span>of <u>kies foto’s op je computer</u></span><small>2 tot 8 foto’s · JPEG, PNG, WebP of AVIF · tot 15 MB per foto</small></button>}
+          {!draft.photos.length && !pending.length && <button className="pe-dropzone" type="button" onClick={() => fileInput.current?.click()}><span className="pe-upload-icon"><ImagePlus size={27} strokeWidth={1.4} /></span><strong>Sleep je foto’s hierheen</strong><span>of <u>kies foto’s op je computer</u></span><small>2 tot 8 foto’s · JPEG, PNG, WebP of AVIF · tot 4 MB per foto</small></button>}
           <input ref={fileInput} className="sr-only" tabIndex={-1} type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple aria-label="Productfoto’s kiezen" onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
         </div>
         {removed && <div className="pe-undo" role="status"><span>Foto verwijderd uit de fiche.</span><button type="button" onClick={() => { if (latest.current.photos.length + queue.current.length >= 8) { setError('Maak eerst een fotoplaats vrij om deze foto terug te zetten.'); return; } const photos = [...latest.current.photos]; photos.splice(removed.index, 0, removed.photo); updatePhotos(photos); setRemoved(null); }}><RotateCcw size={14} />Ongedaan maken</button></div>}

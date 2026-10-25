@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { expireOrders, type Store } from './types';
 import { BusinessError } from './service';
 import { PLANS } from '../hosting/catalogue';
+import { CATALOGUE_TAG, HEARTS_TAG, invalidateReadCache } from './cache-tags';
 export const cloudMode = () => process.env.BACKEND_MODE === 'supabase';
 export function serverDatabase() {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
@@ -26,7 +27,7 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
     const saved = await db.rpc('lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state });
     if (saved.error?.message.includes('HOSTING_OBJECT_LIMIT')) throw new BusinessError('Je objectlimiet is bereikt. Verhoog je capaciteit via Hosting & capaciteit om nieuwe objecten toe te voegen.', 409);
     if (saved.error) throw new BusinessError('Opslaan is niet gelukt. Vernieuw de gegevens en probeer opnieuw.', 503);
-    if (saved.data === true) { onRevision?.(loaded.data.revision + 1); return result; }
+    if (saved.data === true) { invalidateReadCache(CATALOGUE_TAG, HEARTS_TAG); onRevision?.(loaded.data.revision + 1); return result; }
   }
   throw new BusinessError('Er wordt tegelijk gewerkt. Probeer opnieuw.', 409);
 }

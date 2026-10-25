@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
     const matches = (request.headers.get('if-none-match') || '').split(',').map(value => value.trim().replace(/^W\//, ''));
     if(tag && (matches.includes(tag) || matches.includes('*'))) return new NextResponse(null,{status:304,headers:{'Cache-Control':'private, no-store','ETag':tag}});
     let revision: number | undefined;
-    const data=await withStore(s=>{reviewOverdue(s);return adminView(s);},value=>{revision=value;});
+    const {data,at}=await withStore(s=>{reviewOverdue(s);return {data:adminView(s),at:Date.now()};},value=>{revision=value;});
     // Tag the exact snapshot returned, even when another writer commits immediately afterwards.
-    const finalTag=revision === undefined ? undefined : `"${revision}${data.reservations.some(r=>r.status==='active') ? ':'+Math.floor(Date.now()/60000) : ''}"`;
+    const finalTag=revision === undefined ? undefined : `"${revision}${data.reservations.some(r=>r.status==='active') ? ':'+Math.floor(at/60000) : ''}"`;
     return NextResponse.json(data,{headers:{'Cache-Control':'private, no-store',...(finalTag?{'ETag':finalTag}:{})}});
   }
   catch (e) { const error = safeError(e); return NextResponse.json({ error: error.message }, { status: error.status }); }

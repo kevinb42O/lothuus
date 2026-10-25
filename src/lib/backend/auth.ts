@@ -19,7 +19,7 @@ export async function readJson(request: NextRequest) {
 }
 export const sessionCookie = 'lothuus-owner';
 const local = () => import('./local-auth');
-export const configured = async () => cloudMode() ? Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY && process.env.ADMIN_USER_ID) : process.env.NODE_ENV !== 'production' && (await local()).configured();
+export const configured = async () => cloudMode() ? Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY && process.env.ADMIN_USER_ID && process.env.ADMIN_EMAIL) : process.env.NODE_ENV !== 'production' && (await local()).configured();
 export async function authClient() {
   const jar = await cookies();
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY) throw new BusinessError('Inloggen is nog niet geconfigureerd.', 503);
@@ -40,9 +40,10 @@ export async function authenticate(password: string, email: string) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online toegang ontbreekt.',503);
     return (await local()).authenticate(password);
   }
-  if (email.trim().toLowerCase() !== process.env.ADMIN_EMAIL) throw new BusinessError('Het e-mailadres of wachtwoord klopt niet.',401);
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail !== process.env.ADMIN_EMAIL?.trim().toLowerCase()) throw new BusinessError('Het e-mailadres of wachtwoord klopt niet.',401);
   const client = await authClient();
-  const {data,error} = await client.auth.signInWithPassword({email,password});
+  const {data,error} = await client.auth.signInWithPassword({email: normalizedEmail,password});
   if (error || data.user?.id !== process.env.ADMIN_USER_ID || data.user?.app_metadata.role !== 'owner') {
     await client.auth.signOut({scope:'local'}); throw new BusinessError('Het e-mailadres of wachtwoord klopt niet.',401);
   }

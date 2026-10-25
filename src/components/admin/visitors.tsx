@@ -90,12 +90,16 @@ export function Visitors() {
   const current = useRef<AbortController | null>(null), version = useRef(0), mounted = useRef(false);
   const shown = useRef<AnalyticsReport | null>(null), selection = useRef<Period>('7d');
   const cache = useRef(new Map<Period, AnalyticsReport>()), reduced = useReducedMotion();
-  const load = useCallback(async (period: Period, page = 1, automatic = false) => {
+  const loadedAt = useRef(0);
+  const load = useCallback(async (period: Period, page = 1, automatic = false, pagination = false) => {
     if (automatic && current.current) return;
     current.current?.abort(); const controller = new AbortController(); current.current = controller;
     const requestId = ++version.current; setLoading(true); setError('');
     const params = new URLSearchParams({ period, page: String(page) });
-    if (page > 1 || page === 1 && shown.current?.period === period && automatic === false && shown.current.page > 1) params.set('to', shown.current!.to);
+    if (pagination && shown.current?.period === period) {
+      if (Date.now() - Date.parse(shown.current.to) < 14 * 60000) params.set('to', shown.current.to);
+      else params.set('page', '1');
+    }
     try {
       let response = await fetch(`/api/admin/analytics?${params}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) });
       if (response.status === 403 && period !== '24h' && period !== '7d') {
@@ -108,7 +112,7 @@ export function Visitors() {
       if (!mounted.current || requestId !== version.current) return;
       setPlan(result.plan);
       if (!hasExtendedAnalytics(result.plan)) cache.current.clear();
-      setReport(result); shown.current = result; cache.current.set(period, result); setRevision(n => n + 1);
+      loadedAt.current = Date.now(); setReport(result); shown.current = result; cache.current.set(period, result); setRevision(n => n + 1);
     } catch (e) { if (mounted.current && requestId === version.current && !controller.signal.aborted) setError((e as Error).message || 'De verbinding is onderbroken. Probeer opnieuw.'); }
     finally { if (mounted.current && requestId === version.current) { current.current = null; setLoading(false); } }
   }, []);
@@ -123,7 +127,7 @@ export function Visitors() {
     };
     revealNavigation(); window.addEventListener('resize', revealNavigation);
     let lastRefresh = 0;
-    const refresh = () => { const now = Date.now(); if (!document.hidden && now - lastRefresh > 1000) { lastRefresh = now; void load(selection.current, 1, true); } };
+    const refresh = () => { const now = Date.now(); if (!document.hidden && now - lastRefresh > 1000 && now - loadedAt.current >= 60000) { lastRefresh = now; void load(selection.current, 1, true); } };
     window.addEventListener('focus', refresh); document.addEventListener('visibilitychange', refresh);
     return () => { mounted.current = false; ++version.current; current.current?.abort(); current.current = null; window.removeEventListener('resize', revealNavigation); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
   }, [load]);
@@ -131,7 +135,7 @@ export function Visitors() {
     if (!hasExtendedAnalytics(plan) && period !== '24h' && period !== '7d') return;
     if (selection.current === period) return;
     selection.current = period; setSelected(period);
-    const saved = cache.current.get(period) || null; setReport(saved); shown.current = saved;
+    const cached = cache.current.get(period); const saved = cached && Date.now() - Date.parse(cached.updatedAt) < 60000 ? cached : null; setReport(saved); shown.current = saved;
     void load(period);
   };
   const refresh = () => { if (shown.current) shown.current = { ...shown.current, page: 1 }; void load(selection.current); };
@@ -147,7 +151,7 @@ export function Visitors() {
           <section className="av-panel av-chart-panel" aria-labelledby="av-chart-title"><div className="av-panel-heading"><div><h2 id="av-chart-title"><BarChart3 size={21} strokeWidth={1.7} aria-hidden="true" />Bezoeken doorheen de tijd</h2><p>Het aantal websitebezoeken per {report.granularity === 'hour' ? 'uur' : report.granularity === 'month' ? 'maand' : 'dag'}.</p></div></div>
             <Chart report={report} revision={revision} />
             {report.total === 0 && <p className="av-empty">{report.enabled ? 'Nog geen bezoeken in deze periode.' : 'De bezoekersmeting staat uit.'}</p>}
-            <Details report={report} loading={loading} onPage={page => void load(selected, page)} />
+            <Details report={report} loading={loading} onPage={page => void load(selected, page, false, true)} />
           </section>
           <section className="av-panel av-device-panel" aria-labelledby="av-device-title"><div className="av-panel-heading"><div><h2 id="av-device-title"><Monitor size={21} strokeWidth={1.7} aria-hidden="true" />Apparaten</h2><p>Gebruik dit om prioriteiten voor mobiele en desktopervaringen te bepalen.</p></div></div><div className="av-devices">{report.devices.filter(d => d.device === 'desktop' || d.device === 'mobile' || d.visits > 0).map(d => <div className="av-device" key={d.device}><strong>{deviceNames[d.device]}</strong><span className="av-device-count"><b>{number.format(d.visits)}</b> {d.visits === 1 ? 'sessie' : 'sessies'}</span><div className="av-track" aria-hidden="true"><motion.span initial={reduced ? false : { scaleX: 0 }} animate={{ scaleX: report.total ? d.visits / report.total : 0 }} transition={{ duration: reduced ? 0 : .6, ease: [.16, 1, .3, 1] }} /></div><span className="av-percentage">{report.total ? `${(d.visits / report.total * 100).toLocaleString('nl-BE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'}</span></div>)}</div></section>
         </motion.div>}

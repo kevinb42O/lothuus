@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { cloudMode, serverDatabase } from './cloud';
 import { BusinessError } from './service';
 import { registerHostingMedia } from '../hosting/server';
+import { MAX_PHOTO_BYTES, PHOTO_SIZE_MESSAGE } from '../media-limits';
 async function putObject(key:string,body:Uint8Array) {
   if (process.env.NODE_ENV !== 'production' && process.env.R2_USE_WRANGLER === 'true') { const {developmentR2}=await import('./r2-development'); return developmentR2(key,'PUT',body); }
   const { S3Client,PutObjectCommand }=await import('@aws-sdk/client-s3');
@@ -10,7 +11,7 @@ async function putObject(key:string,body:Uint8Array) {
   return s3.send(new PutObjectCommand({Bucket:process.env.R2_BUCKET,Key:key,Body:body,ContentType:key.endsWith('.webp')?'image/webp':'application/octet-stream'}));
 }
 export async function savePhoto(file:File) {
-  if(file.size===0 || file.size>15000000) throw new BusinessError('Kies een foto van maximaal 15 MB.');
+  if(file.size===0 || file.size>MAX_PHOTO_BYTES) throw new BusinessError(PHOTO_SIZE_MESSAGE);
   const bytes=new Uint8Array(await file.arrayBuffer()), id=randomUUID(), original=`originals/${id}`;
   let width:number,height:number;
   const variants: [string,Uint8Array][]=[];

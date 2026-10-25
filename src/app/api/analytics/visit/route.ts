@@ -4,12 +4,16 @@ import { sameOrigin } from '@/lib/backend/auth';
 import { automated, deviceType } from '@/lib/analytics/device';
 import { recordVisit } from '@/lib/analytics/server';
 import { safeError } from '@/lib/backend/service';
+import { ingestAllowed } from '@/lib/analytics/ingest-budget';
 export const runtime = 'nodejs';
 const input = z.object({ id: z.uuid(), route: z.enum(['/', '/huis']) }).strict();
 const headers = { 'Cache-Control': 'no-store' };
 export async function POST(request: NextRequest) {
   try {
     sameOrigin(request);
+    if (process.env.NEXT_PUBLIC_VISITOR_TRACKING === 'false' || process.env.VERCEL_ENV === 'preview') return new NextResponse(null, { status: 204, headers });
+    const address = process.env.VERCEL === '1' ? request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown' : 'local';
+    if (!ingestAllowed(address)) return new NextResponse(null, { status: 429, headers: { ...headers, 'Retry-After': '60' } });
     if (!request.headers.get('content-type')?.startsWith('application/json')) return new NextResponse(null, { status: 415, headers });
     const reader = request.body?.getReader(); if (!reader) return new NextResponse(null, { status: 400, headers });
     let text = '', bytes = 0; const decoder = new TextDecoder();
@@ -18,7 +22,7 @@ export async function POST(request: NextRequest) {
     let parsed; try { parsed = input.safeParse(JSON.parse(text)); } catch { return new NextResponse(null, { status: 400, headers }); }
     if (!parsed.success) return new NextResponse(null, { status: 400, headers });
     const agent = request.headers.get('user-agent') || '';
-    if (!automated(agent) && !request.headers.get('purpose')?.includes('prefetch') && !request.headers.get('sec-purpose')?.includes('prefetch') && process.env.VERCEL_ENV !== 'preview') await recordVisit(parsed.data.id, deviceType(agent));
+    if (!automated(agent) && !request.headers.get('purpose')?.includes('prefetch') && !request.headers.get('sec-purpose')?.includes('prefetch')) await recordVisit(parsed.data.id, deviceType(agent));
     return new NextResponse(null, { status: 204, headers });
   } catch (e) { const error = safeError(e); return NextResponse.json({ error: error.message }, { status: error.status, headers }); }
 }

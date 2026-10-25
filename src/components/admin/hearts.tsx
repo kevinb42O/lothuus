@@ -1,4 +1,5 @@
 'use client';
+import { observeFreshness } from '@/lib/client-refresh';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, Heart, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { dateTime, type Item } from '@/lib/backend/types';
@@ -25,13 +26,14 @@ export function Hearts({ items, onEdit }: { items: Item[]; onEdit: (item: Item) 
   const [report,setReport]=useState<HeartReport|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[changing,setChanging]=useState(false),[debounced,setDebounced]=useState('');
   const request = useRef(0); const heading = useRef<HTMLHeadingElement>(null);
   useEffect(()=>{ const timer=setTimeout(()=>{ setDebounced(query); setPage(1); },250); return ()=>clearTimeout(timer); },[query]);
+  const loadedAt = useRef(0);
   const reload=useCallback(async(signal?:AbortSignal)=>{
     const version=++request.current; setLoading(true);
-    try { const params=new URLSearchParams({period,q:debounced,category,status,sort,page:String(page),object}); const response=await fetch(`/api/admin/hearts?${params}`,{cache:'no-store',signal: signal || AbortSignal.timeout(15000)}); const body=await response.json(); if(response.status===403 && period!=='7' && version===request.current){setReport(null);setPeriod('7');setPage(1);return;} if(!response.ok) throw new Error(body.error); if(version===request.current){setReport(body);setError('');} }
+    try { const params=new URLSearchParams({period,q:debounced,category,status,sort,page:String(page),object}); const response=await fetch(`/api/admin/hearts?${params}`,{cache:'no-store',signal: signal || AbortSignal.timeout(15000)}); const body=await response.json(); if(response.status===403 && period!=='7' && version===request.current){setReport(null);setPeriod('7');setPage(1);return;} if(!response.ok) throw new Error(body.error); if(version===request.current){loadedAt.current=Date.now();setReport(body);setError('');} }
     catch(e){if(version===request.current && (e as Error).name!=='AbortError')setError((e as Error).message || 'De hartjes konden niet worden opgehaald. Probeer opnieuw.');}
     finally{if(version===request.current)setLoading(false);}
   },[period,debounced,category,status,sort,page,object]);
-  useEffect(()=>{ const controller=new AbortController();void reload(controller.signal); const refresh=()=>{if(!document.hidden)void reload();};const timer=setInterval(refresh,15000);window.addEventListener('focus',refresh);return()=>{controller.abort();++request.current;clearInterval(timer);window.removeEventListener('focus',refresh);};},[reload]);
+  useEffect(()=>{ const controller=new AbortController();void reload(controller.signal); const stop=observeFreshness(()=>reload(),()=>loadedAt.current);return()=>{controller.abort();++request.current;stop();};},[reload]);
   useEffect(()=>{if(object && report?.detail)heading.current?.focus();},[object,report?.detail?.id]);
   async function toggle(){ if(!report)return;setChanging(true);try{const res=await fetch('/api/admin/hearts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!report.enabled})});const body=await res.json();if(!res.ok)throw new Error(body.error);await reload();}catch(e){setError((e as Error).message);}finally{setChanging(false);} }
   const reset=()=>{setQuery('');setDebounced('');setCategory('');setStatus('');setPage(1);};

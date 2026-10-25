@@ -32,7 +32,7 @@ Migraties staan in `supabase/migrations/`. Ze zijn op de lege productie via de S
 
 De private EU-buckets zijn `lothuus-media` en `lothuus-backups`; publieke r2.dev-toegang staat uit. Browseruploads gaan via de eigenaar-geauthenticeerde serverroute. Er is geen browser-CORS of publiek uploadtoken nodig.
 
-Uploads zijn maximaal 15 MB en 40 megapixels. De server bewaart de upload onder `originals/<uuid>` en WebP-varianten onder `variants/<uuid>-thumb.webp`, `-grid.webp` en `-detail.webp` (320/800/1600 px). Beeldverwerking gebeurt met sharp in Node.js. De mediaregistratie wordt pas aangemaakt nadat alle varianten zijn opgeslagen. Alleen geselecteerde foto’s van gepubliceerde producten zijn zonder eigenaarslogin bereikbaar via `/api/images`.
+Uploads zijn maximaal 4 MB en 40 megapixels. De server bewaart de upload onder `originals/<uuid>` en WebP-varianten onder `variants/<uuid>-thumb.webp`, `-grid.webp` en `-detail.webp` (320/800/1600 px). Beeldverwerking gebeurt met sharp in Node.js. De mediaregistratie wordt pas aangemaakt nadat alle varianten zijn opgeslagen. Alleen geselecteerde foto’s van gepubliceerde producten zijn zonder eigenaarslogin bereikbaar via `/api/images`.
 
 De fotoroute gebruikt een private browsercache met `no-cache` en een ETag per foto-ID en formaat. Iedere heraanvraag controleert eerst de eigenaar of actuele publicatiestatus; pas daarna kan een `304` de bestaande browserkopie hergebruiken zonder R2-read. Er is geen gedeelde CDN-cache voor privéfoto’s. Foto-ID’s worden bij nieuwe uploads aangemaakt en mogen niet met andere beeldinhoud worden overschreven.
 
@@ -56,7 +56,7 @@ De bestaande R2-backups blijven bewaard, inclusief `database/latest.json`, gedat
 4. Koppel het domein aan Vercel zodra het geregistreerd is. Stel `APP_ORIGIN` op de exacte browser-origin in en test HTTPS, inloggen, wachtwoord wijzigen, privéfoto's, opslaan en uitloggen.
 5. Richt de dagelijkse backup opnieuw in. Test een nieuwe snapshot en `npm run backup:verify` voordat automatisch herstel als operationeel wordt beschouwd.
 
-**Nog op te lossen voor productie-uploads op Vercel:** de bestaande multipart-uploadroute accepteert 15 MB, terwijl Vercel Functions een request-bodylimiet van 4,5 MB hebben. Voor de beloofde 15 MB is een geauthenticeerde directe R2-upload met kort geldige ondertekende URL, passende bucket-CORS en een server-side finalisatiestap nodig. De huidige route werkt alleen binnen de platformlimiet. Zie [Vercel Function limits](https://vercel.com/docs/functions/limitations). De Vercel-deployment en deze uploadaanpassing zijn nog niet uitgevoerd.
+De multipart-uploadroute en de producteditor hanteren 4 MB per foto, met ruimte voor multipart-headers onder Vercels request-bodylimiet van 4,5 MB. Grotere uploads worden vóór verzending geweigerd met een duidelijke melding. Voor bestanden boven 4 MB is een directe R2-upload met ondertekende URL en serverfinalisatie nodig. Zie [Vercel Function limits](https://vercel.com/docs/functions/limitations).
 
 Validatie: `npm test`, `npm run typecheck` en `npm run build`. Geen Workers-adapter, Workers-deployscript of Cloudflare-applicatieconfiguratie is nodig.
 
@@ -77,3 +77,14 @@ De gebruikershandleiding staat in `docs/owner-guide.md`; meetdefinities en verif
 ### Bugcontrole hartjes
 
 Migratie `20261025141500_heart_tracking_fixes.sql` herstelt verwijderen na archivering, voorkomt dat verlate aanvragen een selectie na reservering herstellen en beschermt de objectmomentopname tegen oude retries. De client houdt de meetcontext bij een bestelretry gelijk. De status van een gepauzeerde meting wordt aan de client teruggegeven, zodat interacties tijdens een pauze niet later als nieuwe hartjes worden ingehaald. Kalenderretentie volgt exact 24 maanden, ook bij schrikkeldagen. Browsers zonder Web Locks gebruiken een sessiejournal; geblokkeerde opslag valt terug op geheugen voor dat bezoek.
+
+
+## Verbruiks- en herstelverbeteringen 25 oktober 2026
+
+Migratie `20261025160000_free_plan_efficiency.sql` is via de productie-SQL-editor uitgevoerd. Dagbudget 5.000 en actieve Cron-logretentie (03:23 UTC, zeven dagen) zijn teruggelezen. De serverfuncties voor gerichte catalogus, periodebegrensde hartjesrapporten en backupformaat 2 zijn live. De snapshot met 15 tabellen en 195 producten doorstaat de nieuwe validator. CLI-history niet automatisch gerepareerd.
+
+De bestaande Vercel-firewall heeft nu de actieve regel `LoTHUUS bezoekersbudget`: maximaal 60 POST-aanvragen per IP per minuut op `/api/analytics/visit`. Geen betaald abonnement ingeschakeld.
+
+De applicatie breidt de bestaande dagelijkse Vercel-job `/api/cron/hosting` uit met backup en providerverbruik. Configureer `R2_BACKUP_BUCKET` (standaard `lothuus-backups`) en zo nodig aparte `R2_BACKUP_ACCESS_KEY_ID` / `R2_BACKUP_SECRET_ACCESS_KEY` met toegang uitsluitend tot die bucket. Bestaande media-inloggegevens worden alleen hergebruikt als hun bestaande rechten dit al toestaan. De backup wordt pas bevestigd na teruglezen en checksumcontrole; alleen gedateerde `database/`-snapshots ouder dan 45 dagen worden opgeruimd. Tijdelijke bezoekers-ID’s en browsergebonden hartjestoestand blijven buiten de backup. Het herstelcommando ondersteunt oud formaat en formaat 2.
+
+`SUPABASE_USAGE_TOKEN` ontbreekt momenteel in Production. Zonder werkende providerverbinding toont het beheer onbekend verbruik; er is geen fictieve nul of schatting. Organisatie-egress is gescheiden van R2-mediaverkeer en vereist een geverifieerde actuele facturatieperiode. Maak deze verbinding en een succesvolle geplande R2-snapshot eerst aantoonbaar voordat deze onderdelen als operationeel worden vermeld.

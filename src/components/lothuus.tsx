@@ -1,4 +1,5 @@
 'use client';
+import { observeFreshness } from '@/lib/client-refresh';
 
 import Image from 'next/image';
 import { DoorwayHero } from './doorway-hero';
@@ -10,9 +11,10 @@ import { Dialog } from './dialog';
 import { HeartButton } from './heart-button';
 import { LegalLinks } from './legal-page';
 import { syncHeartSelection, trackHeart } from '@/lib/hearts/client';
-import { SelectionDialog, type CheckoutDraft, type SelectionObject } from './reservation';
+import { SelectionDialog, type CheckoutAttempt, type CheckoutDraft, type SelectionObject } from './reservation';
 import { detailLayout } from '@/lib/detail-layout';
 import { money, type PublicSettings } from '@/lib/backend/types';
+import { reconcileSelection, removeOrderedSelection } from '@/lib/selection';
 
 function Wordmark({ footer = false }: { footer?: boolean }) {
   return <span className={`wordmark ${footer ? 'wordmark-footer' : ''}`} aria-label="LOTHUUS"><b>LO</b><span>THUUS</span></span>;
@@ -75,13 +77,20 @@ function Detail({ object, saved, onSave, onClose, onSelection, count }: { object
 
 export function Lothuus() {
   const [objects, setObjects] = useState<CollectionObject[]>(suppliedObjects);
+  const [saved, setSaved] = useState<string[]>([]);
   const [publicSettings, setPublicSettings] = useState<PublicSettings | null>(null);
   const [isSuppliedCollection, setIsSuppliedCollection] = useState(true);
+  const catalogueRequest = useRef(0), cataloguePending = useRef(false), catalogueLoaded = useRef(0);
+  const catalogueTag = useRef<string | undefined>(undefined);
+  const catalogueObjects = useRef(suppliedObjects);
   const refreshCatalogue = useCallback(async () => {
-    try { const response = await fetch('/api/catalogue', { cache: 'no-store' }); if (!response.ok) throw new Error(); const data = await response.json(); setObjects(current => { const next = data.objects; return JSON.stringify(current) === JSON.stringify(next) ? current : next; }); setIsSuppliedCollection(!data.hasInventory); setPublicSettings(data.settings); }
-    catch { setPublicSettings(null); }
+    if (cataloguePending.current) return; cataloguePending.current = true;
+    const request = ++catalogueRequest.current;
+    try { const response = await fetch('/api/catalogue', { cache: 'no-store', headers: catalogueTag.current ? { 'If-None-Match': catalogueTag.current } : {}, signal: AbortSignal.timeout(15000) }); if (response.status === 304) { catalogueLoaded.current = Date.now(); return; } if (!response.ok) throw new Error(); const data = await response.json(); if (request !== catalogueRequest.current) return; catalogueLoaded.current = Date.now(); catalogueTag.current = response.headers.get('etag') || undefined; catalogueObjects.current = data.objects; setObjects(current => { const next = data.objects; return JSON.stringify(current) === JSON.stringify(next) ? current : next; }); setSaved(current => { const next = reconcileSelection(current, data.objects); return next.every((id, index) => id === current[index]) && next.length === current.length ? current : next; }); setIsSuppliedCollection(!data.hasInventory); setPublicSettings(data.settings); }
+    catch { if (request === catalogueRequest.current) { catalogueTag.current = undefined; setPublicSettings(null); } }
+    finally { cataloguePending.current = false; }
   }, []);
-  useEffect(() => { void refreshCatalogue(); const refresh = () => { if (!document.hidden) void refreshCatalogue(); }; const interval = setInterval(refresh, 15000); window.addEventListener('focus', refresh); return () => { clearInterval(interval); window.removeEventListener('focus', refresh); }; }, [refreshCatalogue]);
+  useEffect(() => { void refreshCatalogue(); return observeFreshness(refreshCatalogue, () => catalogueLoaded.current); }, [refreshCatalogue]);
   const [filter, setFilter] = useState<Category | 'alles'>('alles');
   const filterAnchor = useRef<HTMLDivElement>(null);
   function chooseFilter(next: Category | 'alles') {
@@ -97,10 +106,10 @@ export function Lothuus() {
   }
   const [detail, setDetail] = useState<CollectionObject | null>(null);
   const [panel, setPanel] = useState<'how' | 'selection' | 'contact' | null>(null);
-  const [saved, setSaved] = useState<string[]>([]);
   const snapshots = useRef<Record<string, { title: string; image: string }>>({});
   const [feedback, setFeedback] = useState('');
   const [checkoutDraft, setCheckoutDraft] = useState<CheckoutDraft>({ name: '', email: '', phone: '', message: '' });
+  const checkoutAttempt = useRef<CheckoutAttempt | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const downloadUrl = useRef<string | null>(null);
@@ -109,7 +118,7 @@ export function Lothuus() {
     setStorageReady(true);
     return () => { if (downloadUrl.current) URL.revokeObjectURL(downloadUrl.current); };
   }, []);
-  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key !== 'lothuus-selection') return; try { const info = JSON.parse(localStorage.getItem('lothuus-selection-info') || '{}'); if (info && typeof info === 'object' && !Array.isArray(info)) snapshots.current = info; const ids: unknown = JSON.parse(event.newValue || '[]'); if (Array.isArray(ids)) setSaved([...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length < 128))].slice(0, 500)); } catch {} }; window.addEventListener('storage', sync); return () => window.removeEventListener('storage', sync); }, []);
+  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key !== 'lothuus-selection') return; try { const info = JSON.parse(localStorage.getItem('lothuus-selection-info') || '{}'); if (info && typeof info === 'object' && !Array.isArray(info)) snapshots.current = info; const ids: unknown = JSON.parse(event.newValue || '[]'); if (Array.isArray(ids)) setSaved(reconcileSelection([...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length < 128))].slice(0, 500), objects)); } catch {} }; window.addEventListener('storage', sync); return () => window.removeEventListener('storage', sync); }, [objects]);
   useEffect(() => { if (storageReady) { try { for (const object of objects) if (saved.includes(object.id)) snapshots.current[object.id] = { title: object.title, image: object.image }; localStorage.setItem('lothuus-selection-info', JSON.stringify(Object.fromEntries(saved.map(id => [id, snapshots.current[id]])))); localStorage.setItem('lothuus-selection', JSON.stringify(saved)); } catch { /* Selection remains usable without storage. */ } } }, [saved, storageReady, objects]);
   const selected: SelectionObject[] = saved.map(id => {
     const current = objects.find(object => object.id === id);
@@ -117,7 +126,7 @@ export function Lothuus() {
     const source = suppliedObjects.find(object => object.id === id);
     return { id, title: snapshots.current[id]?.title || source?.title || 'Object niet meer beschikbaar', image: snapshots.current[id]?.image || source?.image || '', category: source?.category || 'objecten', date: '', material: '', dimensions: '', maker: '', source: '', credit: '', imageSource: '', license: '', description: 'Dit object is niet meer beschikbaar in de actuele collectie.', missing: true };
   });
-  const currentDetail = objects.find(o => o.id === detail?.id) || detail;
+  const currentDetail = objects.find(o => o.id === detail?.id || o.sourceReference === detail?.id) || detail;
   const filtered = useMemo(() => filter === 'alles' ? objects : objects.filter(object => object.category === filter), [objects, filter]);
   const countedCategories = categories.map(category => ({
     ...category,
@@ -126,9 +135,9 @@ export function Lothuus() {
   useEffect(() => {
     if (!storageReady) return;
     const refresh = () => { if (!document.hidden) { void syncHeartSelection(saved); } };
-    refresh(); const timer = setInterval(refresh, 30000);
+    refresh();
     window.addEventListener('online', refresh); window.addEventListener('focus', refresh);
-    return () => { clearInterval(timer); window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh); };
+    return () => { window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh); };
   }, [saved, storageReady]);
   function toggleSaved(id: string) { void trackHeart(id, !saved.includes(id), saved); setFeedback(saved.includes(id) ? 'Verwijderd uit je selectie' : 'Toegevoegd aan je selectie'); setSaved(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]); setDownloaded(false); }
   useEffect(() => { if (!feedback) return; const timer = setTimeout(() => setFeedback(''), 4500); return () => clearTimeout(timer); }, [feedback]);
@@ -168,7 +177,7 @@ export function Lothuus() {
     <footer className="site-footer"><div className="footer-top"><a href="#" aria-label="LOTHUUS, naar boven"><Wordmark footer /></a><p>Een huis voor cultuur<br />en ontmoeting.</p><button onClick={() => setPanel('contact')}>Kom in contact <ArrowUpRight size={16} /></button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} LOTHUUS</span><span>Met aandacht verzameld. Met liefde doorgegeven.</span><span>LOTHUUS collectie · <a href="/admin">Beheer</a></span></div><LegalLinks /></footer>
     <div className={`selection-feedback ${feedback ? 'is-visible' : ''}`} role="status" aria-live="polite">{feedback && <><Heart size={16} fill="currentColor" /><span>{feedback}</span><button onClick={openSelection}>Bekijk selectie<ArrowUpRight size={15} /></button></>}</div>
     {currentDetail && <Detail key={`${currentDetail.id}:${currentDetail.image}`} object={currentDetail} saved={saved.includes(currentDetail.id)} onSave={() => toggleSaved(currentDetail.id)} onClose={() => setDetail(null)} onSelection={openSelection} count={saved.length} />}
-    {panel === 'selection' && <SelectionDialog objects={selected} settings={publicSettings} draft={checkoutDraft} onDraft={setCheckoutDraft} onClose={() => setPanel(null)} onRemove={toggleSaved} onOpen={object => { setPanel(null); setDetail(object); }} onRefresh={() => { void refreshCatalogue(); }} onOrdered={ids => { setCheckoutDraft({ name: '', email: '', phone: '', message: '' }); setSaved(current => current.filter(id => !ids.includes(id))); void refreshCatalogue(); }} />}
+    {panel === 'selection' && <SelectionDialog objects={selected} settings={publicSettings} draft={checkoutDraft} onDraft={setCheckoutDraft} attempt={checkoutAttempt} onClose={() => setPanel(null)} onRemove={toggleSaved} onOpen={object => { setPanel(null); setDetail(object); }} onRefresh={() => { void refreshCatalogue(); }} onOrdered={ids => { setCheckoutDraft({ name: '', email: '', phone: '', message: '' }); setSaved(current => removeOrderedSelection(current, ids, catalogueObjects.current)); void refreshCatalogue(); }} />}
     {panel === 'how' && <Dialog title="Een levend archief" onClose={() => setPanel(null)} className="info-dialog"><h2>Volg je<br /><em>nieuwsgierigheid.</em></h2><div className="how-step"><ArrowUpRight size={23} strokeWidth={1.2} /><div><h3>Geef een object de ruimte</h3><p>Beweeg over een foto. Het object groeit en de andere foto’s schuiven vloeiend eromheen. Op je telefoon tik je direct voor alle details.</p></div></div><div className="how-step"><Plus size={23} strokeWidth={1.2} /><div><h3>Ontdek wat erachter zit</h3><p>Klik of tik op een object. Bekijk alle foto’s en details en bewaar je favorieten. Met Tab en de pijltjestoetsen kun je de collectie ook verkennen.</p></div></div><div className="how-step"><Heart size={22} strokeWidth={1.2} /><div><h3>Neem je selectie mee</h3><p>Tik op het hartje bij je vondsten. Je selectie blijft bewaard in deze browser. Bestel beschikbare objecten samen en betaal buiten de website.</p></div></div><p className="archive-disclosure">{isSuppliedCollection ? `Dit zijn ${objects.length} objecten uit de eigen LOTHUUS-collectie, gefotografeerd door LOTHUUS. Productinformatie en prijzen worden nog aangevuld. Je vindt alle aangeleverde foto’s in het detailvenster van elk object.` : "Je kunt beschikbare objecten samen bestellen vanuit je selectie. Betalen gebeurt handmatig via overschrijving."} De huisfoto’s komen uit het aangeleverde LOTHUUS-archief en zijn digitaal opgefrist.</p><button className="primary-button" onClick={() => setPanel(null)}>Ik ga op ontdekking <ArrowUpRight size={18} /></button></Dialog>}
     {panel === 'contact' && <Dialog title="Contact voorbereiden" onClose={() => setPanel(null)} className="selection-dialog"><h2>Een verhaal begint<br /><em>met een gesprek.</em></h2>
       <form className="enquiry-form" onSubmit={prepareEnquiry}><p>Bereid je bericht voor. Je downloadt een tekstbestand met je gegevens en selectie; er wordt niets automatisch verstuurd.</p><label>Naam<input name="name" autoComplete="name" required placeholder="Je naam" maxLength={120} /></label><label>E-mailadres<input name="email" type="email" autoComplete="email" required placeholder="jij@voorbeeld.be" maxLength={180} /></label><label>Je bericht <span>(optioneel)</span><textarea name="message" rows={3} maxLength={3000} placeholder="Wat zou je graag willen weten?" /></label><button className="primary-button" type="submit">Download je informatieaanvraag <Download size={17} /></button><p className="download-status" role="status">{downloaded ? 'Je aanvraag is gedownload. Er is nog niets verstuurd.' : 'Je gegevens blijven op je eigen apparaat.'}</p></form>

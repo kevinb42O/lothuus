@@ -41,7 +41,7 @@ Default scripts bind to 127.0.0.1. The current local implementation is not a pub
 | `/api/images` | POST | Owner-only image processing/upload |
 | `/api/images/[id]` | GET | Published photos, or owner-only draft/staging photos |
 
-POST requests require a matching Origin, including scripted HTTP tests. Browser forms and fetch set this automatically. JSON requests are limited to 128 KB after parsing the request body; uploads are limited to 15 MB plus a decoded pixel limit. Before public deployment, enforce streaming body limits at the ingress as well.
+POST requests require a matching Origin, including scripted HTTP tests. Browser forms and fetch set this automatically. JSON requests are limited to 128 KB while streaming the request body; photo uploads are limited to 4 MB plus a decoded pixel limit, below the Vercel request limit. Before public deployment, enforce streaming body limits at the ingress as well.
 
 ## Mail mode
 

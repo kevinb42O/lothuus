@@ -16,7 +16,7 @@ Begin gerust met een onvolledig privéconcept. Gegevens worden automatisch bewaa
 
 Vul titel, beschrijving, stijl/periode, afmetingen, staat en de vaste Lothuus-prijs in. Je mag een tekst plakken en via **Tekst verdelen** laten voorstellen in welke velden de tekst thuishoort. Controleer het voorstel; de verdeler verzint geen ontbrekende informatie. Je kunt de volledige producttekst weer kopiëren.
 
-Sleep twee tot acht foto’s naar het fotovak. Een foto mag maximaal 15 MB en 40 megapixels zijn. JPEG, PNG, WebP en AVIF worden verwerkt naar drie webformaten. Sleep de foto’s in de gewenste volgorde; de eerste wordt de hoofdfoto. Zet detailfoto’s van beschadigingen achteraan. Verwijderde foto’s kun je tijdens het bewerken terugzetten. De oorspronkelijke upload blijft bewaard in private opslag.
+Sleep twee tot acht foto’s naar het fotovak. Een foto mag maximaal 4 MB en 40 megapixels zijn. JPEG, PNG, WebP en AVIF worden verwerkt naar drie webformaten. Sleep de foto’s in de gewenste volgorde; de eerste wordt de hoofdfoto. Zet detailfoto’s van beschadigingen achteraan. Verwijderde foto’s kun je tijdens het bewerken terugzetten. De oorspronkelijke upload blijft bewaard in private opslag.
 
 **Klaar** betekent dat de fiche volledig is. **Gepubliceerd** maakt het product zichtbaar op de website. Een concept en een fiche die alleen klaarstaat zijn privé. Het archief bewaart een product en zijn nummer.
 
