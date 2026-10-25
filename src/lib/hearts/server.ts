@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { cloudMode, serverDatabase, withStore } from '../backend/cloud';
 import { BusinessError, catalogue, hash } from '../backend/service';
 import { reservationLines } from '../backend/types';
-import { heartDay, type HeartObject, type HeartRaw } from './types';
+import { type HeartObject, type HeartRaw } from './types';
 const actionSchema = z.object({ id: z.string().min(1).max(128), selected: z.boolean(), sequence: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), baseline: z.boolean().optional() });
 export const heartInput = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('sync'), browser: z.uuid(), actions: z.array(actionSchema).max(100) }),
@@ -27,15 +27,21 @@ export async function recordHearts(input: unknown) {
   if (p.operation === 'forget') {
     if (cloudMode()) await rpc('lothuus_heart_forget', { browser_key: key });
     else { const { localHearts } = await import('./local'); localHearts(s => { delete s.browsers[key]; }); }
-    return;
+    return { enabled: (await heartConfig()).enabled };
   }
-  if (!(await heartConfig()).enabled) return;
+  if (!(await heartConfig()).enabled) return { enabled: false };
   if (p.operation === 'order') {
-    if (cloudMode()) { await rpc('lothuus_heart_order', { browser_key: key, capability_hash: hash(p.token), client_sequence: p.sequence }); return; }
-    const lines = await withStore(s => { const r = s.reservations.find(r => r.source === 'web' && r.tokenHash === hash(p.token)); return r ? reservationLines(r).map(line => ({ ...line, itemId: s.items.find(i => i.id === line.itemId)?.sourceReference || line.itemId })) : []; });
-    const { localHearts } = await import('./local');
-    localHearts(s => { const b = s.browsers[key]; if (!b) return; for (const line of lines) { const old = b.states[line.itemId]; if (!old?.selected || old.sequence >= p.sequence) continue; old.selected = false; old.sequence = p.sequence; let day = s.days.find(d => d.id === line.itemId && d.day === heartDay(Date.now())); if (!day) { day = { day: heartDay(Date.now()), id: line.itemId, added: 0, removed: 0, ordered: 0 }; s.days.push(day); } day.ordered++; } });
-    return;
+    if (cloudMode()) { await rpc('lothuus_heart_order', { browser_key: key, capability_hash: hash(p.token), client_sequence: p.sequence }); return { enabled: true }; }
+    const objects = await withStore(s => {
+      const reservation=s.reservations.find(r=>r.source==='web' && r.tokenHash===hash(p.token));
+      return reservation ? reservationLines(reservation).map(line=>{
+        const product=s.items.find(i=>i.id===line.itemId || i.sourceReference===line.itemId);
+        const id=product?.sourceReference || product?.id || line.itemId;
+        return {id,title:line.title,reference:line.productNumber||id,image:line.image,category:product?.category||'objecten',source:/^[KGH]\d{3}$/.test(id)?'collection':'inventory'} satisfies HeartObject;
+      }) : [];
+    });
+    const {localHearts,orderHearts}=await import('./local');localHearts(s=>orderHearts(s,key,objects,p.sequence));
+    return { enabled: true };
   }
   const known = await withStore(s => {
     const objects = new Map<string, HeartObject>();
@@ -45,12 +51,17 @@ export async function recordHearts(input: unknown) {
       const object: HeartObject = { id, title: o.title, image: o.image, category: o.category, reference: product?.productNumber || id, source: /^[KGH]\d{3}$/.test(id) ? 'collection' : 'inventory' };
       objects.set(o.id, object); objects.set(id, object);
     }
-    return objects;
+    return { objects, aliases: new Map(s.items.map(i => [i.id, i.sourceReference || i.id])) };
   });
-  // Removed/archived/unknown objects cannot inject arbitrary historical records.
-  const actions = p.actions.flatMap(a => { const object = known.get(a.id); return object ? [{ ...a, id: object.id, object }] : []; });
+  // Retired objects can be removed using their already stored snapshot. Unknown additions remain invalid.
+  const actions = p.actions.flatMap(a => {
+    const object = known.objects.get(a.id);
+    if (object) return [{ ...a, id: object.id, object: object as HeartObject | null }];
+    return a.selected ? [] : [{ ...a, id: known.aliases.get(a.id) || a.id, object: null }];
+  });
   if (cloudMode()) await rpc('lothuus_heart_write', { browser_key: key, actions });
   else { const { localHearts, writeHearts } = await import('./local'); localHearts(s => writeHearts(s, key, actions)); }
+  return { enabled: true };
 }
 export async function rawHearts(): Promise<HeartRaw> {
   if (cloudMode()) return rpc('lothuus_heart_report');

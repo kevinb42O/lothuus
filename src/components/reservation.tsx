@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, Copy, Heart, X } from 'lucide-react';
 import { Dialog } from './dialog';
-import { HeartPrivacy } from './heart-privacy';
+import { LegalLinks } from './legal-page';
 import { heartOrderContext } from '@/lib/hearts/client';
 import type { CollectionObject } from '@/lib/collection';
 import { dateTime, money, type OrderLine, type PublicSettings } from '@/lib/backend/types';
@@ -59,7 +59,7 @@ export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, 
   const [result, setResult] = useState<ReservationResult | null>(null);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
-  const attempt = useRef<{ fingerprint: string; key: string } | null>(null);
+  const attempt = useRef<{ fingerprint: string; key: string; measurement?: Awaited<ReturnType<typeof heartOrderContext>>; measurementReady?: boolean } | null>(null);
   const blocked = objects.some(object => object.missing || !canOrder(object));
   const pricePending = objects.some(object => !object.priceCents);
   const total = objects.reduce((sum, object) => sum + (canOrder(object) ? object.priceCents! : 0), 0);
@@ -73,7 +73,8 @@ export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, 
     const fingerprint = JSON.stringify(payload);
     if (!attempt.current || attempt.current.fingerprint !== fingerprint) attempt.current = { fingerprint, key: crypto.randomUUID() };
     try {
-      const measurement = await heartOrderContext();
+      if (!attempt.current.measurementReady) { attempt.current.measurement = await heartOrderContext(); attempt.current.measurementReady = true; }
+      const measurement = attempt.current.measurement;
       const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, key: attempt.current.key, measurement }), signal: AbortSignal.timeout(20000) });
       const body = await response.json();
       if (!response.ok) { if (response.status === 409) { setStep('selection'); onRefresh(); } throw new Error(body.error); }
@@ -112,15 +113,13 @@ export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, 
           <div className="reservation-honeypot" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" defaultValue="" /></label></div>
           <p className="cart-explanation">Je selectie wordt {settings?.deadlineDays || 3} dagen tijdelijk gereserveerd. {pricePending || !settings?.ready ? 'Katrien bevestigt eerst de prijs en de betaalafspraak. Je hoeft nu nog niets te betalen.' : 'De betaalgegevens staan na het afronden op je bevestiging. Je betaalt via overschrijving.'} Na bevestiging van de volledige betaling zijn de objecten verkocht en klaar voor ophaling.</p>
           <p className="cart-explanation">{settings?.pickup}</p>
-          {settings?.terms && <details><summary>Reserveringsafspraken</summary><p className="reservation-policy">{settings.terms}</p></details>}
-          <details><summary>Privacy en je gegevens</summary><p className="reservation-policy">{settings?.privacy || 'Je naam en e-mailadres worden opgeslagen om deze reservering op te volgen. Er wordt nu geen e-mail verstuurd.'}</p></details>
-          <label className="reservation-checkbox"><input name="accepted" type="checkbox" required /><span>Ik wil deze selectie laten reserveren. Mijn naam en e-mailadres mogen gebruikt worden voor de opvolging en betaalafspraak.</span></label>
+          <LegalLinks newTab />
+          <label className="reservation-checkbox"><input name="accepted" type="checkbox" required /><span>Ik wil deze selectie laten reserveren.</span></label>
           <p className="cart-explanation">E-mailverzending volgt later. Bewaar na het afronden je privélink. Je ontvangt nu nog geen automatische e-mail.</p>
           {changed && <p className="reservation-error" role="alert">Je selectie of de bestelafspraken zijn gewijzigd. Ga terug naar je selectie en bekijk de actuele gegevens.</p>}
           <button className="primary-button" disabled={busy || changed || !settings || settings.acceptsReservations === false}>{busy ? 'Je selectie reserveren…' : 'Laat mijn selectie reserveren'}<ArrowUpRight size={17} /></button>
         </fieldset>
       </form>
-      <HeartPrivacy />
     </>}
   </Dialog>;
 }

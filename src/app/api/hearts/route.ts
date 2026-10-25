@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
   try {
     sameOrigin(request); const input = await readJson(request);
     // The owner can inspect the public site without influencing its statistics.
-    if (input.operation !== 'forget' && await isOwner(request)) return NextResponse.json({ ok: true }, { headers });
-    await throttle(request, 'heart-sync', 600); await recordHearts(input);
-    return NextResponse.json({ ok: true }, { headers });
+    if (input.operation !== 'forget' && await isOwner(request)) return NextResponse.json({ ok: true, excluded: true }, { headers });
+    await throttle(request, 'heart-sync', 600); const result = await recordHearts(input);
+    return NextResponse.json({ ok: true, ...result }, { headers });
   } catch (e) { const error = safeError(e); return NextResponse.json({ error: error.message }, { status: error.status, headers }); }
 }

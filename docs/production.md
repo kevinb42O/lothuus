@@ -68,8 +68,12 @@ Validatie: `npm test`, `npm run typecheck` en `npm run build`. Geen Workers-adap
 
 ## Hartjes en populariteit — 25 oktober 2026
 
-Verkoop → Hartjes gebruikt vijf afzonderlijke private tabellen en zes service-role-RPC's, los van de bedrijfsaggregate. De publieke route `/api/hearts` registreert uitsluitend na een vrijwillige keuze in Mijn selectie. De rapport- en configuratieroute `/api/admin/hearts` vereist de bestaande eigenaarslogin. Nieuwe productpublicaties behouden de oorspronkelijke collectie-identiteit voor de telling. Reserveringsopruiming wordt uitsluitend na serverbevestiging verwerkt; klantgegevens worden niet met browsercodes verbonden.
+Verkoop → Hartjes gebruikt vijf afzonderlijke private tabellen en zes service-role-RPC's, los van de bedrijfsaggregate. De publieke route `/api/hearts` registreert hartjes automatisch, zonder aparte meetkeuze. Gewone bezoeken zonder hartjes maken geen meetregistratie aan. De publieke footer linkt naar `/algemene-voorwaarden` en `/privacy`. De rapport- en configuratieroute `/api/admin/hearts` vereist de bestaande eigenaarslogin. Nieuwe productpublicaties behouden de oorspronkelijke collectie-identiteit voor de telling. Reserveringsopruiming wordt uitsluitend na serverbevestiging verwerkt; klantgegevens worden niet met browsercodes verbonden.
 
 Migraties `20261025120000`, `20261025120100` en `20261025120200` zijn via de SQL-editor toegepast op het bestaande productieproject. De CLI-history is daarmee niet automatisch bijgewerkt; link/repareer niet blind. RLS en het weigeren van anonieme RPC-uitvoering zijn gecontroleerd. Supabase Cron is voor deze functie geactiveerd en voert `lothuus-heart-retention` dagelijks om 03:17 UTC uit. Dit is uitsluitend meetretentie, geen vervanging voor de eerder genoemde backupscheduler. Browsertoestand vervalt na 90 dagen en dagtotalen na maximaal 24 maanden. De grafiek begint nooit vóór de werkelijke meetstart.
 
 De gebruikershandleiding staat in `docs/owner-guide.md`; meetdefinities en verificatie in `docs/hartjes-opvolging-plan.md`.
+
+### Bugcontrole hartjes
+
+Migratie `20261025141500_heart_tracking_fixes.sql` herstelt verwijderen na archivering, voorkomt dat verlate aanvragen een selectie na reservering herstellen en beschermt de objectmomentopname tegen oude retries. De client houdt de meetcontext bij een bestelretry gelijk. De status van een gepauzeerde meting wordt aan de client teruggegeven, zodat interacties tijdens een pauze niet later als nieuwe hartjes worden ingehaald. Kalenderretentie volgt exact 24 maanden, ook bij schrikkeldagen. Browsers zonder Web Locks gebruiken een sessiejournal; geblokkeerde opslag valt terug op geheugen voor dat bezoek.

@@ -8,7 +8,8 @@ import { objects as suppliedObjects, categories, categoryLabel, type Category, t
 import { Mosaic } from './mosaic';
 import { Dialog } from './dialog';
 import { HeartButton } from './heart-button';
-import { syncHeartSelection, trackHeart, retryHeartForget } from '@/lib/hearts/client';
+import { LegalLinks } from './legal-page';
+import { syncHeartSelection, trackHeart } from '@/lib/hearts/client';
 import { SelectionDialog, type CheckoutDraft, type SelectionObject } from './reservation';
 import { detailLayout } from '@/lib/detail-layout';
 import { money, type PublicSettings } from '@/lib/backend/types';
@@ -124,7 +125,7 @@ export function Lothuus() {
   })).filter(category => category.id === 'alles' || category.count > 0);
   useEffect(() => {
     if (!storageReady) return;
-    const refresh = () => { if (!document.hidden) { void syncHeartSelection(saved); void retryHeartForget(); } };
+    const refresh = () => { if (!document.hidden) { void syncHeartSelection(saved); } };
     refresh(); const timer = setInterval(refresh, 30000);
     window.addEventListener('online', refresh); window.addEventListener('focus', refresh);
     return () => { clearInterval(timer); window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh); };
@@ -164,7 +165,7 @@ export function Lothuus() {
       </section>
       <a className="house-explorer-route text-link" href="/huis">Verken het huis vrij in 3D <ArrowUpRight size={17}/></a>
     </main>
-    <footer className="site-footer"><div className="footer-top"><a href="#" aria-label="LOTHUUS, naar boven"><Wordmark footer /></a><p>Een huis voor cultuur<br />en ontmoeting.</p><button onClick={() => setPanel('contact')}>Kom in contact <ArrowUpRight size={16} /></button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} LOTHUUS</span><span>Met aandacht verzameld. Met liefde doorgegeven.</span><span>LOTHUUS collectie · <a href="/admin">Beheer</a></span></div></footer>
+    <footer className="site-footer"><div className="footer-top"><a href="#" aria-label="LOTHUUS, naar boven"><Wordmark footer /></a><p>Een huis voor cultuur<br />en ontmoeting.</p><button onClick={() => setPanel('contact')}>Kom in contact <ArrowUpRight size={16} /></button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} LOTHUUS</span><span>Met aandacht verzameld. Met liefde doorgegeven.</span><span>LOTHUUS collectie · <a href="/admin">Beheer</a></span></div><LegalLinks /></footer>
     <div className={`selection-feedback ${feedback ? 'is-visible' : ''}`} role="status" aria-live="polite">{feedback && <><Heart size={16} fill="currentColor" /><span>{feedback}</span><button onClick={openSelection}>Bekijk selectie<ArrowUpRight size={15} /></button></>}</div>
     {currentDetail && <Detail key={`${currentDetail.id}:${currentDetail.image}`} object={currentDetail} saved={saved.includes(currentDetail.id)} onSave={() => toggleSaved(currentDetail.id)} onClose={() => setDetail(null)} onSelection={openSelection} count={saved.length} />}
     {panel === 'selection' && <SelectionDialog objects={selected} settings={publicSettings} draft={checkoutDraft} onDraft={setCheckoutDraft} onClose={() => setPanel(null)} onRemove={toggleSaved} onOpen={object => { setPanel(null); setDetail(object); }} onRefresh={() => { void refreshCatalogue(); }} onOrdered={ids => { setCheckoutDraft({ name: '', email: '', phone: '', message: '' }); setSaved(current => current.filter(id => !ids.includes(id))); void refreshCatalogue(); }} />}
