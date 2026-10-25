@@ -6,7 +6,7 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/elastic-scroll.test.ts src/lib/grid-layout.test.ts src/lib/mosaic-reveal.test.ts src/lib/filter-transition.test.ts src/lib/detail-layout.test.ts src/lib/pointer-intent.test.ts src/lib/backend/backend.test.ts src/lib/inventory.test.ts src/components/house-rendering.test.ts src/components/house-camera.test.ts src/components/house-entry.test.ts src/components/house-entrance-cache.test.ts src/components/house-door.test.ts src/components/native-mosaic.test.ts",
+    "test": "tsx --test src/lib/elastic-scroll.test.ts src/lib/grid-layout.test.ts src/lib/mosaic-reveal.test.ts src/lib/filter-transition.test.ts src/lib/detail-layout.test.ts src/lib/pointer-intent.test.ts src/lib/backend/backend.test.ts src/lib/inventory.test.ts src/components/house-rendering.test.ts src/components/house-camera.test.ts src/components/house-entry.test.ts src/components/house-entrance-cache.test.ts src/components/house-door.test.ts src/components/native-mosaic.test.ts src/lib/hearts/hearts.test.ts src/lib/hearts/client.test.ts",
     "typecheck": "tsc --noEmit",
     "house:bake-entrance": "tsx scripts/bake-house-entrance.ts",
     "owner:setup": "node scripts/setup-owner.mjs",

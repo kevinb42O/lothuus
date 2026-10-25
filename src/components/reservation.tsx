@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, Copy, Heart, X } from 'lucide-react';
 import { Dialog } from './dialog';
+import { HeartPrivacy } from './heart-privacy';
+import { heartOrderContext } from '@/lib/hearts/client';
 import type { CollectionObject } from '@/lib/collection';
 import { dateTime, money, type OrderLine, type PublicSettings } from '@/lib/backend/types';
 
@@ -71,7 +73,8 @@ export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, 
     const fingerprint = JSON.stringify(payload);
     if (!attempt.current || attempt.current.fingerprint !== fingerprint) attempt.current = { fingerprint, key: crypto.randomUUID() };
     try {
-      const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, key: attempt.current.key }), signal: AbortSignal.timeout(20000) });
+      const measurement = await heartOrderContext();
+      const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, key: attempt.current.key, measurement }), signal: AbortSignal.timeout(20000) });
       const body = await response.json();
       if (!response.ok) { if (response.status === 409) { setStep('selection'); onRefresh(); } throw new Error(body.error); }
       setResult(body); onOrdered(quote.items.map(item => item.id));
@@ -117,6 +120,7 @@ export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, 
           <button className="primary-button" disabled={busy || changed || !settings || settings.acceptsReservations === false}>{busy ? 'Je selectie reserveren…' : 'Laat mijn selectie reserveren'}<ArrowUpRight size={17} /></button>
         </fieldset>
       </form>
+      <HeartPrivacy />
     </>}
   </Dialog>;
 }

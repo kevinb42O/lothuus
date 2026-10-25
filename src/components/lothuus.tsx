@@ -8,6 +8,7 @@ import { objects as suppliedObjects, categories, categoryLabel, type Category, t
 import { Mosaic } from './mosaic';
 import { Dialog } from './dialog';
 import { HeartButton } from './heart-button';
+import { syncHeartSelection, trackHeart, retryHeartForget } from '@/lib/hearts/client';
 import { SelectionDialog, type CheckoutDraft, type SelectionObject } from './reservation';
 import { detailLayout } from '@/lib/detail-layout';
 import { money, type PublicSettings } from '@/lib/backend/types';
@@ -121,7 +122,14 @@ export function Lothuus() {
     ...category,
     count: category.id === 'alles' ? objects.length : objects.filter(object => object.category === category.id).length,
   })).filter(category => category.id === 'alles' || category.count > 0);
-  function toggleSaved(id: string) { setFeedback(saved.includes(id) ? 'Verwijderd uit je selectie' : 'Toegevoegd aan je selectie'); setSaved(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]); setDownloaded(false); }
+  useEffect(() => {
+    if (!storageReady) return;
+    const refresh = () => { if (!document.hidden) { void syncHeartSelection(saved); void retryHeartForget(); } };
+    refresh(); const timer = setInterval(refresh, 30000);
+    window.addEventListener('online', refresh); window.addEventListener('focus', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh); };
+  }, [saved, storageReady]);
+  function toggleSaved(id: string) { void trackHeart(id, !saved.includes(id), saved); setFeedback(saved.includes(id) ? 'Verwijderd uit je selectie' : 'Toegevoegd aan je selectie'); setSaved(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]); setDownloaded(false); }
   useEffect(() => { if (!feedback) return; const timer = setTimeout(() => setFeedback(''), 4500); return () => clearTimeout(timer); }, [feedback]);
   function openSelection() { setDetail(null); setPanel('selection'); setFeedback(''); }
   function prepareEnquiry(event: FormEvent<HTMLFormElement>) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { recordHearts } from '@/lib/hearts/server';
 import { withStore } from '@/lib/backend/cloud';
 import { readJson, sameOrigin, throttle } from '@/lib/backend/auth';
 import { BusinessError, checkout, hash, publicReservation, reserve, safeError } from '@/lib/backend/service';
@@ -14,6 +15,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(await withStore(s => { const r = s.reservations.find(r => r.tokenHash === hash(input.token)); if (!r) throw new BusinessError('Reservering niet gevonden.', 404); return publicReservation(r); }), { headers: { 'Cache-Control': 'no-store' } });
     }
     await throttle(request, 'reserve', 30);
-    return NextResponse.json(await withStore(s => 'items' in input ? checkout(s, input) : reserve(s, input)), { headers: { 'Cache-Control': 'no-store' } });
+    const result = await withStore(s => 'items' in input ? checkout(s, input) : reserve(s, input));
+    if (input.measurement && result.token) {
+      try { await recordHearts({ operation: 'order', browser: input.measurement.browser, sequence: input.measurement.sequence, token: result.token }); }
+      catch { console.error('LOTHUUS: hartjes na reservering niet gesynchroniseerd.'); }
+    }
+    return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) { const error = safeError(e); return NextResponse.json({ error: error.message }, { status: error.status }); }
 }

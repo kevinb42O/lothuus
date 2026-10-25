@@ -41,3 +41,11 @@ Je kunt in **Instellingen** een leesbare gegevensexport downloaden. Die bevat ge
 Bestaande databasebackups blijven in de private R2-backupbucket bewaard. De dagelijkse backupplanning is met de Cloudflare-webhosting gestopt en moet op Vercel opnieuw worden aangesloten. De foto’s blijven apart in de R2-mediabucket staan. De technische status en herstelprocedure staan in `docs/production.md`.
 
 De uiteindelijke domeinkoppeling met Vercel volgt zodra lothuus.be geregistreerd is. Er wordt geen tijdelijk Cloudflare-adres gebruikt.
+
+## Hartjes en populaire objecten
+
+Open **Verkoop → Hartjes** voor de belangstelling per object en de evolutie over 7, 30 of 90 dagen, of sinds de meetstart. Zoek op nummer of titel, filter op categorie en voorraad en open een object voor zijn grafiek en webreserveringen. De grafiek heeft ook een uitklapbare cijfertabel. Cijfers verversen automatisch zolang het tabblad openstaat; je kunt ook Vernieuwen kiezen.
+
+Toevoegen, handmatig verwijderen en opruimen na reservering worden apart geteld. Een bestaande selectie is een beginstand. “Recent bewaard” toont laatst bekende selecties van browsers die binnen 90 dagen synchroniseerden, ongeacht de periodefilter. Dit zijn geen unieke personen en geen koopbeloftes. Reserveringen staan er als aanvullende context, zonder koppeling tussen bezoekers en klanten.
+
+Bezoekers kunnen vrijwillig meetellen via **Mijn selectie → Privacy van je hartjes** en daar hun keuze intrekken. Zonder toestemming werken de hartjes lokaal verder. In het beheer kun je de hele meting pauzeren; eerdere cijfers blijven zichtbaar. Browserregistraties vervallen na 90 dagen zonder synchronisatie en dagtotalen na maximaal 24 maanden. Bij een storing blijven laatst geladen cijfers zichtbaar; de foutmelding is geen nulmeting. De meting heeft geen gegevens van vóór haar invoering.
