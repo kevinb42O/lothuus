@@ -40,3 +40,9 @@ test('owner heart endpoints reject unauthenticated requests and public writes re
   assert.equal((await publicPost(new NextRequest('http://localhost/api/hearts',{method:'POST',body:'{}'}))).status,403);
  }finally{if(old===undefined)delete process.env.BACKEND_MODE;else process.env.BACKEND_MODE=old;}
 });
+
+test('a new measurement never invents zero observations before its start',()=>{
+ const s=initialHearts();s.startedAt='2026-10-25T02:35:00Z';
+ const report=buildHeartReport(s,initialStore(),new URLSearchParams('period=30'),Date.parse('2026-10-25T12:00:00Z'));
+ assert.equal(report.from,'2026-10-25');assert.equal(report.series.length,1);assert.equal(report.comparable,false);
+});

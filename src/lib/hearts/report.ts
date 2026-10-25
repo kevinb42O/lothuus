@@ -5,7 +5,8 @@ export function buildHeartReport(raw: HeartRaw, store: Store, params: URLSearchP
   const today = heartDay(timestamp), period = ['7', '30', '90', 'all'].includes(params.get('period') || '') ? params.get('period')! : '30';
   const days = period === 'all' ? 0 : Number(period);
   const retainedFrom = shiftDay(today, -730), start = heartDay(raw.startedAt);
-  const from = days ? shiftDay(today, 1 - days) : start > retainedFrom ? start : retainedFrom;
+  const requestedFrom = days ? shiftDay(today, 1 - days) : retainedFrom;
+  const from = [requestedFrom, start, retainedFrom].sort().at(-1)!;
   const selected = params.get('object') || '', query = (params.get('q') || '').slice(0, 150).toLocaleLowerCase('nl');
   const category = params.get('category') || '', status = params.get('status') || '', sort = params.get('sort') || 'added';
   const series: HeartReport['series'] = [];

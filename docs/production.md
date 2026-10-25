@@ -20,7 +20,7 @@ Dit is een compacte Postgres-aggregate voor de huidige catalogus, met afzonderli
 
 De Security Advisor is uitgevoerd: geen errors. Twee standaardwaarschuwingen over publieke uitvoerrechten op Supabase’s `rls_auto_enable`-eventtrigger zijn verholpen door onnodige EXECUTE-rechten in te trekken; de automatische RLS-trigger blijft behouden. De vijf informatieve meldingen over ontbrekende RLS-policies zijn bewust: deze private tabellen weigeren alle gewone rollen en worden alleen via de server/service role gebruikt. De waarschuwing over gelekte wachtwoorden blijft bestaan: Supabase biedt die ingebouwde controle alleen op Pro en hoger. Het huidige Free-project heeft wel de genoemde sterke wachtwoordeisen en herauthenticatie. Er is geen extra betaald Supabase-abonnement geactiveerd.
 
-Alle applicatietabellen staan in het niet-publieke schema `app_private`, met RLS aan. `anon` en `authenticated` hebben geen tabeltoegang. Alle zeven RPC-functies zijn security invoker, hebben een vaste lege search path en zijn uitsluitend uitvoerbaar door `service_role`.
+Alle applicatietabellen staan in het niet-publieke schema `app_private`, met RLS aan. `anon` en `authenticated` hebben geen tabeltoegang. De applicatie-RPC-functies zijn security invoker, hebben een vaste lege search path en zijn uitsluitend uitvoerbaar door `service_role`.
 
 De nummerregistratie verwijdert geen oude nummers. De voorraadclaim heeft een unieke sleutel op productidentiteit voor actieve/voltooide bestellingen. De volledige commit rolt terug bij een dubbele claim of ontbrekende, nog niet gereed gemelde foto.
 
@@ -65,3 +65,11 @@ Validatie: `npm test`, `npm run typecheck` en `npm run build`. Geen Workers-adap
 - Domein lothuus.be registreren. Daarna DNS volgens Vercel instellen en `www.lothuus.be` aan het Vercel-project koppelen, HTTPS controleren en de gewenste apex-redirect instellen. De Supabase Site URL staat al op `https://www.lothuus.be`; voeg bij de toekomstige mailflow alleen exacte benodigde redirects toe.
 - E-maildienst/SMTP, geverifieerd verzenddomein, SPF/DKIM/DMARC, bezorgstatus en retries en wachtwoordherstel aansluiten en testen. De uitbox bevat nu alleen voorbeelden; er wordt geen echte mail verzonden.
 - Bank- en contactgegevens en toepasselijke voorwaarden/privacytekst invullen. Publieke reserveringsaanvragen en directe betaalinstructies staan uit tijdens de inrichting. Pas activeren na controle van de volledige klantflow.
+
+## Hartjes en populariteit — 25 oktober 2026
+
+Verkoop → Hartjes gebruikt vijf afzonderlijke private tabellen en zes service-role-RPC's, los van de bedrijfsaggregate. De publieke route `/api/hearts` registreert uitsluitend na een vrijwillige keuze in Mijn selectie. De rapport- en configuratieroute `/api/admin/hearts` vereist de bestaande eigenaarslogin. Nieuwe productpublicaties behouden de oorspronkelijke collectie-identiteit voor de telling. Reserveringsopruiming wordt uitsluitend na serverbevestiging verwerkt; klantgegevens worden niet met browsercodes verbonden.
+
+Migraties `20261025120000`, `20261025120100` en `20261025120200` zijn via de SQL-editor toegepast op het bestaande productieproject. De CLI-history is daarmee niet automatisch bijgewerkt; link/repareer niet blind. RLS en het weigeren van anonieme RPC-uitvoering zijn gecontroleerd. Supabase Cron is voor deze functie geactiveerd en voert `lothuus-heart-retention` dagelijks om 03:17 UTC uit. Dit is uitsluitend meetretentie, geen vervanging voor de eerder genoemde backupscheduler. Browsertoestand vervalt na 90 dagen en dagtotalen na maximaal 24 maanden. De grafiek begint nooit vóór de werkelijke meetstart.
+
+De gebruikershandleiding staat in `docs/owner-guide.md`; meetdefinities en verificatie in `docs/hartjes-opvolging-plan.md`.

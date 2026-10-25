@@ -11,10 +11,10 @@ function Trend({ report }: { report: HeartReport }) {
   const weekly = report.series.length > 90;
   const groups: HeartReport['series'] = [];
   report.series.forEach((d,i)=>{ if (!weekly || i%7 === 0) groups.push({...d}); else { const g=groups.at(-1)!; g.added+=d.added; g.removed+=d.removed; g.ordered+=d.ordered; } });
-  const peak = Math.max(1,...groups.flatMap(d=>[d.added,d.removed]));
+  const peak = Math.max(0,...groups.flatMap(d=>[d.added,d.removed]));
   return <section className="hi-trend" aria-labelledby="hi-trend-title"><div className="hi-section-heading"><div><h2 id="hi-trend-title">Hoe de interesse evolueert</h2><p>{weekly ? 'Per week' : 'Per dag'} · {dayLabel(report.from)} – {dayLabel(report.to)}</p></div><div className="hi-legend"><span><i />Toegevoegd</span><span><i />Verwijderd</span></div></div>
     <div className="hi-chart" role="img" aria-label={`Evolutie van ${report.totals.added} toegevoegde en ${report.totals.removed} verwijderde hartjes. Alle cijfers staan ook in de uitklapbare tabel.`}>
-      <span className="hi-peak">{peak}</span><div className="hi-bars">{groups.map(d=><div className="hi-bar-pair" key={d.day} title={`${dayLabel(d.day)}: ${d.added} toegevoegd, ${d.removed} verwijderd`}><span style={{height:`${d.added/peak*100}%`}} /><span style={{height:`${d.removed/peak*100}%`}} /></div>)}</div>
+      <span className="hi-peak">{peak}</span><div className="hi-bars">{groups.map(d=><div className="hi-bar-pair" key={d.day} title={`${dayLabel(d.day)}: ${d.added} toegevoegd, ${d.removed} verwijderd`}><span style={{height:`${d.added/Math.max(1,peak)*100}%`}} /><span style={{height:`${d.removed/Math.max(1,peak)*100}%`}} /></div>)}</div>
     </div><div className="hi-chart-axis"><span>{dayLabel(report.from)}</span><span>{dayLabel(report.to)}</span></div>
     <details className="hi-data"><summary>Bekijk de cijfers als tabel</summary><div className="a-table-wrap"><table><caption className="sr-only">Hartjes per {weekly?'week':'dag'}</caption><thead><tr><th scope="col">{weekly?'Week vanaf':'Datum'}</th><th scope="col">Toegevoegd</th><th scope="col">Verwijderd</th><th scope="col">Na reservering opgeruimd</th></tr></thead><tbody>{groups.map(d=><tr key={d.day}><th scope="row">{dayLabel(d.day)}</th><td>{d.added}</td><td>{d.removed}</td><td>{d.ordered}</td></tr>)}</tbody></table></div></details>
   </section>;
