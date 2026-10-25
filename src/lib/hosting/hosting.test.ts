@@ -8,10 +8,11 @@ import { HOSTING_BANK, PLANS, PRODUCTS, objectUsage, paymentPayload } from './ca
 import { hostingCommand } from './server';
 import { localCommand, localReport } from './local';
 test('agreed quotas, exact prices and independent expansion quantities',()=>{
- assert.deepEqual(Object.values(PLANS).map(p=>p.objects),[150,300,500]);
+ assert.deepEqual(Object.values(PLANS).map(p=>p.name),['Free','Pro','Enterprise']);
+ assert.deepEqual(Object.values(PLANS).map(p=>p.objects),[200,500,1000]);
  assert.deepEqual(Object.values(PRODUCTS).map(p=>p.cents),[2500,5000,2500,24000,4900,49000]);
- assert.equal(objectUsage(195,150).over,45);assert.equal(objectUsage(195,150).percentage,130);assert.equal(objectUsage(195,150).fill,100);assert.equal(objectUsage(195,150).tone,'danger');
- assert.equal(objectUsage(150,150).over,0);assert.equal(objectUsage(150,150).tone,'danger');assert.equal(objectUsage(119,150).tone,'normal');assert.equal(objectUsage(120,150).tone,'warning');assert.equal(objectUsage(195,200).over,0);
+ assert.equal(objectUsage(205,200).over,5);assert.equal(objectUsage(205,200).percentage,102.5);assert.equal(objectUsage(205,200).fill,100);assert.equal(objectUsage(205,200).tone,'danger');
+ assert.equal(objectUsage(200,200).over,0);assert.equal(objectUsage(200,200).tone,'danger');assert.equal(objectUsage(159,200).tone,'normal');assert.equal(objectUsage(160,200).tone,'warning');assert.equal(objectUsage(195,200).over,0);
 });
 test('bank payloads retain every original field and historical reference',()=>{
  assert.equal(HOSTING_BANK.iban,'BE43738004886701');
@@ -25,7 +26,7 @@ test('owner inputs cannot choose a price, quota or activation status',()=>{
 });
 test('isolated order retry, conflicts and payment claims never grant capacity',()=>{
  const dir=mkdtempSync(join(tmpdir(),'lothuus-hosting-')),previous=process.env.LOTHUUS_DATA_DIR;process.env.LOTHUUS_DATA_DIR=dir;
- try{const key=randomUUID();localCommand({action:'order',key,product:'extra50'});localCommand({action:'order',key,product:'extra50'});assert.equal(localReport().orders.length,1);assert.throws(()=>localCommand({action:'order',key,product:'extra150'}));localCommand({action:'status',id:key,status:'payment_review'});assert.equal(localReport().orders[0].status,'payment_review');assert.equal(localReport().limit,150);localCommand({action:'status',id:key,status:'cancelled'});assert.equal(localReport().orders[0].status,'payment_review');assert.equal(localReport().limit,150);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;rmSync(dir,{recursive:true,force:true});}
+ try{const key=randomUUID();localCommand({action:'order',key,product:'extra50'});localCommand({action:'order',key,product:'extra50'});assert.equal(localReport().orders.length,1);assert.throws(()=>localCommand({action:'order',key,product:'extra150'}));localCommand({action:'status',id:key,status:'payment_review'});assert.equal(localReport().orders[0].status,'payment_review');assert.equal(localReport().limit,200);localCommand({action:'status',id:key,status:'cancelled'});assert.equal(localReport().orders[0].status,'payment_review');assert.equal(localReport().limit,200);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;rmSync(dir,{recursive:true,force:true});}
 });
 test('hosting and scheduler routes reject unauthenticated and cross-origin requests',async()=>{
  const {NextRequest}=await import('next/server');const routes=await import('../../app/api/admin/hosting/route');const cron=await import('../../app/api/cron/hosting/route');
@@ -34,5 +35,5 @@ test('hosting and scheduler routes reject unauthenticated and cross-origin reque
 });
 test('an over-limit collection stays editable while new records roll back',async()=>{
  const {withStore}=await import('../backend/cloud');const {transact}=await import('../backend/repository');const dir=mkdtempSync(join(tmpdir(),'lothuus-hosting-limit-')),previous=process.env.LOTHUUS_DATA_DIR,mode=process.env.BACKEND_MODE;process.env.LOTHUUS_DATA_DIR=dir;process.env.BACKEND_MODE='local';
- try{transact(s=>{s.items=Array.from({length:195},(_,n)=>({id:String(n),title:'Bestaand object',photos:[],publication:'archived'} as unknown as typeof s.items[number]));});await withStore(s=>{s.items[0].title='Bijgewerkt';});assert.equal(transact(s=>s.items[0].title),'Bijgewerkt');await assert.rejects(withStore(s=>{s.items.push({...s.items[0],id:'nieuw'});}),/objectlimiet/);assert.equal(transact(s=>s.items.length),195);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;if(mode===undefined)delete process.env.BACKEND_MODE;else process.env.BACKEND_MODE=mode;rmSync(dir,{recursive:true,force:true});}
+ try{transact(s=>{s.items=Array.from({length:200},(_,n)=>({id:String(n),title:'Bestaand object',photos:[],publication:'archived'} as unknown as typeof s.items[number]));});await withStore(s=>{s.items[0].title='Bijgewerkt';});assert.equal(transact(s=>s.items[0].title),'Bijgewerkt');await assert.rejects(withStore(s=>{s.items.push({...s.items[0],id:'nieuw'});}),/objectlimiet/);assert.equal(transact(s=>s.items.length),200);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;if(mode===undefined)delete process.env.BACKEND_MODE;else process.env.BACKEND_MODE=mode;rmSync(dir,{recursive:true,force:true});}
 });
