@@ -49,3 +49,11 @@ Open **Verkoop → Hartjes** voor de belangstelling per object en de evolutie ov
 Toevoegen, handmatig verwijderen en opruimen na reservering worden apart geteld. Een bestaande selectie is een beginstand. “Recent bewaard” toont laatst bekende selecties van browsers die binnen 90 dagen synchroniseerden, ongeacht de periodefilter. Dit zijn geen unieke personen en geen koopbeloftes. Reserveringen staan er als aanvullende context, zonder koppeling tussen bezoekers en klanten.
 
 Hartjes tellen automatisch mee; er staat geen meetcheckbox of privacyuitleg in de selectie. De footer linkt naar **Algemene voorwaarden** en **Privacy**, elk op een eigen pagina. In het beheer kun je de hele meting pauzeren; eerdere cijfers blijven zichtbaar. Browserregistraties vervallen na 90 dagen zonder synchronisatie en dagtotalen na maximaal 24 maanden. Bij een storing blijven laatst geladen cijfers zichtbaar; de foutmelding is geen nulmeting. De meting heeft geen gegevens van vóór haar invoering.
+
+## Bezoekers
+
+Open **Bezoekers** in de beheernavigatie om het websitebezoek te volgen. Kies een periode bovenaan; de grafiek en apparatenverdeling tonen steeds dezelfde periode. Met **Vernieuwen** haal je nieuwe cijfers op. Tijdens het ophalen blijven reeds geladen cijfers zichtbaar.
+
+Beweeg over de grafiek of tik op een punt voor het aantal bezoeken. Met het toetsenbord gebruik je links/rechts en Home/End. Onder de grafiek kun je de cijfers per dag of uur uitklappen. Bij lange perioden heeft de dagtabel meerdere pagina’s.
+
+De registratie gebruikt geen cookies of blijvende browseropslag. De cijfers zijn beschikbaar vanaf de meetstart.
