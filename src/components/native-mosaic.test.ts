@@ -16,5 +16,5 @@ test('the native collection keeps all product controls without transformed tiles
   assert.match(html,/data-row="64"/);
   assert.doesNotMatch(html,/transform:|will-change:|<img\b|<canvas\b/);
   assert.match(html,/aria-pressed="true"/);
-  assert.match(html,/195 objecten in de collectie/);
+  assert.ok(html.includes(`${objects.length} objecten in de collectie`));
 });

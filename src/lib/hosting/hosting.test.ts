@@ -8,8 +8,8 @@ import { HOSTING_BANK, PLANS, PRODUCTS, objectUsage, paymentPayload } from './ca
 import { hostingCommand } from './server';
 import { localCommand, localReport } from './local';
 test('agreed quotas, exact prices and independent expansion quantities',()=>{
- assert.deepEqual(Object.values(PLANS).map(p=>p.name),['Free','Pro','Enterprise']);
- assert.deepEqual(Object.values(PLANS).map(p=>p.objects),[200,500,1000]);
+ assert.deepEqual(Object.values(PLANS).map(p=>p.name),['Free','Pro','Business']);
+ assert.deepEqual(Object.values(PLANS).map(p=>p.objects),[200,1000,5000]);
  assert.deepEqual(Object.values(PRODUCTS).map(p=>p.cents),[2500,5000,2500,24000,4900,49000]);
  assert.equal(objectUsage(205,200).over,5);assert.ok(Math.abs(objectUsage(205,200).percentage-102.5)<1e-10);assert.equal(objectUsage(205,200).fill,100);assert.equal(objectUsage(205,200).tone,'danger');
  assert.equal(objectUsage(200,200).over,0);assert.equal(objectUsage(200,200).tone,'danger');assert.equal(objectUsage(159,200).tone,'normal');assert.equal(objectUsage(160,200).tone,'warning');assert.equal(objectUsage(195,200).over,0);
@@ -33,9 +33,9 @@ test('hosting and scheduler routes reject unauthenticated and cross-origin reque
  const dir=mkdtempSync(join(tmpdir(),'lothuus-hosting-auth-')),previous=process.env.LOTHUUS_DATA_DIR,mode=process.env.BACKEND_MODE;process.env.LOTHUUS_DATA_DIR=dir;process.env.BACKEND_MODE='local';
  try{const get=await routes.GET(new NextRequest('http://localhost/api/admin/hosting'));assert.equal(get.status,401);const post=await routes.POST(new NextRequest('http://localhost/api/admin/hosting',{method:'POST',headers:{origin:'https://other.example'},body:'{}'}));assert.equal(post.status,403);const c=await cron.GET(new NextRequest('http://localhost/api/cron/hosting'));assert.equal(c.status,401);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;if(mode===undefined)delete process.env.BACKEND_MODE;else process.env.BACKEND_MODE=mode;rmSync(dir,{recursive:true,force:true});}
 });
-test('an over-limit collection stays editable while new records roll back',async()=>{
+test('an over-limit collection stays editable and accepts new records without changing the package',async()=>{
  const {withStore}=await import('../backend/cloud');const {transact}=await import('../backend/repository');const dir=mkdtempSync(join(tmpdir(),'lothuus-hosting-limit-')),previous=process.env.LOTHUUS_DATA_DIR,mode=process.env.BACKEND_MODE;process.env.LOTHUUS_DATA_DIR=dir;process.env.BACKEND_MODE='local';
- try{transact(s=>{s.items=Array.from({length:199},(_,n)=>({id:String(n),title:'Bestaand object',photos:[],publication:'archived'} as unknown as typeof s.items[number]));});await withStore(s=>{s.items[0].title='Bijgewerkt';});assert.equal(transact(s=>s.items[0].title),'Bijgewerkt');await withStore(s=>{s.items.push({...s.items[0],id:'laatste'});});assert.equal(transact(s=>s.items.length),200);await assert.rejects(withStore(s=>{s.items.push({...s.items[0],id:'nieuw'});}),/objectlimiet/);assert.equal(transact(s=>s.items.length),200);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;if(mode===undefined)delete process.env.BACKEND_MODE;else process.env.BACKEND_MODE=mode;rmSync(dir,{recursive:true,force:true});}
+ try{transact(s=>{s.items=Array.from({length:199},(_,n)=>({id:String(n),title:'Bestaand object',photos:[],publication:'archived'} as unknown as typeof s.items[number]));});await withStore(s=>{s.items[0].title='Bijgewerkt';});assert.equal(transact(s=>s.items[0].title),'Bijgewerkt');await withStore(s=>{s.items.push({...s.items[0],id:'laatste'});});assert.equal(transact(s=>s.items.length),200);await withStore(s=>{s.items.push({...s.items[0],id:'nieuw'});});assert.equal(transact(s=>s.items.length),201);assert.equal(localReport().limit,200);assert.equal(localReport().count,201);assert.equal(objectUsage(201,200).over,1);}finally{if(previous===undefined)delete process.env.LOTHUUS_DATA_DIR;else process.env.LOTHUUS_DATA_DIR=previous;if(mode===undefined)delete process.env.BACKEND_MODE;else process.env.BACKEND_MODE=mode;rmSync(dir,{recursive:true,force:true});}
 });
 test('Free analytics endpoints reject historical periods even with an owner session',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'lothuus-plan-access-'));

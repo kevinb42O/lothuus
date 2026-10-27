@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AlertCircle, ArrowUpRight } from 'lucide-react';
-import { objectUsage } from '@/lib/hosting/catalogue';
+import { PLANS, objectUsage, type HostingPlan } from '@/lib/hosting/catalogue';
 
-export function CapacityNotice({ count, onCapacity, onOverLimitChange }: { count: number; onCapacity: () => void; onOverLimitChange?: (over: boolean) => void }) {
+export function CapacityNotice({ count, onCapacity, onOverLimitChange, onPlanChange }: { count: number; onCapacity: () => void; onOverLimitChange?: (over: boolean) => void; onPlanChange?: (plan: HostingPlan) => void }) {
   const [limit, setLimit] = useState<number | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -11,10 +11,12 @@ export function CapacityNotice({ count, onCapacity, onOverLimitChange }: { count
       .then(async response => {
         if (!response.ok) return;
         const report = await response.json();
-        if (!controller.signal.aborted && Number.isSafeInteger(report.limit) && report.limit > 0) setLimit(report.limit);
+        if (controller.signal.aborted) return;
+        if (Number.isSafeInteger(report.limit) && report.limit > 0) setLimit(report.limit);
+        if (typeof report.plan === 'string' && Object.hasOwn(PLANS, report.plan)) onPlanChange?.(report.plan as HostingPlan);
       }).catch(() => { /* A failed capacity lookup must never block product editing. */ });
     return () => controller.abort();
-  }, [count]);
+  }, [count, onPlanChange]);
   useEffect(() => {
     onOverLimitChange?.(limit !== null && count > limit);
   }, [count, limit, onOverLimitChange]);

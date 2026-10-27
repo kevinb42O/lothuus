@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const categories = z.enum(['vazen', 'keramiek', 'glas', 'meubels', 'verlichting', 'objecten', 'hout-riet-bamboe']);
+export const categories = z.enum(['vazen', 'keramiek', 'glas', 'meubels', 'verlichting', 'objecten', 'hout-riet-bamboe', 'inox-ijzer', 'plastiek', 'textiel']);
 const text = (max: number) => z.string().trim().max(max);
 const contactShape = { name: text(120).min(2, 'Vul je naam in.'), email: z.string().trim().email('Vul een geldig e-mailadres in.').max(180).transform(v => v.toLowerCase()), phone: text(40), channel: z.enum(['email', 'phone', 'whatsapp']) };
 export const contactSchema = z.object(contactShape).refine(c => c.channel === 'email' || c.phone.length >= 6, 'Vul een telefoonnummer in voor deze contactmethode.');
@@ -14,7 +14,7 @@ export function validIban(iban: string) {
 }
 export const reservationSchema = z.object({ itemId: z.uuid(), expectedPrice: z.number().int(), expectedVersion: z.number().int(), contact: contactSchema, emailConfirmation: z.email(), message: text(3000), termsVersion: text(30), accepted: z.literal(true), website: z.literal(''), key: z.uuid() }).refine(v => v.contact.email === v.emailConfirmation.trim().toLowerCase(), 'De e-mailadressen komen niet overeen.');
 export const checkoutSchema = z.object({
-  items: z.array(z.object({ itemId: z.union([z.uuid(), z.string().regex(/^[KGH]\d{3}$/)]), expectedPrice: z.number().int().positive().nullable(), expectedVersion: z.number().int().positive() })).min(1).max(50),
+  items: z.array(z.object({ itemId: z.union([z.uuid(), z.string().regex(/^[KPGTHI]\d{3}$/)]), expectedPrice: z.number().int().positive().nullable(), expectedVersion: z.number().int().positive() })).min(1).max(50),
   contact: contactSchema, message: text(3000), termsVersion: text(30), accepted: z.literal(true), website: z.literal(''), key: z.uuid(),
 }).refine(v => new Set(v.items.map(i => i.itemId)).size === v.items.length, 'Een object kan maar één keer in je bestelling staan.');
 export const commandSchema = z.discriminatedUnion('action', [

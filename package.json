@@ -16,7 +16,8 @@
     "collection:import": "node --env-file=.env.local --import tsx scripts/import-collection.ts",
     "hosting:operator": "node --env-file=.env.local --import tsx scripts/hosting-operator.ts",
     "test:analytics": "tsx --test src/lib/analytics/*.test.ts",
-    "test:hosting": "tsx --test src/lib/hosting/hosting.test.ts"
+    "test:hosting": "tsx --test src/lib/hosting/hosting.test.ts",
+    "collection:import:new": "node --env-file=.env.local --import tsx scripts/import-new-collection.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1156.0",

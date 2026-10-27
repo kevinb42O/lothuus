@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { objects as suppliedObjects } from '../collection';
+import { objects as suppliedObjects, photoVariant } from '../collection';
 import { missingFields } from '../inventory';
 import { checkoutSchema, commandSchema, reservationSchema, validIban } from './validation';
 import { availability, dateTime, money, netPaid, reservationLines, expireOrders, paymentDeadline, type Store, type Reservation, type Customer, type PublicObject, type Mail } from './types';
@@ -36,7 +36,7 @@ export function catalogue(s: Store) {
       return index >= 0 && o.photos?.[index]?.src ? [o.photos[index]] : [];
     }) || [];
     const photos = selected.length ? selected : o.photos;
-    return { ...o, image: photos?.[0]?.src || o.image, photos, version: 1, availability: publicAvailability(s, o.id) };
+    return { ...o, image: photoVariant(photos?.[0]?.src || o.image, 'grid'), photos, version: 1, availability: publicAvailability(s, o.id) };
   });
   const hasInventory = objects.length > 0;
   const { businessName, pickup, terms, privacy, termsVersion, deadlineDays } = s.settings;

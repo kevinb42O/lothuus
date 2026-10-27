@@ -425,3 +425,22 @@ test('imported stock keeps source reservations blocked after publication', async
   assert.throws(()=>checkout(s,{...input,key:randomUUID(),items:[{itemId:item.id,expectedPrice:8500,expectedVersion:item.version}]}),/gereserveerd|verkocht/);
   assert.throws(()=>checkout(s,{...input,key:randomUUID()}),/gewijzigd/);
 });
+
+test('I/P/T source objects remain orderable and retain their reservation identity after publishing', async () => {
+  const { objects } = await import('../collection'); const { checkout } = await import('./service');
+  for (const prefix of ['I','P','T'] as const) {
+    const source = objects.find(o => o.id === `${prefix}001`)!; assert(source);
+    const s=initialStore();
+    command(s,{action:'save-item',item:{materialGroup:prefix,title:'Ingevulde fiche',category:source.category,description:'Beschrijving',priceCents:8500,priceUnset:false,date:'Jaren 70',material:source.material,dimensions:'28 cm',maker:'',condition:'Goed',publication:'draft',photos:source.photos!.map(p=>({id:p.id,alt:p.alt}))}});
+    const item=s.items[0];item.sourceReference=source.id;item.sourcePhotos=item.photos;
+    const visible=catalogue(s).objects.find(o=>o.id===source.id)!;assert(visible);
+    assert.equal(visible.category,source.category);assert.match(visible.image,/size=grid$/);
+    assert.equal(visible.priceCents,undefined);
+    const input={items:[{itemId:source.id,expectedPrice:null,expectedVersion:1}],contact:{name:'Test Klant',email:`${prefix.toLowerCase()}@example.test`,phone:'',channel:'email'},message:'',termsVersion:'1',accepted:true,website:'',key:randomUUID()};
+    checkout(s,input);assert.equal(availability(s,item.id),'reserved');
+    command(s,{action:'save-item',item:{...item,publication:'published'}});
+    const published=catalogue(s).objects;assert.equal(published.filter(o=>o.id===source.id||o.id===item.id).length,1);
+    assert.equal(published.find(o=>o.id===item.id)!.availability,'reserved');
+    assert.throws(()=>checkout(s,{...input,key:randomUUID(),items:[{itemId:item.id,expectedPrice:8500,expectedVersion:item.version}]}),/gereserveerd|verkocht/);
+  }
+});

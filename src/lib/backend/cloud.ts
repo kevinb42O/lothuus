@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { expireOrders, type Store } from './types';
 import { BusinessError } from './service';
-import { PLANS } from '../hosting/catalogue';
 import { CATALOGUE_TAG, HEARTS_TAG, invalidateReadCache } from './cache-tags';
 export const cloudMode = () => process.env.BACKEND_MODE === 'supabase';
 export function serverDatabase() {
@@ -14,7 +13,7 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
   if (!cloudMode()) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online opslag ontbreekt.', 503);
     const { transact } = await import('./repository');
-    return transact(state => { const count=state.items.length; const result=operation(state); if(state.items.length>count && state.items.length>PLANS.basis.objects) throw new BusinessError('Je objectlimiet is bereikt. Verhoog je capaciteit via Hosting & capaciteit om nieuwe objecten toe te voegen.',409); return result; });
+    return transact(operation);
   }
   const db = serverDatabase();
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -25,7 +24,6 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
     const result = operation(state);
     if (JSON.stringify(state) === before) { onRevision?.(loaded.data.revision); return result; }
     const saved = await db.rpc('lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state });
-    if (saved.error?.message.includes('HOSTING_OBJECT_LIMIT')) throw new BusinessError('Je objectlimiet is bereikt. Verhoog je capaciteit via Hosting & capaciteit om nieuwe objecten toe te voegen.', 409);
     if (saved.error) throw new BusinessError('Opslaan is niet gelukt. Vernieuw de gegevens en probeer opnieuw.', 503);
     if (saved.data === true) { invalidateReadCache(CATALOGUE_TAG, HEARTS_TAG); onRevision?.(loaded.data.revision + 1); return result; }
   }

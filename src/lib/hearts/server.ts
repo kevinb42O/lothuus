@@ -40,7 +40,7 @@ export async function recordHearts(input: unknown) {
       return reservation ? reservationLines(reservation).map(line=>{
         const product=s.items.find(i=>i.id===line.itemId || i.sourceReference===line.itemId);
         const id=product?.sourceReference || product?.id || line.itemId;
-        return {id,title:line.title,reference:line.productNumber||id,image:line.image,category:product?.category||'objecten',source:/^[KGH]\d{3}$/.test(id)?'collection':'inventory'} satisfies HeartObject;
+        return {id,title:line.title,reference:line.productNumber||id,image:line.image,category:product?.category||'objecten',source:/^[KPGTHI]\d{3}$/.test(id)?'collection':'inventory'} satisfies HeartObject;
       }) : [];
     });
     const {localHearts,orderHearts}=await import('./local');localHearts(s=>orderHearts(s,key,objects,p.sequence));
@@ -57,7 +57,7 @@ export async function recordHearts(input: unknown) {
     for (const o of catalogue(s).objects) {
       const product = s.items.find(i => i.id === o.id);
       const id = product?.sourceReference || o.id;
-      const object: HeartObject = { id, title: o.title, image: o.image, category: o.category, reference: product?.productNumber || id, source: /^[KGH]\d{3}$/.test(id) ? 'collection' : 'inventory' };
+      const object: HeartObject = { id, title: o.title, image: o.image, category: o.category, reference: product?.productNumber || id, source: /^[KPGTHI]\d{3}$/.test(id) ? 'collection' : 'inventory' };
       objects.set(o.id, object); objects.set(id, object);
     }
     return { objects, aliases: new Map(s.items.map(i => [i.id, i.sourceReference || i.id])) };

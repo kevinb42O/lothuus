@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { cloudMode, serverDatabase } from './cloud';
 import { BusinessError, hash } from './service';
+import { rememberCookie, sessionCookieLifetime } from './session-policy';
 export function sameOrigin(request: NextRequest) {
   const origin = request.headers.get('origin');
   const expected = process.env.APP_ORIGIN || `${request.nextUrl.protocol}//${request.headers.get('host') || request.nextUrl.host}`;
@@ -20,12 +21,13 @@ export async function readJson(request: NextRequest) {
 export const sessionCookie = 'lothuus-owner';
 const local = () => import('./local-auth');
 export const configured = async () => cloudMode() ? Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY && process.env.ADMIN_USER_ID && process.env.ADMIN_EMAIL) : process.env.NODE_ENV !== 'production' && (await local()).configured();
-export async function authClient() {
+export async function authClient(remember?: boolean) {
   const jar = await cookies();
+  const persistent = remember ?? jar.get(rememberCookie)?.value === '1';
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY) throw new BusinessError('Inloggen is nog niet geconfigureerd.', 503);
   return createServerClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
-    cookieOptions: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 8 * 3600 },
-    cookies: { getAll: () => jar.getAll(), setAll: values => { values.forEach(({name,value,options}) => jar.set(name,value,options)); } },
+    cookieOptions: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' },
+    cookies: { getAll: () => jar.getAll(), setAll: values => { values.forEach(({name,value,options}) => jar.set(name,value,sessionCookieLifetime(options,persistent))); } },
   });
 }
 export async function isOwner(request: NextRequest) {
@@ -35,14 +37,14 @@ export async function isOwner(request: NextRequest) {
   return !error && !!data.user && data.user.id === process.env.ADMIN_USER_ID && data.user.app_metadata.role === 'owner';
 }
 export async function requireOwner(request: NextRequest) { if (!await isOwner(request)) throw new BusinessError('Log opnieuw in om verder te gaan.',401); }
-export async function authenticate(password: string, email: string) {
+export async function authenticate(password: string, email: string, remember = false) {
   if (!cloudMode()) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online toegang ontbreekt.',503);
-    return (await local()).authenticate(password);
+    return (await local()).authenticate(password, remember);
   }
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail !== process.env.ADMIN_EMAIL?.trim().toLowerCase()) throw new BusinessError('Het e-mailadres of wachtwoord klopt niet.',401);
-  const client = await authClient();
+  const client = await authClient(remember);
   const {data,error} = await client.auth.signInWithPassword({email: normalizedEmail,password});
   if (error || data.user?.id !== process.env.ADMIN_USER_ID || data.user?.app_metadata.role !== 'owner') {
     await client.auth.signOut({scope:'local'}); throw new BusinessError('Het e-mailadres of wachtwoord klopt niet.',401);

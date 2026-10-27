@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { NextRequest } from 'next/server';
 import { dataDirectory, transact } from './repository';
 import { BusinessError, hash, limit } from './service';
+import { browserSessionSeconds, rememberedSessionSeconds } from './session-policy';
 export const sessionCookie = 'lothuus-owner';
 function credentials(): { hash: string; salt: string; secret: string } | null {
   const path = join(dataDirectory(), 'owner.json');
@@ -17,11 +18,11 @@ function credentials(): { hash: string; salt: string; secret: string } | null {
   return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
 }
 export function configured() { return credentials() !== null; }
-export function authenticate(password: string) {
+export function authenticate(password: string, remember = false) {
   const record = credentials(); if (!record) throw new BusinessError('Stel eerst je eigenaarswachtwoord in met npm run owner:setup.', 503);
   const attempt = scryptSync(password, record.salt, 64); const actual = Buffer.from(record.hash, 'hex');
   if (attempt.length !== actual.length || !timingSafeEqual(attempt, actual)) throw new BusinessError('Het wachtwoord klopt niet.', 401);
-  const payload = `${Date.now() + 8 * 3600000}.${randomBytes(16).toString('hex')}`;
+  const payload = `${Date.now() + (remember ? rememberedSessionSeconds : browserSessionSeconds) * 1000}.${randomBytes(16).toString('hex')}`;
   return `${payload}.${createHmac('sha256', record.secret).update(payload).digest('hex')}`;
 }
 export function isOwner(request: NextRequest) {

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { DoorwayHero } from './doorway-hero';
 import { ArrowUpRight, Heart, Download, Plus, Check } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type CSSProperties } from 'react';
-import { objects as suppliedObjects, categories, categoryLabel, type Category, type CollectionObject } from '@/lib/collection';
+import { objects as suppliedObjects, categories, categoryLabel, photoVariant, type Category, type CollectionObject } from '@/lib/collection';
 import { Mosaic } from './mosaic';
 import { Dialog } from './dialog';
 import { HeartButton } from './heart-button';
@@ -20,7 +20,7 @@ function Wordmark({ footer = false }: { footer?: boolean }) {
   return <span className={`wordmark ${footer ? 'wordmark-footer' : ''}`} aria-label="LOTHUUS"><b>LO</b><span>THUUS</span></span>;
 }
 function Detail({ object, saved, onSave, onClose, onSelection, count }: { object: CollectionObject; saved: boolean; onSave: () => void; onClose: () => void; onSelection: () => void; count: number }) {
-  const [image, setImage] = useState({ src: object.image, width: 1200, height: 1600 });
+  const [image, setImage] = useState({ src: photoVariant(object.image, 'detail'), width: 1200, height: 1600 });
   const photo = image.src;
   const [viewport, setViewport] = useState({ width: 1200, height: 900 });
   const [photoError, setPhotoError] = useState('');
@@ -57,7 +57,7 @@ function Detail({ object, saved, onSave, onClose, onSelection, count }: { object
       {live && <p className="detail-price">{money(object.priceCents!)} <span>{({ available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht' })[object.availability || 'available']}</span></p>}
       <p className="detail-intro">{object.description || "Bekijk dit object uit de LOTHUUS-collectie vanuit verschillende hoeken. Meer productinformatie volgt binnenkort."}</p>
       {object.condition && <p className="detail-intro">{object.condition}</p>}
-      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip">{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photo.includes(p.id)} onClick={() => { void choosePhoto(p.src || `/api/images/${p.id}?size=detail`); }}><img src={p.src || `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
+      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip">{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photo.includes(p.id)} onClick={() => { void choosePhoto(p.src ? photoVariant(p.src, 'detail') : `/api/images/${p.id}?size=detail`); }}><img src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
       {photoError && <p className="detail-note" role="status">{photoError}</p>}
       <dl className="object-facts">{object.date && <div><dt>Periode</dt><dd>{object.date}</dd></div>}<div><dt>Materiaal</dt><dd>{object.material}</dd></div>{object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}</dl>
       {!live && object.description && <details className="original-description"><summary>Het verhaal achter dit object <Plus size={14} /></summary><p lang="en">{object.description}</p></details>}

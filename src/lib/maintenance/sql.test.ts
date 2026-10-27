@@ -103,3 +103,30 @@ test('PostgreSQL projections, report windows, ingest budgets, retention and comp
     });
   } finally { await db.close(); }
 });
+
+test('Postgres permits 297 objects on the unchanged 200-object package and classifies I/P/T order hearts', { timeout: 60000 }, async () => {
+  const db = await database();
+  try {
+    const state = initialStore();
+    state.items = Array.from({ length: 297 }, (_, index) => ({
+      id: randomUUID(), title: 'Testobject', category: 'objecten', description: '', priceCents: 0, priceUnset: true,
+      date: '', material: '', dimensions: '', maker: '', condition: '', publication: 'draft', photos: [], version: 1, createdAt: new Date().toISOString(),
+      ...(index < 3 ? { sourceReference: ['I001','P001','T001'][index], productNumber: ['I1','P1','T1'][index] } : {}),
+    }));
+    const loaded = (await db.query<{ revision: number }>('select revision from app_private.store where id')).rows[0];
+    assert.equal((await db.query<{ ok: boolean }>('select public.lothuus_commit_state($1,$2) as ok', [loaded.revision, JSON.stringify(state)])).rows[0].ok, true);
+    const report = (await db.query<{ report: { count: number; limit: number; plan: string } }>('select public.lothuus_hosting_report() as report')).rows[0].report;
+    assert.equal(report.count, 297); assert.equal(report.limit, 200); assert.equal(report.plan, 'basis');
+    state.items[0].title = 'Ook boven de limiet bewerkbaar';
+    await db.query('update app_private.store set body=$1 where id', [JSON.stringify(state)]);
+    const capability = 'a'.repeat(64), browser = 'b'.repeat(64);
+    state.reservations = [{ tokenHash: capability, source: 'web', lines: state.items.slice(0,3).map(i => ({ itemId: i.id, title: i.title, productNumber: i.productNumber, image: '' })) }] as unknown as Store['reservations'];
+    await db.query('update app_private.store set body=$1 where id', [JSON.stringify(state)]);
+    await db.exec('update app_private.heart_settings set enabled=true where id');
+    await db.query('select public.lothuus_heart_order($1,$2,1)', [browser, capability]);
+    const rows = (await db.query<{ id: string; snapshot: { source: string } }>('select id,snapshot from app_private.heart_objects order by id')).rows;
+    assert.deepEqual(rows.map(r => [r.id, r.snapshot.source]), [['I001','collection'],['P001','collection'],['T001','collection']]);
+    await db.exec('set role anon');
+    await assert.rejects(db.query('select public.lothuus_heart_order($1,$2,2)', [browser, capability]), /permission denied/);
+  } finally { await db.close(); }
+});

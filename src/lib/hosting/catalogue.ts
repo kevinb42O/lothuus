@@ -2,17 +2,17 @@ import type { OperationsReport } from '../maintenance/types';
 export type HostingPlan = 'basis' | 'pro' | 'premium';
 export const HOSTING_BANK = { beneficiary: 'Kevin Bourguignon', iban: 'BE43738004886701', formattedIban: 'BE43 7380 0488 6701' } as const;
 export const PLANS = {
-  basis: { name: 'Free', objects: 200, database: 500e6, media: 1e9, direct: 5e9, cached: 5e9 },
-  pro: { name: 'Pro', objects: 500, database: 8e9, media: 10e9, direct: 25e9, cached: 50e9 },
-  premium: { name: 'Enterprise', objects: 1000, database: 20e9, media: 50e9, direct: 100e9, cached: 200e9 },
+  basis: { name: 'Free', objects: 200, database: 500e6, media: 500e6, direct: 5e9, cached: 5e9 },
+  pro: { name: 'Pro', objects: 1000, database: 8e9, media: 10e9, direct: 25e9, cached: 50e9 },
+  premium: { name: 'Business', objects: 5000, database: 20e9, media: 50e9, direct: 100e9, cached: 200e9 },
 } as const;
 export const PRODUCTS = {
   extra50: { label: '+50 objecten', cents: 2500, extra: 50, plan: null, months: 0, bankLabel: 'Uitbreiding 50 Kunstwerken' },
   extra150: { label: '+150 objecten', cents: 5000, extra: 150, plan: null, months: 0, bankLabel: 'Uitbreiding 150 Kunstwerken' },
   pro_month: { label: 'Pro · maandelijks', cents: 2500, extra: 0, plan: 'pro', months: 1, bankLabel: 'Pro Plan Maandelijks' },
   pro_year: { label: 'Pro · jaarlijks', cents: 24000, extra: 0, plan: 'pro', months: 12, bankLabel: 'Pro Plan Jaarlijks' },
-  premium_month: { label: 'Enterprise · maandelijks', cents: 4900, extra: 0, plan: 'premium', months: 1, bankLabel: 'Premium Plan Maandelijks' },
-  premium_year: { label: 'Enterprise · jaarlijks', cents: 49000, extra: 0, plan: 'premium', months: 12, bankLabel: 'Premium Plan Jaarlijks' },
+  premium_month: { label: 'Business · maandelijks', cents: 4900, extra: 0, plan: 'premium', months: 1, bankLabel: 'Premium Plan Maandelijks' },
+  premium_year: { label: 'Business · jaarlijks', cents: 49000, extra: 0, plan: 'premium', months: 12, bankLabel: 'Premium Plan Jaarlijks' },
 } as const;
 export type HostingProduct = keyof typeof PRODUCTS;
 export function paymentPayload(code: HostingProduct) {

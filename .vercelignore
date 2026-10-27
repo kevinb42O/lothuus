@@ -1,0 +1,11 @@
+# Original deliveries stay local; selected media lives in R2.
+wetransfer_*/
+login-gegevens.txt
+.backups/
+.data/
+artifacts/
+.dev.vars*
+.env*
+.git/
+.next*/
+.wrangler/

@@ -55,7 +55,7 @@ export type SelectionObject = CollectionObject & { missing?: boolean };
 export type CheckoutDraft = { name: string; email: string; phone: string; message: string };
 type CheckoutPayload = { items: { itemId: string; expectedPrice: number | null; expectedVersion: number }[]; contact: { name: string; email: string; phone: string; channel: 'email' }; message: string; termsVersion: string; accepted: boolean; website: string };
 export type CheckoutAttempt = { fingerprint: string; key: string; payload: CheckoutPayload; unconfirmed: boolean; measurement?: Awaited<ReturnType<typeof heartOrderContext>>; measurementReady?: boolean };
-export const canOrder = (object: CollectionObject) => (!!object.version || /^[KGH]\d{3}$/.test(object.id)) && object.availability !== 'reserved' && object.availability !== 'sold';
+export const canOrder = (object: CollectionObject) => (!!object.version || /^[KPGTHI]\d{3}$/.test(object.id)) && object.availability !== 'reserved' && object.availability !== 'sold';
 export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, onOrdered, onRefresh, draft, onDraft, attempt }: { objects: SelectionObject[]; settings: PublicSettings | null; onClose: () => void; onRemove: (id: string) => void; onOpen: (object: CollectionObject) => void; onOrdered: (ids: string[]) => void; onRefresh: () => void; draft: CheckoutDraft; onDraft: (draft: CheckoutDraft) => void; attempt: { current: CheckoutAttempt | null } }) {
   const [step, setStep] = useState<'selection' | 'details'>('selection');
   const [quote, setQuote] = useState<{ items: CollectionObject[]; termsVersion: string } | null>(null);

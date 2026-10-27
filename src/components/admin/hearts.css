@@ -16,26 +16,26 @@
 .hi-trend { margin: 34px 0 40px; }
 .hi-legend { display: flex; flex-wrap: wrap; gap: 17px; font-size: 12px; }
 .hi-legend span { display: flex; align-items: center; gap: 7px; }
-.hi-legend i { width: 10px; height: 10px; background: #354c39; }
-.hi-legend span:last-child i { background: #b52f62; }
+.hi-legend i { width: 10px; height: 10px; background: var(--a-accent); }
+.hi-legend span:last-child i { background: var(--a-chart-secondary); }
 .hi-chart { height: 170px; position: relative; padding: 12px 0 0 30px; border-bottom: 1px solid var(--a-line); }
 .hi-peak { position: absolute; top: 0; left: 0; font-size: 11px; color: var(--a-muted); }
 .hi-bars { height: 100%; display: flex; gap: 3px; align-items: end; }
 .hi-bar-pair { display: flex; flex: 1; justify-content: center; align-items: end; height: 100%; gap: 1px; min-width: 0; }
-.hi-bar-pair > span { width: 45%; max-width: 20px; background: #354c39; }
-.hi-bar-pair > span + span { background: #b52f62; }
+.hi-bar-pair > span { width: 45%; max-width: 20px; background: var(--a-accent); }
+.hi-bar-pair > span + span { background: var(--a-chart-secondary); }
 .hi-chart-axis { display: flex; justify-content: space-between; padding: 8px 0 0 30px; font-size: 11px; color: var(--a-muted); }
 .hi-data { font-size: 12px; margin-top: 17px; }
 .hi-data summary { cursor: pointer; width: fit-content; padding: 5px 0; }
 .hi-data .a-table-wrap { max-height: 310px; margin-top: 12px; }
 .hi-empty { display: flex; gap: 16px; align-items: start; padding: 23px 0; border-bottom: 1px solid var(--a-line); }
-.hi-empty > svg { flex-shrink: 0; color: #9b2855; margin-top: 3px; }
+.hi-empty > svg { flex-shrink: 0; color: var(--a-accent); margin-top: 3px; }
 .hi-empty p { font-size: 13px; color: var(--a-muted); max-width: 65ch; margin: 7px 0 0; }
 .hi-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 13px; }
 .hi-filters > label { min-width: 135px; flex: 1; }
 .hi-filters .hi-search { flex: 2; min-width: 210px; position: relative; display: flex; align-items: center; }
-.hi-search svg { position: absolute; left: 13px; }
-.hi-search input { padding: 10px 12px 10px 39px; width: 100%; }
+.hi-search svg { position: absolute; left: 13px; pointer-events: none; }
+.admin-shell .hi-search input { padding: 10px 12px 10px 39px; width: 100%; }
 .hi-reset { margin-top: 12px; }
 .hi-count { margin: 17px 0; }
 .hi-object { display: flex; width: 100%; align-items: center; gap: 13px; text-align: left; background: transparent; border: 0; padding: 3px 0; }

@@ -2,11 +2,11 @@ import type { Item } from './backend/types';
 
 export const materialGroups = [
   { code: 'K', label: 'Keramiek', hint: 'Aardewerk, porselein & steengoed', category: 'keramiek' },
-  { code: 'P', label: 'Plastiek', hint: 'Kunststof & bakeliet', category: 'objecten' },
+  { code: 'P', label: 'Plastiek', hint: 'Kunststof & bakeliet', category: 'plastiek' },
   { code: 'G', label: 'Glas', hint: 'Glas & kristal', category: 'glas' },
-  { code: 'T', label: 'Textiel', hint: 'Stoffen, kleden & wandtextiel', category: 'objecten' },
+  { code: 'T', label: 'Textiel', hint: 'Stoffen, kleden & wandtextiel', category: 'textiel' },
   { code: 'H', label: 'Hout / riet', hint: 'Ook bamboe & rotan', category: 'hout-riet-bamboe' },
-  { code: 'I', label: 'Inox / ijzer', hint: 'Metalen objecten', category: 'objecten' },
+  { code: 'I', label: 'Inox / ijzer', hint: 'Metalen objecten', category: 'inox-ijzer' },
 ] as const;
 export type MaterialGroup = typeof materialGroups[number]['code'];
 export const materialName = (code?: string) => materialGroups.find(m => m.code === code)?.label || 'Nog te kiezen';
