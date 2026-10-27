@@ -3,8 +3,8 @@ export type HostingPlan = 'basis' | 'pro' | 'premium';
 export const HOSTING_BANK = { beneficiary: 'Kevin Bourguignon', iban: 'BE43738004886701', formattedIban: 'BE43 7380 0488 6701' } as const;
 export const PLANS = {
   basis: { name: 'Free', objects: 200, database: 500e6, media: 1e9, direct: 5e9, cached: 5e9 },
-  pro: { name: 'Pro', objects: 500, database: 8e9, media: 100e9, direct: 250e9, cached: 500e9 },
-  premium: { name: 'Enterprise', objects: 1000, database: 20e9, media: 500e9, direct: 1e12, cached: 2e12 },
+  pro: { name: 'Pro', objects: 500, database: 8e9, media: 10e9, direct: 25e9, cached: 50e9 },
+  premium: { name: 'Enterprise', objects: 1000, database: 20e9, media: 50e9, direct: 100e9, cached: 200e9 },
 } as const;
 export const PRODUCTS = {
   extra50: { label: '+50 objecten', cents: 2500, extra: 50, plan: null, months: 0, bankLabel: 'Uitbreiding 50 Kunstwerken' },
