@@ -445,7 +445,6 @@ body:has(.house-entry-experience) > main, body:has(.house-entry-experience) > .s
 .house-entry-status { position: absolute; top: 108px; left: 48px; right: 48px; width: fit-content; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; padding: 12px 16px; background: var(--paper); font-size: 12px; line-height: 1.6; }
 .house-entry-status a, .house-entry-status button { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); }
 .house-entry-status button { font: inherit; background: transparent; border: 0; cursor: pointer; padding: 4px 0; }
-.house-explorer-route { margin: 0 48px 72px; width: fit-content; }
 .house-entry-world { position: relative; z-index: 1; background: var(--paper); max-width: 1680px; margin-inline: auto; }
 .house-entry-pinned .house-entry-world .collection-title-row, .house-entry-pinned .house-entry-world .collection-toolbar { opacity: var(--entry-chrome, 0); }
 .house-entry-world .collection-section { margin: 0 24px; padding-top: 32px; }
@@ -464,7 +463,6 @@ body:has(.house-entry-experience), .house-entry-experience, .pin-spacer { overfl
 @media (max-width: 700px) {
   body:has(.house-entry-experience) .site-header { min-height: 72px; }
   .house-entry-stage { min-height: 560px; }
-  .house-explorer-route { margin: 0 20px 48px; }
   .house-entry-status { top: 88px; left: 20px; right: 20px; }
   .house-entry-world .collection-section { margin: 0 12px; padding-top: 24px; }
 }
