@@ -1,0 +1,19 @@
+.au-new { display: inline-flex; align-items: center; padding: 2px 7px; border: 1px solid var(--a-line); border-radius: 4px; color: var(--a-ink); background: var(--a-paper); font-size: 11px; font-weight: 600; line-height: 1.5; }
+.au-latest { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 25px 0; border-block: 1px solid var(--a-line); margin-top: 30px; }
+.admin-shell .au-latest h2 { font-size: 17px; margin-bottom: 10px; }
+.au-latest p, .au-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--a-muted); font-size: 12px; }
+.admin-shell .au-latest p { margin-bottom: 7px; }
+.admin-shell .au-latest h3 { font-size: 14px; font-weight: 500; margin: 0; }
+.au-list { max-width: 1050px; border-top: 1px solid var(--a-line); }
+.au-entry { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 32px; padding: 34px 0 38px; border-bottom: 1px solid var(--a-line); }
+.au-meta { align-content: start; align-items: flex-start; flex-direction: column; padding-top: 4px; }
+.admin-shell .au-copy h2 { font-size: 22px; margin-bottom: 16px; text-wrap: balance; }
+.au-copy p { max-width: 65ch; color: var(--a-muted); font-size: 14px; line-height: 1.8; margin-bottom: 12px; overflow-wrap: anywhere; }
+.au-copy .a-link { margin-top: 5px; }
+.au-status { padding-block: 25px; color: var(--a-muted); }
+@media (max-width: 700px) {
+  .au-latest { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .au-entry { grid-template-columns: minmax(0, 1fr); gap: 14px; padding-block: 26px; }
+  .au-meta { flex-direction: row; align-items: center; padding: 0; }
+  .admin-shell .au-copy h2 { font-size: 20px; }
+}

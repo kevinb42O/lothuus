@@ -26,3 +26,10 @@ Expliciete labels, toetsenbordfocus, skiplink, herstelmeldingen en een reduced-m
 ## Implementatiegrens
 
 De frontend werkt met de lokale API en echte conceptopslag. Nummering, aanmaakherhalingen, versieconflicten en gereedheidscontrole zijn aangesloten. Foto's worden nu nog lokaal verwerkt. R2, online login/hosting en de migratie van de aangeleverde collectie volgen afzonderlijk. De interface doet geen uitspraak dat die aansluiting al bestaat.
+
+
+## Updates — 27 oktober 2026
+
+De vaste menukeuze Updates opent “Nieuw voor jou”: een leeslijst met datum, titel, korte alinea's en eventueel een actie. Onder de snelkoppelingen op Overzicht staat een compacte verwijzing naar het recentste bericht. De leeslijst volgt de neutrale dashboardstijl; op telefoon staan datum en inhoud onder elkaar. Updates staan los van operationele meldingen.
+
+De eigenaar krijgt alleen handmatig geselecteerde berichten via `/api/updates`, na de bestaande eigenaarscontrole. De inhoud wordt uitsluitend op de server gedefinieerd. Kevin voegt bij een oplevering een gecontroleerde tekst met een stabiele ID toe aan `src/app/api/updates/route.ts`; geen automatische GitHub-import. Neem uitsluitend informatie op die voor Katrien bestemd is. Houd berichten op aflopende datum en gebruik alleen de toegestane navigatieacties. Bekeken ID's worden lokaal onthouden, maximaal 200; automatisch markeren gebeurt pas na succesvol openen van de leeslijst. Navigatie loopt via de bestaande controle op onopgeslagen wijzigingen.

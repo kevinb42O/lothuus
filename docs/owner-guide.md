@@ -59,3 +59,10 @@ Open **Bezoekers** in de beheernavigatie om het websitebezoek te volgen. Kies ee
 Beweeg over de grafiek of tik op een punt voor het aantal bezoeken. Met het toetsenbord gebruik je links/rechts en Home/End. Onder de grafiek kun je de cijfers per dag of uur uitklappen. Bij lange perioden heeft de dagtabel meerdere pagina’s.
 
 De registratie gebruikt geen cookies of blijvende browseropslag. De cijfers zijn beschikbaar vanaf de meetstart.
+
+
+## Updates: nieuw voor jou
+
+Bij **Updates** lees je wat er aan de website en je werkruimte is verbeterd. De nieuwste berichten staan bovenaan. Soms staat er een knop bij waarmee je meteen de betreffende functie opent. Op Overzicht vind je ook een verwijzing naar het recentste bericht.
+
+**Nieuw** geeft aan dat je een update in deze browser nog niet bekeken hebt. Zodra je de Updates-pagina opent, wordt dat automatisch onthouden; je hoeft niets af te vinken. De berichten blijven beschikbaar om opnieuw te lezen. Op een ander toestel of nadat je browsergegevens wist, kunnen ze opnieuw als nieuw verschijnen.
