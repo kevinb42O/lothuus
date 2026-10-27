@@ -177,7 +177,7 @@ export function Lothuus() {
       <div className="footer-colophon">
         <LegalLinks />
         <a className="footer-credit" href="https://www.webaanzee.be/" target="_blank" rel="noopener noreferrer">
-          <span>Gemaakt door</span>
+          <span>Design &amp; development</span>
           <Image src="/branding/webaanzee.webp" alt="Webaanzee" width={600} height={72} unoptimized />
           <ArrowUpRight size={14} aria-hidden="true" />
           <span className="sr-only"> (opent in een nieuw tabblad)</span>
