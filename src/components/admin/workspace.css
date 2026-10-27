@@ -400,3 +400,12 @@ html:has(.admin-shell) ::-webkit-scrollbar-thumb { background: #b9c4ae; }
 .a-capacity-notice p { margin: 5px 0 0; font-size: 14px; line-height: 1.6; }
 .a-capacity-notice .a-link { flex-shrink: 0; color: inherit; }
 @media (max-width: 700px) { .a-capacity-notice { flex-wrap: wrap; padding: 16px; } .a-capacity-notice > div { flex-basis: calc(100% - 36px); } .a-capacity-notice .a-link { margin-left: 36px; } }
+
+.a-sidebar nav button > svg.a-hosting-attention { color: #a62d29; transform-origin: center; }
+.a-sidebar nav button > svg.a-hosting-pulse { animation: a-hosting-pulse 2.4s ease-in-out 2; }
+@keyframes a-hosting-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  35% { transform: scale(1.12); opacity: .75; }
+  65% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .a-sidebar nav button > svg.a-hosting-pulse { animation: none; } }

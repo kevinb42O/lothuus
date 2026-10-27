@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, ArrowUpRight } from 'lucide-react';
 import { objectUsage } from '@/lib/hosting/catalogue';
 
-export function CapacityNotice({ count, onCapacity }: { count: number; onCapacity: () => void }) {
+export function CapacityNotice({ count, onCapacity, onOverLimitChange }: { count: number; onCapacity: () => void; onOverLimitChange?: (over: boolean) => void }) {
   const [limit, setLimit] = useState<number | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -15,6 +15,9 @@ export function CapacityNotice({ count, onCapacity }: { count: number; onCapacit
       }).catch(() => { /* A failed capacity lookup must never block product editing. */ });
     return () => controller.abort();
   }, [count]);
+  useEffect(() => {
+    onOverLimitChange?.(limit !== null && count > limit);
+  }, [count, limit, onOverLimitChange]);
   if (limit === null || count <= limit) return null;
   const usage = objectUsage(count, limit);
   return <section className="a-capacity-notice" role="status" aria-label="Objectlimiet overschreden">
