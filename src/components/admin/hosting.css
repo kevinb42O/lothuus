@@ -11,7 +11,7 @@
 .hc-amount.hc-unavailable { font-size: 20px; line-height: 1.4; letter-spacing: -.02em; min-height: 50px; }
 .hc-percent { font-size: 12px; font-weight: 600; margin: 0 0 9px; }
 .hc-track { height: 6px; background: var(--a-soft); border-radius: 3px; overflow: hidden; }
-.hc-track span { display: block; height: 100%; background: var(--a-accent); border-radius: inherit; }
+.hc-track span { display: block; height: 100%; background: var(--a-chart-primary); border-radius: inherit; }
 .hc-note, .hc-timestamp { color: var(--a-muted); font-size: 12px; line-height: 1.65; margin: 14px 0 0; }
 .hc-timestamp { font-size: 11px; }
 .hc-danger { border-color: #dba6a1; }

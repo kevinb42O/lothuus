@@ -4,9 +4,9 @@ Mode: Operate. De eigenares bouwt haar collectie op in eigen tempo. Het scherm h
 
 ## Visuele richting
 
-Een lichte, rustige werkruimte met Manrope, donkergrijze tekst, antraciete hoofdacties en neutrale grijstinten en echte objectfoto's. Het bestaande zware LO / lichte THUUS blijft herkenbaar. Geen bruine interfacevlakken. Gebruik antraciet voor primaire acties en selectie. Kleur is voorbehouden aan functionele fout-, waarschuwings- en succesmeldingen. De navigatie en formulieren blijven neutraal. De objecten dragen het beeld; geen decoratieve grafieken of animaties.
+Een lichte, rustige werkruimte met Manrope, donkergrijze tekst, antraciete hoofdacties en neutrale grijstinten en echte objectfoto's. Het bestaande zware LO / lichte THUUS blijft herkenbaar. Geen bruine interfacevlakken. Gebruik antraciet voor primaire acties en selectie. Grafieken gebruiken Vercelblauw; overige kleur is voorbehouden aan functionele fout-, waarschuwings- en succesmeldingen. De navigatie en formulieren blijven neutraal. De objecten dragen het beeld; geen decoratieve grafieken of animaties.
 
-Basistokens in `workspace.css`: papier #fafafa, inkt #262626, muted #666666, lijn #e5e5e5, actie #262626, hover #111111, zachte laag #f3f3f3 en tweede grafiekreeks #8c8c8c. Deze tokens gelden ook voor inloggen, dialoogvensters, focus en tekstselectie. Pro gebruikt een gevulde upgradeknop; Business een omlijnde secundaire knop. Capaciteitswaarschuwingen blijven rood. Secundaire tekst op zachte vlakken gebruikt een gedempte donkere toon. Velden en knoppen hebben 6 px hoeken, productbeelden 4–7 px en brede vlakken maximaal 10 px. Deze beheerkeuzes wijken bewust af van de vierkante publieke archieflay-out.
+Basistokens in `workspace.css`: papier #fafafa, inkt #262626, muted #666666, lijn #e5e5e5, actie #262626, hover #111111, zachte laag #f3f3f3 en grafieken in Vercelblauw #0070f3 met een tweede reeks #5b8fc9. Deze tokens gelden ook voor inloggen, dialoogvensters, focus en tekstselectie. Pro gebruikt een gevulde upgradeknop; Business een omlijnde secundaire knop. Capaciteitswaarschuwingen blijven rood. Secundaire tekst op zachte vlakken gebruikt een gedempte donkere toon. Velden en knoppen hebben 6 px hoeken, productbeelden 4–7 px en brede vlakken maximaal 10 px. Deze beheerkeuzes wijken bewust af van de vierkante publieke archieflay-out.
 
 ## Werkstroom
 

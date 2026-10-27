@@ -62,7 +62,7 @@ function Chart({ report, revision }: { report: AnalyticsReport; revision: number
       setActive(Math.min(points.length - 1, Math.max(0, Math.round(((e.clientX - bounds.left) / bounds.width * width - left) / (width - left - right) * (points.length - 1)))));
     }} onPointerDown={e => { if (e.pointerType === 'touch') { const bounds = e.currentTarget.getBoundingClientRect(); setActive(Math.min(points.length - 1, Math.max(0, Math.round(((e.clientX - bounds.left) / bounds.width * width - left) / (width - left - right) * (points.length - 1))))); } }}>
       <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" preserveAspectRatio="none">
-        <defs><linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--av-ink)" stopOpacity=".17" /><stop offset="100%" stopColor="var(--av-ink)" stopOpacity=".015" /></linearGradient></defs>
+        <defs><linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--av-chart)" stopOpacity=".17" /><stop offset="100%" stopColor="var(--av-chart)" stopOpacity=".015" /></linearGradient></defs>
         {ticks.map(value => <g key={value}><line x1={left} x2={width - right} y1={y(value)} y2={y(value)} className="av-gridline" /><text x={left - 12} y={y(value) + 4} textAnchor="end" className="av-axis-label">{number.format(value)}</text></g>)}
         <motion.g key={revision} initial={reduced ? false : { opacity: .3 }} animate={{ opacity: 1 }} transition={{ duration: .35 }}>
           {fill && <path d={fill} fill={`url(#${id}-fill)`} />}
