@@ -179,7 +179,7 @@ Compact Manrope links sit in a horizontal row. A fine underline scales from the 
 
 ### Category Filters
 
-Category buttons use 44px minimum touch targets with 12px horizontal padding, muted resting labels and raspberry hover/selected text. A soft rose rectangular surface and a 2px inset underline identify `aria-pressed` selection. Hover feedback is limited to hover-capable devices. Inset keyboard focus remains visible within the scroll container; focused categories scroll horizontally into view. Labels use 13px type on desktop and 12px on compact screens. Filters remain horizontally scrollable on phones.
+Category buttons use 44px minimum touch targets with 12px horizontal padding, muted resting labels and raspberry hover/selected text. A 2px inset underline identifies `aria-pressed` selection; filter backgrounds stay transparent in selected, hover and pressed states. Hover feedback is limited to hover-capable devices. Inset keyboard focus remains visible within the scroll container; focused categories scroll horizontally into view. Labels use 13px type on desktop and 12px on compact screens. Filters remain horizontally scrollable on phones.
 
 ### Archive Tiles
 

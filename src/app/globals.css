@@ -65,14 +65,13 @@ h1 > span { font-family: var(--font-editorial), serif; font-style: italic; font-
 .archive-total { flex-shrink: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .collection-toolbar { position: sticky; top: 0; z-index: 10; display: flex; gap: 18px; align-items: center; justify-content: space-between; padding: 12px 0; margin-bottom: 23px; background: var(--paper); border-bottom: 1px solid var(--line); }
 .category-filters { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-inline: 4px; }
-.category-filters button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 44px; min-height: 44px; padding: 0 12px; font-size: 12px; font-weight: 500; line-height: 1.4; color: var(--muted); position: relative; white-space: nowrap; scroll-margin-inline: 4px; transition: color 180ms, background-color 180ms; }
+.category-filters button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 44px; min-height: 44px; padding: 0 12px; font-size: 12px; font-weight: 500; line-height: 1.4; color: var(--muted); position: relative; white-space: nowrap; scroll-margin-inline: 4px; transition: color 180ms; }
 .category-filters button::after { position: absolute; content: ''; left: 12px; right: 12px; bottom: 4px; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 220ms; }
-.category-filters button[aria-pressed='true'] { color: var(--accent); background: var(--accent-soft); }
+.category-filters button[aria-pressed='true'] { color: var(--accent); }
 @media (hover: hover) {
-  .category-filters button:hover { color: var(--accent); background: var(--accent-soft); }
+  .category-filters button:hover { color: var(--accent); }
   .category-filters button:hover::after { transform: scaleX(1); }
 }
-.category-filters button:active { background: var(--icon-hover); }
 .category-filters button:focus-visible { outline-offset: -2px; }
 .category-filters button[aria-pressed='true']::after { transform: scaleX(1); }
 .hover-hint { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 10px; white-space: nowrap; }
