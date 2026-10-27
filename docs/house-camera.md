@@ -43,3 +43,27 @@ The doorway no longer exposes the scaled page's blank margins, heading or toolba
 
 
 AUTOMATIC ENTRANCE — supersedes the scroll-driven homepage journey: Once the scene has rendered, the camera starts immediately while the white surface dissolves over 2.4 seconds. The 10-second take follows the existing lettering, focus, tilt, opening door and projected collection path. A continuous timing curve starts moving immediately, preserves a readable facade approach and accelerates through the open door. The door is fully open around 7.6 seconds, leaving about 2.4 seconds to reach the live grid. Only the final half-second brakes to zero velocity; position and velocity stay continuous at the join. There is no additional delay before movement. The page itself stays at scrollY=0; no visitor scroll input or programmatic document scrolling drives the take. At arrival the stage collapses and the same live collection returns to ordinary flow at its existing screen coordinates, with header space already reserved. Small Pause/Continue and Skip controls are available; hidden tabs pause the clock without skipping ahead, and a manual pause persists. Reduced motion keeps the static house and ordinary collection, without autoplay. ScrollTrigger no longer drives the homepage hero. Immediate camera samples retain the static shadow cache until the door actually changes angle.
+
+
+## World-space homepage passage — 27 October 2026
+
+The current fourteen-second take replaces the earlier lateral approach, screen-space SVG flight and whole-canvas focus effect. `/huis` retains its separate fourteen-second explorer film.
+
+The camera travels on the doorway axis, with no horizontal sweep. The initial pose is (0, 3.6, 23.4); it passes through the actual O counter at (0, 3.6, 18), then settles toward walking height and the door. `houseEntryFraming` fits a fixed 40–50 degree viewport lens and derives the initial yaw toward the full wordmark. The yaw settles before the counter crossing; restrained positive and negative pitch guide attention toward the lettering and then entrance. Both rotations settle before the doorway. The live collection still reaches exact unit scale at z=-1.
+
+`buildEntryLettering` converts the existing Manrope outlines to opaque geometry with a small bevel and roughly centimetre-scale thickness. `scripts/build-entrance-wordmark.py` regenerates these outlines from the shipped font. The world transform changes only for viewport fitting, never to chase screen centre. The original loading SVG remains static and retires over 300 ms while the white loading surface dissolves over 1.1 seconds.
+
+The house stays at native resolution and remains sharp throughout. `houseEntryFocus` permits defocus only within 1.1 m of the letter plane, increasing continuously until passage. Review explicitly rejected an initial house blur followed by another foreground blur. There is no reverse focus pulse or opacity shortcut. `HouseEntryFocusPass` renders just the small lettering layer with the same camera; its materials compare against the existing house depth so foreground occlusion remains correct. A cropped overscan projection is equivalent to the house camera within the viewport. Two dense Gaussian passes filter linear premultiplied colour and coverage together, avoiding sharp cutouts, dark fringes and sparse-sampling ghosts. Blurred targets use half resolution; the sharp lettering uses its full-resolution source. No second render of the house geometry is added. Focus targets, lettering geometry and the scene are released on arrival.
+
+The development-only `/intro-study` page isolates the first 5.8 seconds with normal/quarter-speed replay, a scrubber and five composition stops. It uses the actual homepage camera and renderer; production returns a 404. Reduced motion skips the moving lettering and leaves the static house and normal collection accessible.
+
+Tests verify monotonic camera timing and rest at arrival; pitch/yaw alignment; actual O clearance and opaque geometry; focus staying zero at a distance and increasing only once; overscan projection equivalence; full doorway framing; and exact collection projection. Browser review checks the real shot on desktop and phone viewport sizes. Viewport emulation does not establish physical iPhone performance.
+
+## Homepage video, 27 October 2026
+
+The homepage now uses a recorded version of this camera take instead of initializing the live scene. Its transparent opening preserves the live collection. `/huis` and the development study still use the original rig. See [intro-video.md](intro-video.md) for offline capture, codecs, synchronization and regeneration.
+
+
+## Cinematic recorded entrance, 27 October 2026
+
+The homepage now records a sixteen-second take with a much larger centred sculptural wordmark. `houseEntryFraming` fits the angular bounds of the full brand; `houseEntryYaw` is shared by the 3D rig and the lightweight video projection. Camera timing uses quintic Hermite segments with shared speed and acceleration. The camera stays level while reading/passing the letters, then descends once from 3.6 m to 2.03 m, with a single gentle downward pitch that settles before the doorway. The exact endpoint is unchanged. Capture takes both progress and real elapsed seconds, so wind does not follow camera acceleration. See `intro-video.md` for the film profile and regeneration procedure.

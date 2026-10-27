@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { MosaicPhoto } from './mosaic-photo';
 import { useEffect, useRef, useState } from 'react';
 import { categoryLabel, type CollectionObject } from '@/lib/collection';
 import { collectionColumns } from '@/lib/filter-transition';
@@ -36,7 +36,7 @@ export function NativeMosaic({objects,filterKey,focused,saved,onToggle,onOpen}:P
             const next=Math.max(0,Math.min(objects.length-1,index+deltas[event.key]));
             grid.current?.querySelector<HTMLButtonElement>(`[data-object="${objects[next].id}"]`)?.focus();
           }}>
-          <span className="object-photograph">{width>0&&visible.has(object.id)&&<Image src={object.image} unoptimized={object.image.startsWith('/api/')} alt={object.title} fill sizes={`${Math.ceil(cell)}px`} loading="eager" draggable={false}/>}</span>
+          <span className="object-photograph">{width>0&&visible.has(object.id)&&<MosaicPhoto key={object.image} object={object} width={cell}/>}</span>
           {object.availability&&object.availability!=='available'&&<span className={`stock-badge ${object.availability}`}>{object.availability==='reserved'?'Gereserveerd':'Verkocht'}</span>}
         </button>
         <HeartButton className={`grid-heart ${saved.includes(object.id)?'saved-marker':''}`} selected={saved.includes(object.id)} size={22}

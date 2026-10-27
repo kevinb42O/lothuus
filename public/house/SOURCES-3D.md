@@ -39,3 +39,10 @@ ambientCG assets are CC0: https://docs.ambientcg.com/license/
 Three.js WebGL2, ACES filmic output, HDR image-based lighting, direct sunlight, dynamic canopy shadows, local window reflection probe, physical transmission/reflection in glazing, GTAO contact shading, multisampled HDR render targets on desktop, and custom vegetation shaders with matching depth/shadow deformation. Wind respects reduced motion; rendering pauses when hidden and caps pixel ratio and frame rate. Static architectural geometry uses indexed buffers; street and leaf instances and scanned tree foliage have spatial bounds for per-pass culling. GTAO is cached until the camera or viewport changes (its normal override does not animate wind). Sun shadows refresh for wind and wind-state changes, rather than camera movement. Geometry, texture resolutions, shadow resolutions and postprocessing quality are preserved. See `docs/house-performance.md` for measurements and validation.
 
 The previous, rejected image-based experiment and its derived/generated assets have been removed. No generated building image or photograph substitutes for this geometry.
+
+
+## Window interior atlas — 27 October 2026
+
+`materials/window-interiors.webp` and its identical mobile sibling are a 256 × 128 opaque atlas generated with the built-in image_gen tool, then prepared with `scripts/prepare-window-interiors.mjs`. Four coordinated interior crops suggest two ground-floor and two upper-floor views. These are imagined furnishings, not photographs or a reconstruction of the actual interior. The exact generation prompt is retained in `docs/window-interior-generation-prompt.txt`.
+
+The image sits on recessed planes behind real folded curtains and glazing; it does not substitute for or project a photograph onto the exterior architecture. One lower casement, including its frame and handle, has a fixed seven-degree inward tilt. Clear exterior glazing does not cast an opaque shadow onto the curtains. Two unused roof color/roughness images are no longer requested; the existing roof normal map remains. See `docs/house-window-interiors-plan.md` for the implementation budget and verification.

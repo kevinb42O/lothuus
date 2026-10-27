@@ -39,7 +39,15 @@
     ".next-house-check/types/**/*.ts",
     ".next-house-check/dev/types/**/*.ts",
     ".next-door-check/types/**/*.ts",
-    ".next-door-check/dev/types/**/*.ts"
+    ".next-door-check/dev/types/**/*.ts",
+    ".next-grid-review/types/**/*.ts",
+    ".next-grid-review/dev/types/**/*.ts",
+    ".next-spatial-entry/types/**/*.ts",
+    ".next-spatial-entry/dev/types/**/*.ts",
+    ".next-video-check/types/**/*.ts",
+    ".next-video-check/dev/types/**/*.ts",
+    ".next-cinematic-check/types/**/*.ts",
+    ".next-cinematic-check/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

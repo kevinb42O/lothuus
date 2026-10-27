@@ -10,6 +10,24 @@ export const dynamic = 'force-dynamic';
 // gecontroleerde verbeteringen toe; neem nooit automatisch GitHub-teksten over.
 const updates: WorkspaceUpdate[] = [
   {
+    id: '2026-10-27-house-intro', date: '2026-10-27',
+    title: 'Een vernieuwde binnenkomst bij LOTHUUS',
+    body: [
+      'Je website opent met een vernieuwde filmische tocht naar de voordeur. Het huis heeft meer detail gekregen, met een inkijk achter de ramen en je naam boven de ingang. Zodra de deur opengaat, verschijnt de collectie.',
+      'Bezoekers kunnen de intro pauzeren of overslaan om meteen naar de collectie te gaan. Wie minder beweging heeft ingesteld op zijn toestel, komt rechtstreeks bij de foto’s terecht.',
+    ],
+  },
+  {
+    id: '2026-10-27-collection-photos', date: '2026-10-27',
+    title: 'Vlotter door de foto’s bladeren',
+    body: ['Foto’s verderop in de collectie worden eerder voorbereid. Foto’s die je net bekeken hebt, blijven ook wat langer klaarstaan wanneer je terugscrolt. Zo kun je rustiger verder kijken en terugbladeren.', 'Bij het vergroten van een foto blijft het bestaande beeld staan terwijl de scherpere versie wordt geladen.'],
+  },
+  {
+    id: '2026-10-27-collection-filters', date: '2026-10-27',
+    title: 'Een rustiger menu voor de materialen',
+    body: ['De materiaalkeuze boven de collectie heeft een eenvoudigere vormgeving gekregen. Een onderlijning laat zien welk materiaal je bekijkt. De aantallen naast de materialen zijn weggehaald, zodat de aandacht bij je objecten blijft.'],
+  },
+  {
     id: '2026-10-27-collection', date: '2026-10-27',
     title: 'Je nieuwe producten zijn toegevoegd',
     body: [
@@ -76,7 +94,7 @@ const updates: WorkspaceUpdate[] = [
   {
     id: '2026-10-24-house', date: '2026-10-24',
     title: 'Een binnenkomst via het huis',
-    body: ['Bezoekers komen via het huis binnen in de collectie: terwijl ze verder scrollen, gaat de deur open en komen de objecten in beeld. Er is ook een interactieve weergave waarin je het huis van verschillende kanten kunt bekijken.'],
+    body: ['De eerste versie van de huisentree bracht bezoekers via de voordeur naar de collectie. Die binnenkomst vormt de basis voor de vernieuwde intro bovenaan dit overzicht.'],
   },
   {
     id: '2026-10-24-sharing', date: '2026-10-24',

@@ -1,0 +1,13 @@
+{
+  "kind": "generated-interior-atlas",
+  "generator": "built-in image_gen",
+  "date": "2026-10-27",
+  "width": 256,
+  "height": 128,
+  "panels": 4,
+  "gutterPixels": 2,
+  "bytes": 5440,
+  "prompt": "docs/window-interior-generation-prompt.txt",
+  "preparation": "scripts/prepare-window-interiors.mjs",
+  "note": "Imagined interiors behind actual modeled glazing and curtains; not a record of the real house interior."
+}

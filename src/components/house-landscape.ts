@@ -11,14 +11,39 @@ import { seedRandom, type HouseMaterials } from './house-architecture';
 
 export type WindUniforms={uWindTime:{value:number};uWindStrength:{value:number}};
 
-export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:WindUniforms) {
-  const root=new T.Group();root.name='Street, planting beds and real 3D vegetation';
+/** Begin network/decode work independently of the facade material downloads. */
+export function loadLandscapeModels(mobile:boolean) {
   const manager=new T.LoadingManager();
   if(mobile)manager.setURLModifier(url=>url.replace('/house/models/textures/','/house/models/textures/mobile/'));
-  const random=seedRandom(71233),loader=new GLTFLoader(manager);
+  const loader=new GLTFLoader(manager);
   const modelNames=[mobile?'tree_small_02-low':'tree_small_02','tree_small_02-low','shrub_02','shrub_03','grass_medium_02'];
   const requests=new Map<string,Promise<T.Group>>();
-  const models=await Promise.all(modelNames.map(name=>{let request=requests.get(name);if(!request){request=loader.loadAsync(`/house/models/${name}.glb`).then(g=>g.scene);requests.set(name,request);}return request;}));
+  return Promise.all(modelNames.map(name=>{
+    let request=requests.get(name);
+    if(!request){
+      request=(async()=>{
+        // Lossless transport compression: the original GLB remains the fallback.
+        if(name.startsWith('tree_')){
+          try{
+            const response=await fetch(`/house/models/${name}.glb.gz`);
+            if(!response.ok||!response.body)throw new Error('Compressed tree unavailable');
+            const buffer=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+            return (await loader.parseAsync(buffer,'/house/models/')).scene;
+          }catch{/* Older deployments can still serve the original asset. */}
+        }
+        return (await loader.loadAsync(`/house/models/${name}.glb`)).scene;
+      })();
+      requests.set(name,request);
+    }
+    return request;
+  }));
+}
+
+export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:WindUniforms,modelRequest=loadLandscapeModels(mobile)) {
+  const root=new T.Group();root.name='Street, planting beds and real 3D vegetation';
+  const random=seedRandom(71233);
+  const models=await modelRequest;
+  performance.mark('house:models');
   // Both authored tree variants have identical materials, samplers and image bytes.
   // Share the source materials before prepareModel clones their per-tree wind uniforms.
   if(models[0]!==models[1]){
@@ -39,6 +64,7 @@ export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:Win
   const transform=new T.Object3D();
   root.add(streetGround,streetscape.root,buildLeftContext(maps),buildRightContext(maps));
 
+  performance.mark('house:streetscape');
   function addWind(material:T.MeshStandardMaterial,height:number,leaf:boolean) {
     material.userData.houseWind=true;material.defines={...material.defines,HOUSE_WIND_ACTIVE:0};
     material.transparent=false;material.alphaTest=.45;material.side=T.DoubleSide;material.depthWrite=true;
@@ -49,10 +75,16 @@ export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:Win
       shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
         #if HOUSE_WIND_ACTIVE == 1
         float flex=pow(clamp(position.y/uPlantHeight,0.0,1.0),2.0);
-        float gust=sin(uWindTime*.75+position.y*.8+position.x*.3);
-        float flutter=sin(uWindTime*2.4+position.x*8.0+position.z*7.0);
-        transformed.x += uWindStrength*flex*(gust*.035+flutter*.009*uLeaf);
-        transformed.z += uWindStrength*flex*gust*.012;
+        vec4 plantOrigin=vec4(0.,0.,0.,1.);
+        #ifdef USE_INSTANCING
+        plantOrigin=instanceMatrix*plantOrigin;
+        #endif
+        plantOrigin=modelMatrix*plantOrigin;
+        float phase=dot(plantOrigin.xz,vec2(.31,.47));
+        float gust=sin(uWindTime*.72+phase+position.y*.55)*(.72+.28*sin(uWindTime*.21+phase));
+        float flutter=sin(uWindTime*2.8+phase+position.x*8.0+position.z*7.0);
+        transformed.x += uWindStrength*flex*(gust*.065+flutter*.016*uLeaf);
+        transformed.z += uWindStrength*flex*gust*.023;
         #endif
       `);
     };
@@ -79,11 +111,13 @@ export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:Win
     partitionFoliage(model,height/3);
     return {model,bounds,height,anchor};
   }
+  performance.mark('house:before-trees');
   const treeHigh=prepareModel(models[0]);const treeLow=models[1]===models[0]?treeHigh:prepareModel(models[1]);
   function tree(model:typeof treeHigh,x:number,z:number,height:number,width:number,rotation:number) {
     const group=new T.Group();const copy=model.model.clone(true);const center=model.anchor;copy.position.set(-center.x,-model.bounds.min.y,-center.z);group.add(copy);
     group.scale.set(height/model.height*width,height/model.height,height/model.height);group.position.set(x,.1,z);group.rotation.y=rotation;root.add(group);return group;
   }
+  performance.mark('house:trees');
   treeSites.forEach((site,i)=>tree(i===0?treeHigh:treeLow,site.x,site.z,site.height,site.width,site.rotation));
   // Reuse the reduced tree model for background garden depth.
   for(const [x,z,height,rotation] of [[11.17,1.2,9,.7],[11.17,-3.5,8.5,2.1],[11.17,-8.2,8,4.3]])
@@ -114,7 +148,10 @@ export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:Win
     transform.position.set(shrub.x+Math.cos(azimuth)*horizontal*.34*radius,.14+shrub.height*.5+vertical*shrub.height*.5*radius,shrub.z+Math.sin(azimuth)*horizontal*.32*radius);
     transform.rotation.set(random()*Math.PI,random()*Math.PI*2,random()*Math.PI*2);
     const length=.05+random()*.02;transform.scale.set(length*.66,length, length);transform.updateMatrix();boxwood.setMatrixAt(leafIndex,transform.matrix);
-    const shade=.7+random()*.42;boxwood.setColorAt(leafIndex,leafColor.setRGB(shade,shade,shade*(.75+random()*.2)));leafIndex++;
+    // Lower foliage sits in its own soft ambient shade; exposed tips stay fresh.
+    // Use the existing per-leaf colours, preserving all placement and batch bounds.
+    const shade=(.76+random()*.29)*(.88+.12*(vertical+1)/2),warmth=random();
+    boxwood.setColorAt(leafIndex,leafColor.setRGB(shade*(.97+warmth*.06),shade,shade*(.78+warmth*.12)));leafIndex++;
   }
   boxwood.castShadow=boxwood.receiveShadow=true;root.add(partitionInstances(boxwood,4,.06));
   // The three side beds have low clipped volumes, not scalloped rows of
@@ -154,7 +191,8 @@ export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:Win
     for(let i=0;i<perCluster;i++){
       const p=ball();transform.position.set(cx+p.x*.82,cy+p.y*.67,cz+p.z*.74);transform.rotation.set(random()*Math.PI,random()*Math.PI*2,random()*Math.PI*2);
       const length=.12+random()*.055;transform.scale.set(length*.9,length,length);transform.updateMatrix();canopyLeaves.setMatrixAt(canopyIndex,transform.matrix);
-      const shade=.68+random()*.42;canopyLeaves.setColorAt(canopyIndex,leafColor.setRGB(shade*(1+random()*.1),shade,shade*.78));canopyIndex++;
+      const shade=(.75+random()*.30)*(.91+.09*(q.y+1)/2),warmth=random();
+      canopyLeaves.setColorAt(canopyIndex,leafColor.setRGB(shade*(.97+warmth*.12),shade,shade*(.77+warmth*.08)));canopyIndex++;
     }
   }
   canopyLeaves.castShadow=canopyLeaves.receiveShadow=true;root.add(partitionInstances(canopyLeaves,6,.06));
@@ -212,6 +250,7 @@ export async function buildLandscape(maps:HouseMaterials,mobile:boolean,wind:Win
   }
   const stemGeometry=mergeGeometries(stems);stems.forEach(g=>g.dispose());if(stemGeometry)root.add(new T.Mesh(stemGeometry,new T.MeshStandardMaterial({color:'#68733d',roughness:1})));
   const flowers=new T.InstancedMesh(new T.IcosahedronGeometry(1,0),new T.MeshStandardMaterial({color:'#e7e8d8',roughness:.88,side:T.DoubleSide}),flowerTransforms.length);flowerTransforms.forEach((m,i)=>flowers.setMatrixAt(i,m));flowers.receiveShadow=true;root.add(flowers);
+  performance.mark('house:plants');
   const windMaterials=new Set<T.MeshStandardMaterial|T.MeshDepthMaterial>();
   root.traverse(object=>{if(object instanceof T.Mesh){for(const material of Array.isArray(object.material)?object.material:[object.material])if(material.userData.houseWind)windMaterials.add(material as T.MeshStandardMaterial);if(object.customDepthMaterial?.userData.houseWind)windMaterials.add(object.customDepthMaterial as T.MeshDepthMaterial);}});
   function setWindEnabled(enabled:boolean){for(const material of windMaterials){const value=enabled?1:0;if(material.defines?.HOUSE_WIND_ACTIVE!==value){material.defines={...material.defines,HOUSE_WIND_ACTIVE:value};material.needsUpdate=true;}}}

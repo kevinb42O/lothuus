@@ -1,0 +1,66 @@
+{
+  "created": "2026-10-27T10:29:46.788Z",
+  "fps": 60,
+  "frames": 960,
+  "duration": 16,
+  "desktop": [
+    1920,
+    1200
+  ],
+  "mobile": [
+    720,
+    1560
+  ],
+  "master": {
+    "desktop": [
+      2880,
+      1800
+    ],
+    "mobile": [
+      1080,
+      2340
+    ]
+  },
+  "alpha": true,
+  "renderer": "Three.js offline cinematic raster; HDR PBR, depth-derived GTAO, 8192px sun shadows, 1.5× spatial supersampling, 4× MSAA including lettering, deterministic wind",
+  "provenance": "Deterministic offline frame export of the authored LOTHUUS house; no product imagery is embedded. The homepage reveals its current live collection through RGBA alpha.",
+  "renderSeconds": {
+    "desktop": 66.905,
+    "mobile": 203.906
+  },
+  "sources": {
+    "src/app/api/intro-render/route.ts": "efd9d3c137ecef1bcc7f4718492500d959d5307723e4a6de8d237463f7330b4f",
+    "src/components/house-architecture.ts": "3da928afc68f4e1b9312a953a911df28ba8b6e93d158b2e201b88816377866b8",
+    "src/components/house-bell-tracing.ts": "32540285038d518735b8e164f129bbca2eab636aa19239bbc1af89526f55c4c1",
+    "src/components/house-camera.ts": "283153c4f52467f606a4165392e70066a92e513cceb79248cedeb5ea2dc28673",
+    "src/components/house-device.ts": "1ca74efc13b55f1b073fb07bed08109897554b84c6fc649cb699ce58b4609dc2",
+    "src/components/house-door-tracing.ts": "de704bde9f47c2c9945f8a2a0f60fadc15ad0bfeeb8e3c8287056f6cfcacd637",
+    "src/components/house-door.ts": "1b7a9f9e8e37792f9f99264f731782653dab9955680993e9a7ea94adda758ec5",
+    "src/components/house-entrance-binary.ts": "d49ec2d1ddf6cb0e7c0559c7255dff592a43eae28e916519506d1762865f4a09",
+    "src/components/house-entry-focus.ts": "7be1d093fd4a852740186436f4cfccc9b41b6028e133e27e342823d22f29c274",
+    "src/components/house-entry-lettering.ts": "2ce56d84177b8c6e45cb01c43721c943dad61427f95785e41c2bd9eec1888f19",
+    "src/components/house-entry-wall.ts": "fe5b803bfd2f14631ea7122a15ad2b5136ebf71f18ea6640eaedd320c2fcc33c",
+    "src/components/house-entry-wordmark-data.ts": "4ad6f1846751148dbb3bc41242d75f66a86504f0e37c9d455d53a247ed80db3a",
+    "src/components/house-entry-wordmark.tsx": "38bc15e77929bbd93b27dd2a71bfd1e4760f60cf2f0e6b083b460eeadaef26d1",
+    "src/components/house-entry.ts": "72433d4e77615218d6c4c536a157a47692217dcce820715fb8ab8222e86851ca",
+    "src/components/house-explorer.tsx": "acdb48cb3a00bfbe350dcc94e2cc5dbc4c99bda6f6a4739d7a0bf60c100cb932",
+    "src/components/house-ground.ts": "66978dbf5e291aaf71bb0482a8b7ce260c303d1cc152146df22f42c34bad6b11",
+    "src/components/house-landscape-wide-baseline.ts": "518754329880ab115a908c5074a4daccb5a0a66ea2b1c2127c129c4a8ead1aa3",
+    "src/components/house-landscape.ts": "dcdb8ce16b9362d28033f03879aafb9f16cbff156b1f3cc45039eb7bd6bea71f",
+    "src/components/house-left-context.ts": "8cfcde4d5e29d7fd1e57d852a9e58bc4b02dbe460d3b23a29178a12b156e627a",
+    "src/components/house-planting.ts": "bf3a3aa0d6e10fa236b0b18c4a9db1d5614dfe189caf331b8e32a211ee00aa2b",
+    "src/components/house-rendering.ts": "19c632764f3b750b882fce2494fd3f7aabf3d8146314b3011321bf8bf3877997",
+    "src/components/house-right-context.ts": "6e1778224561510855cb5719a297e006e4edb2178f14845de87c02208e09fafe",
+    "src/components/house-scene.ts": "bdf16aa3334cfb33666f38656bf1bbb054b145e0ea993076dbd238a9742dcd54",
+    "src/components/house-streetscape.ts": "e0fa604237657248182fbaad0b89b01870f0dd2ca636a16d34dbb3ccbbc5c713",
+    "src/components/house-video-render.tsx": "e9eb8d0a9d1ed95f8d2d27c1c0fa6f5393beb39f9e25e82c55c75820dabb6f90",
+    "src/components/house-windows.ts": "07904961ef0b4675973a35771379730c1bcd8600a8346e14358c33daa1cf2c8d",
+    "src/lib/entry-video.ts": "00e8fdc73d41818746b99a0295bf8ad7f0da01ece7ca291768d9e37faf11625f"
+  },
+  "bytes": {
+    "entrance-desktop.webm": 14301067,
+    "entrance-desktop.mov": 14822612,
+    "entrance-mobile.webm": 7287990,
+    "entrance-mobile.mov": 8010269
+  }
+}

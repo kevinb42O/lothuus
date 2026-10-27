@@ -1,10 +1,11 @@
 import * as T from 'three';
+import { buildHouseWindow } from './house-windows';
 import { buildFrontDoor } from './house-door';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export type MaterialSet = { color:T.Texture; normal:T.Texture; roughness:T.Texture };
-export type HouseMaterials = { brick:MaterialSet; roof:MaterialSet; paving:MaterialSet };
+export type HouseMaterials = { brick:MaterialSet; roof:Pick<MaterialSet,'normal'>; paving:MaterialSet; windowInteriors?:T.Texture };
 
 export function seedRandom(seed:number) { return () => { seed=(Math.imul(seed,1664525)+1013904223)|0;return (seed>>>0)/4294967296; }; }
 
@@ -29,7 +30,7 @@ export function buildArchitecture(maps:HouseMaterials,suppliedEntrance?:T.Group)
   const root=new T.Group();root.name='LOTHUUS — solid architectural model';
   const random=seedRandom(34819);
   const mortar=new T.MeshStandardMaterial({color:'#bca772',roughness:1});
-  const brick=new T.MeshStandardMaterial({color:'#ffffff',map:maps.brick.color,normalMap:maps.brick.normal,roughnessMap:maps.brick.roughness,normalScale:new T.Vector2(.18,.18),roughness:.95});
+  const brick=new T.MeshStandardMaterial({color:'#ffffff',map:maps.brick.color,normalMap:maps.brick.normal,roughnessMap:maps.brick.roughness,normalScale:new T.Vector2(.24,.24),roughness:.92});
   // World aligned PBR maps retain a consistent physical scale across individual masonry units.
   brick.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <worldpos_vertex>',`#include <worldpos_vertex>
     vec4 materialWorld = vec4(transformed,1.0);
@@ -47,17 +48,20 @@ export function buildArchitecture(maps:HouseMaterials,suppliedEntrance?:T.Group)
       vRoughnessMapUv = (abs(normal.z)>.5 ? materialWorld.xy : materialWorld.zy) * .52;
     #endif`);};
   brick.customProgramCacheKey=()=> 'lothuus-world-brick-v1';
-  const stone=new T.MeshStandardMaterial({color:'#aeb2ae',roughness:.87,normalMap:maps.paving.normal,normalScale:new T.Vector2(.035,.035)});
-  const lightStone=new T.MeshStandardMaterial({color:'#9ea7a4',roughness:.82,normalMap:maps.paving.normal,normalScale:new T.Vector2(.025,.025)});
+  const stone=new T.MeshStandardMaterial({color:'#aeb2ae',roughness:.83,normalMap:maps.paving.normal,normalScale:new T.Vector2(.055,.055)});
+  const lightStone=new T.MeshStandardMaterial({color:'#a5aca8',roughness:.86,normalMap:maps.paving.normal,normalScale:new T.Vector2(.04,.04)});
   const dark=new T.MeshStandardMaterial({color:'#121d25',roughness:.36,metalness:.28});
   const timber=new T.MeshStandardMaterial({color:'#14202a',roughness:.48,normalMap:maps.brick.normal,normalScale:new T.Vector2(.012,.06)});
   const iron=new T.MeshStandardMaterial({color:'#1a2329',roughness:.42,metalness:.78});
   const brass=new T.MeshStandardMaterial({color:'#aa8d49',roughness:.28,metalness:.88});
   const interior=new T.MeshStandardMaterial({color:'#3b3e3a',roughness:1});
   const plaster=new T.MeshStandardMaterial({color:'#a7a69b',roughness:1});
-  const glass=new T.MeshPhysicalMaterial({color:'#91b4d2',metalness:.05,roughness:.075,transmission:.12,transparent:true,opacity:.91,ior:1.52,thickness:.008,clearcoat:1,clearcoatRoughness:.07,envMapIntensity:1.15});
+  // Neutral tint lets the existing local reflection probe and recessed curtains
+  // supply the pane's colour. Keep the established shader and texture budget.
+  // Exterior preparation disables transmission before the first rendered frame.
+  const glass=new T.MeshPhysicalMaterial({color:'#bcc9cc',metalness:.05,roughness:.085,transmission:.12,transparent:true,opacity:.42,ior:1.52,thickness:.008,clearcoat:1,clearcoatRoughness:.07,envMapIntensity:1.15});
   glass.name='Actual physical glazing';
-  const roofMat=new T.MeshStandardMaterial({color:'#454c4b',roughness:.87,normalMap:maps.roof.normal,normalScale:new T.Vector2(.12,.12),side:T.DoubleSide});
+  const roofMat=new T.MeshStandardMaterial({color:'#454c4b',roughness:.87,normalMap:maps.roof.normal,normalScale:new T.Vector2(.17,.17),side:T.DoubleSide});
   const redBrick=new T.MeshStandardMaterial({color:'#8c5541',roughness:.95,normalMap:maps.brick.normal,normalScale:new T.Vector2(.3,.3)});
   const boxGeometries=new Map<string,T.BufferGeometry>();
   function box(x:number,y:number,z:number,w:number,h:number,d:number,mat:T.Material,parent:T.Object3D=root,bevel=.008) {
@@ -93,7 +97,21 @@ export function buildArchitecture(maps:HouseMaterials,suppliedEntrance?:T.Group)
   const brickGeometry=new T.BoxGeometry(1,1,1);
   const bricks=new T.InstancedMesh(brickGeometry,brick,units.length);bricks.name='Individual staggered facade bricks';
   const transform=new T.Object3D();const tint=new T.Color();
-  units.forEach((u,i)=>{transform.position.set(u.x,u.y,4+(random()-.5)*.0015);transform.scale.set(u.w,u.h,.010+random()*.002);transform.rotation.z=(random()-.5)*.003;transform.updateMatrix();bricks.setMatrixAt(i,transform.matrix);const c=.93+random()*.12;bricks.setColorAt(i,tint.setRGB(c,c*.994,c*.975));});bricks.castShadow=bricks.receiveShadow=true;root.add(bricks);
+  units.forEach((u,i)=>{
+    transform.position.set(u.x,u.y,4+(random()-.5)*.0015);transform.scale.set(u.w,u.h,.010+random()*.002);transform.rotation.z=(random()-.5)*.003;transform.updateMatrix();bricks.setMatrixAt(i,transform.matrix);
+    const sample=random(),c=.94+sample*.10;
+    // Bake only short-range ambient contact into the existing instance colours.
+    // No extra map/pass/attribute, and no directional sunlight baked into the wall.
+    let contact=1;
+    for(const ledge of [.91,3.94,7.02]){const below=ledge-u.y;if(below>0&&below<.24)contact*=1-.10*Math.pow(1-below/.24,2);}
+    for(const opening of holes){
+      const dx=Math.max(Math.abs(u.x-opening.x)-opening.w/2,0),dy=Math.max(opening.y-u.y,u.y-opening.y-opening.h,0);
+      const gap=Math.hypot(dx,dy);
+      if(gap<.17)contact*=1-.085*Math.pow(1-gap/.17,2);
+    }
+    const warmth=(sample-.5)*.035;
+    bricks.setColorAt(i,tint.setRGB(c*contact,c*(.994-warmth*.25)*contact,c*(.975-warmth)*contact));
+  });bricks.castShadow=bricks.receiveShadow=true;root.add(bricks);
   // Solid side/rear walls and interior floor plates. Unseen elevations remain conservative.
   box(-8.84,3.6,-.16,.32,7.12,7.7,brick,root,0);box(8.84,3.6,-.16,.32,7.12,7.7,brick,root,0);
   box(0,3.6,-3.84,18,7.12,.32,brick,root,0);
@@ -105,35 +123,14 @@ export function buildArchitecture(maps:HouseMaterials,suppliedEntrance?:T.Group)
     box(side*4.9,.91,4.11,8.2,.095,.29,lightStone);
   }
   box(0,3.94,4.07,18,.092,.2,lightStone);
-  // Window construction: deep stone reveals, three stepped frame profiles, opening leaves,
-  // individual panes, projecting sills, hardware and physically folded curtains behind glass.
-  const curtainMats=[new T.MeshStandardMaterial({color:'#d1d4ce',roughness:.98,side:T.DoubleSide}),new T.MeshStandardMaterial({color:'#b3bec4',roughness:.98,side:T.DoubleSide})];
-  function curtain(x:number,y:number,h:number,width:number,mat:T.Material) {
-    const g=new T.PlaneGeometry(width,h,20,8);const p=g.getAttribute('position');
-    for(let i=0;i<p.count;i++){const px=p.getX(i),py=p.getY(i);p.setZ(i,Math.sin((px/width+.5)*Math.PI*12)*.025+Math.sin(py*2)*.008);}
-    g.computeVertexNormals();const m=new T.Mesh(g,mat);m.position.set(x,y,3.58);m.receiveShadow=true;root.add(m);
+  // Real frames/curtains in front of one shared, recessed interior atlas.
+  const curtain=new T.MeshStandardMaterial({color:'#d4d2ca',roughness:1,side:T.DoubleSide});
+  const backdrop=maps.windowInteriors?new T.MeshBasicMaterial({map:maps.windowInteriors,color:'#d4d8d8'}):interior;
+  for(const [i,x] of bays.entries()){
+    const materials={stone,lightStone,dark,timber,brass,iron,glass,curtain,backdrop};
+    if(x!==0)root.add(buildHouseWindow(x,1.02,2.4,i,materials,box));
+    root.add(buildHouseWindow(x,4.32,2.08,i+7,materials,box));
   }
-  function windowAt(x:number,bottom:number,h:number,index:number) {
-    const w=1.3,top=bottom+h;
-    box(x,bottom+h/2,3.2,w+.05,h+.06,.08,interior);
-    for(const side of [-1,1]){
-      box(x+side*(w/2+.065),bottom+h/2,4.055,.135,h+.23,.23,lightStone);
-      box(x+side*(w/2-.035),bottom+h/2,3.83,.09,h+.015,.16,dark);
-      box(x+side*(w/2-.105),bottom+h/2,3.795,.04,h-.13,.11,timber);
-      box(x+side*.043,bottom+h*.37,3.86,.025,.13,.03,brass);
-      for(const yy of [bottom+.23,bottom+h*.58])box(x+side*(w/2-.085),yy,3.9,.018,.09,.025,iron);
-      curtain(x+side*(index%3===0?.36:.45),bottom+h*.43,h*.8,index%3===0?.32:.2,curtainMats[index%2]);
-    }
-    box(x,top+.067,4.055,w+.27,.135,.23,lightStone);
-    box(x,bottom-.038,4.125,w+.35,.11,.39,lightStone);
-    box(x,bottom-.105,4.09,w+.27,.035,.27,stone);
-    box(x,bottom+.055,3.83,w,.11,.16,dark);box(x,top-.058,3.83,w,.115,.16,dark);
-    const transom=bottom+h*.735;
-    box(x,transom,3.86,w,.087,.18,dark);box(x,bottom+h*.36,3.865,.064,h*.72,.17,dark);
-    for(const side of [-1,1])box(x+side*.32,bottom+h*.36,3.755,.555,h*.67,.008,glass,root,0);
-    box(x,transom+(top-transom)/2-.015,3.755,w-.16,top-transom-.12,.008,glass,root,0);
-  }
-  for(const [i,x] of bays.entries()){if(x!==0)windowAt(x,1.02,2.4,i);windowAt(x,4.32,2.08,i+7);}
   const entrance=suppliedEntrance??buildFrontDoor({glass,stone,lightStone});
   if(suppliedEntrance){
     entrance.traverse(object=>{
@@ -202,7 +199,15 @@ export function buildArchitecture(maps:HouseMaterials,suppliedEntrance?:T.Group)
     for(let z=-maxZ+.14;z<maxZ-.06;z+=.28){transform.position.set(side*(6.4+q),9.76-q/3.02*2.4+.045,z);transform.quaternion.copy(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),side*Math.PI/2).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),hipPitch)));transform.scale.set(1,1,1);transform.updateMatrix();tileTransforms.push(transform.matrix.clone());}
   }
   const tiles=new T.InstancedMesh(tileG,roofMat,tileTransforms.length);tiles.name='Individual curved roof pantiles';
-  tileTransforms.forEach((matrix,i)=>{tiles.setMatrixAt(i,matrix);const c=.84+random()*.27;tiles.setColorAt(i,tint.setRGB(c,c*.99,c*.96));});tiles.castShadow=tiles.receiveShadow=true;root.add(tiles);
+  tileTransforms.forEach((matrix,i)=>{
+    tiles.setMatrixAt(i,matrix);
+    // Broad, quiet weathering across the slope, with less salt-and-pepper contrast.
+    // Evaluated once during construction; the existing instance buffer is reused.
+    const x=matrix.elements[12],z=matrix.elements[14],sample=random();
+    const patch=Math.sin(x*.73+z*.38)*Math.sin(z*1.12-x*.19);
+    const c=.91+sample*.13+patch*.025;
+    tiles.setColorAt(i,tint.setRGB(c,c*(.995+patch*.006),c*(.98+patch*.012)));
+  });tiles.castShadow=tiles.receiveShadow=true;root.add(tiles);
   // Segmented ridge and hip caps, with a visible overlap on every cap.
   for(let x=-6.35;x<6.4;x+=.3)line([x,9.8,0],[x+.32,9.8,0],.092,roofMat);
   for(const side of [-1,1])for(const z of [-4.4,4.4]){
@@ -228,6 +233,9 @@ export function buildArchitecture(maps:HouseMaterials,suppliedEntrance?:T.Group)
     for(const y of [.85,2.8,4.8,6.7])box(side*9.045,y,4.16,.13,.035,.13,dark);
   }
   mergeSolids(root);
+  // Clear glazing admits daylight to the curtains; its opaque shadow was a
+  // solid black occluder even after screen-space transmission was disabled.
+  root.traverse(object=>{if(object instanceof T.Mesh&&object.material===glass)object.castShadow=false;});
   root.add(entrance);
   return {root,glass,doorLeaf,brickCount:units.length,tileCount:tileTransforms.length};
 }

@@ -9,6 +9,7 @@
     "test": "tsx --test 'src/**/*.test.ts' 'src/**/*.test.tsx' 'scripts/*.test.mjs'",
     "typecheck": "tsc --noEmit",
     "house:bake-entrance": "tsx scripts/bake-house-entrance.ts",
+    "house:encode-video": "node scripts/encode-intro-video.mjs",
     "owner:setup": "node scripts/setup-owner.mjs",
     "backup": "node scripts/backup.mjs",
     "images:cleanup": "node scripts/cleanup-images.mjs",

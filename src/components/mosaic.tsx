@@ -1,6 +1,6 @@
 'use client';
 
-import Image, { getImageProps } from 'next/image';
+import { MosaicPhoto, prepareMosaicPhoto } from './mosaic-photo';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type HTMLMotionProps } from 'motion/react';
 import { ArrowUpRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
@@ -15,22 +15,13 @@ import { captureWall, CollectionWall, type CapturedWall } from './collection-wal
 import { useVisibleMosaicPhotos } from './use-visible-mosaic-photos';
 import { needsNativeGrid } from './house-device';
 import { NativeMosaic } from './native-mosaic';
+import { settlePhotoPreparation } from '@/lib/mosaic-photo-source';
 
 type Props = { objects: CollectionObject[]; filterKey: string; focused: boolean; onOpen: (object: CollectionObject) => void; saved: string[]; onToggle: (id: string) => void };
 
 function TileFrame(props: HTMLMotionProps<'div'>) {
   const present = useIsPresent();
   return <motion.div {...props} data-present={present} inert={!present} aria-hidden={!present || undefined} />;
-}
-
-async function preparePhoto(object: CollectionObject,width:number) {
-  const { props } = getImageProps({ src: object.image, alt: object.title, fill: true, sizes: `${Math.ceil(width)}px`, unoptimized: object.image.startsWith('/api/') });
-  const image = new window.Image();
-  if (props.sizes) image.sizes = props.sizes;
-  if (props.srcSet) image.srcset = props.srcSet;
-  image.src = props.src;
-  await image.decode();
-  return image;
 }
 
 export function Mosaic(props:Props){
@@ -131,7 +122,7 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
       const top = grid.getBoundingClientRect().top;
       // Decode the arriving viewport and a spare row while the current collection remains visible.
       const visible = nextLayout.cells.filter(cell => top + cell.y < window.innerHeight + nextCell && top + cell.y + cell.height > 0);
-      await Promise.allSettled(visible.map(cell => preparePhoto(requestedObjects.find(object => object.id === cell.id)!,cell.width)));
+      await settlePhotoPreparation(visible.map(cell => prepareMosaicPhoto(requestedObjects.find(object => object.id === cell.id)!,cell.width)));
       if (cancelled || !container.current) return;
       const previous = new Map<string, TileBounds & { key: string }>();
       container.current.querySelectorAll<HTMLElement>('[data-id][data-present="true"]').forEach(tile => {
@@ -179,7 +170,7 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
       // Home/End can focus a tile outside the mounted photo window.
       if (!image && keyboard) {
         const object = objects.find(object => object.id === id);
-        if (object) image = await preparePhoto(object, cell);
+        if (object) image = await prepareMosaicPhoto(object, cell);
       } else if (image) await image.decode();
     } catch { if (request === generation.current) candidate.current = null; return; }
     if (!image) { candidate.current = null; return; }
@@ -275,8 +266,7 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
                 container.current?.querySelector<HTMLButtonElement>(`[data-object="${objects[next].id}"]`)?.focus({ preventScroll: true });
               }
             }}>
-            <span className="object-photograph">{photoVisible&&<Image src={object.image} unoptimized={object.image.startsWith('/api/')} alt={object.title} fill sizes={`${Math.ceil(position.width)}px`} loading="eager" draggable={false} />}</span>
-            <span className="object-id" aria-hidden="true">{object.id}</span>
+            <span className="object-photograph">{photoVisible&&<MosaicPhoto key={object.image} object={object} width={position.width} />}</span>
             {object.availability && object.availability !== 'available' && <span className={`stock-badge ${object.availability}`}>{object.availability === 'reserved' ? 'Gereserveerd' : 'Verkocht'}</span>}
             <motion.span className="fluid-caption" initial={false} animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: reduced ? 0 : .18 }} aria-hidden={!expanded}>
               <span><span className="object-category">{categoryLabel(object.category)}{object.availability === 'reserved' ? ' · Gereserveerd' : object.availability === 'sold' ? ' · Verkocht' : ''}</span><strong className="object-title">{object.title}</strong></span>

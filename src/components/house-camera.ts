@@ -1,5 +1,6 @@
+import { houseEntryYaw } from './house-entry';
 import * as T from 'three';
-import { sampleHouseEntry } from './house-entry';
+import { sampleHouseEntry, entryEase } from './house-entry';
 
 export type HouseView = 'front'|'angle'|'door'|'gate'|'street';
 type Pose = { position: readonly [number,number,number]; target: readonly [number,number,number]; rise: number };
@@ -37,6 +38,9 @@ export class HouseCameraRig {
   scrollControlled=false;
   scrollProgress=0;
   private goalScroll=0;
+  private entryYaw=0;
+
+  frameEntry(yaw:number){this.entryYaw=yaw;if(this.scrollControlled)this.applyScroll();}
   private scrollVelocity=0;
 
   scrollTo(progress:number,immediate=false) {
@@ -48,8 +52,9 @@ export class HouseCameraRig {
   private applyScroll() {
     const pose=sampleHouseEntry(this.scrollProgress);
     this.camera.position.set(pose.x,pose.y,pose.z);
-    const targetZ=T.MathUtils.lerp(1.1,-1,pose.lens);
-    this.target.set(0,pose.y+Math.tan(T.MathUtils.degToRad(pose.tilt))*(pose.z-targetZ),targetZ);
+    const targetZ=-6;
+    const yaw=houseEntryYaw(pose.progress,this.entryYaw);
+    this.target.set(Math.tan(yaw)*(pose.z-targetZ),pose.y+Math.tan(T.MathUtils.degToRad(pose.tilt))*(pose.z-targetZ),targetZ);
     this.rise=pose.rise;this.project();
   }
 

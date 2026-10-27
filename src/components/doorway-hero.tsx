@@ -1,221 +1,213 @@
 'use client';
 
-import { ArrowDown, Pause, RotateCcw } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { entryEase, sampleHouseEntry, HOUSE_ENTRY_DURATION, houseEntryTiming } from './house-entry';
+import { ArrowDown, Pause, Play, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { entryEase, houseEntryFraming, houseEntryTiming, HOUSE_ENTRY_DURATION, sampleHouseEntry } from './house-entry';
+import { HouseEntryWordmark } from './house-entry-wordmark';
 import { createEntryPhotoWall, entryPhotoWallKey, type EntryPhotoWall } from './house-entry-wall';
-import type { HouseScene, HouseCollectionProjection, HouseWordmarkProjection } from './house-scene';
+import { ENTRY_VIDEO_SIZE, entryVideoProjection, entryVideoSource } from '@/lib/entry-video';
 
-gsap.registerPlugin(useGSAP);
+/** A recorded camera take; the transparent doorway exposes the current live collection. */
+export function DoorwayHero({ children }: { children: ReactNode }) {
+  const root = useRef<HTMLDivElement>(null), stage = useRef<HTMLElement>(null);
+  const video = useRef<HTMLVideoElement>(null), photoWall = useRef<HTMLDivElement>(null), world = useRef<HTMLDivElement>(null);
+  const atlas = useRef<EntryPhotoWall | null>(null), progress = useRef(0);
+  const sourceSize = useRef(ENTRY_VIDEO_SIZE.desktop as { width: number; height: number });
+  const viewport = useRef({ width: 1440, height: 900 });
+  const finished = useRef(false), userPaused = useRef(false);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [paused, setPaused] = useState(false), [arrived, setArrived] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(.04), [attempt, setAttempt] = useState(0);
 
-/** One real 3D entrance, with the existing live collection immediately behind it. */
-export function DoorwayHero({children}:{children:ReactNode}) {
-  const pausedRef=useRef(false),readyRef=useRef(false);
-  const entrance=useRef<{play:()=>void;pause:()=>void;resume:()=>void}|null>(null);
-  const [automatic,setAutomatic]=useState(false),[paused,setPaused]=useState(false),[arrived,setArrived]=useState(false);
-  const lettering=useRef<HTMLSpanElement>(null);
-  const root=useRef<HTMLDivElement>(null),canvas=useRef<HTMLDivElement>(null);
-  const stage=useRef<HTMLElement>(null),photoWall=useRef<HTMLDivElement>(null),world=useRef<HTMLDivElement>(null);
-  const scene=useRef<HouseScene|null>(null),progress=useRef(0),pinned=useRef(false);
-  const focus=useRef({radius:7,overscan:.035});
-  const atlas=useRef<EntryPhotoWall|null>(null),lastProjection=useRef<HouseCollectionProjection>({x:0,y:0,scale:1});
-  const [loadProgress,setLoadProgress]=useState(0),[loaderDismissed,setLoaderDismissed]=useState(false);
-  const [status,setStatus]=useState<'loading'|'ready'|'error'>('loading'),[attempt,setAttempt]=useState(0);
+  const prepareWall = useCallback(() => {
+    const wall = photoWall.current, photo = atlas.current;
+    if (!wall || !photo) return;
+    const { width, height } = viewport.current;
+    // Size the repeating plane once; animate only its compositor transform.
+    // Four viewport widths cover the aperture at its smallest visible scale.
+    wall.style.width = `${width * 4}px`; wall.style.height = `${height * 4}px`;
+    wall.style.left = `${-width * 1.5}px`; wall.style.top = `${-height * 1.5}px`;
+    wall.style.backgroundSize = `${photo.width}px ${photo.height}px`;
+    wall.style.backgroundPosition = `${width * 2 - photo.worldWidth / 2 + photo.x}px ${height * 1.5 + photo.y}px`;
+  }, []);
 
-  function paint(value:number,projection?:HouseCollectionProjection,wordmark?:HouseWordmarkProjection) {
-    if(wordmark&&lettering.current){
-      lettering.current.style.display=wordmark.opacity===0?'none':'';
-      lettering.current.style.setProperty('--brand-x',`${wordmark.x}px`);
-      lettering.current.style.setProperty('--brand-y',`${wordmark.y}px`);
-      lettering.current.style.setProperty('--brand-scale',String(wordmark.scale));
-      lettering.current.style.setProperty('--brand-opacity',String(wordmark.opacity));
+  const paint = useCallback((value: number) => {
+    progress.current = value;
+    const collection = world.current, foreground = stage.current, wall = photoWall.current;
+    if (!collection || !foreground) return;
+    const pose = sampleHouseEntry(value), open = pose.door > 0 || value === 1;
+    collection.inert = value < 1;
+    collection.style.visibility = open ? 'visible' : 'hidden';
+    collection.style.setProperty('--entry-chrome', String(entryEase(.97, 1, value)));
+    // The film is opaque until the door opens. Avoid repainting the hidden wall.
+    if (!open) return;
+    const { width, height } = viewport.current;
+    const { x, y, scale } = entryVideoProjection(value, width, height, sourceSize.current);
+    // An inherited CSS variable invalidates every product's computed style.
+    // The same projection on this one layer avoids that full-tree work.
+    collection.style.transform = value === 1 ? 'none' : `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    const photo = atlas.current;
+    if (wall && photo) {
+      wall.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+      wall.style.opacity = String(1 - entryEase(.965, 1, value));
+      wall.style.visibility = value < 1 ? 'visible' : 'hidden';
     }
-    const pose=sampleHouseEntry(value),foreground=stage.current,collection=world.current;
-    if(!foreground||!collection)return;
-    // Focus follows the rendered approach, including reverse scroll. It is
-    // fully resolved before the door exposes the live collection behind it.
-    const defocus=pinned.current?1-entryEase(.015,.28,value):0;
-    if(canvas.current){
-      // Reduced-motion CSS can disable the optical focus effect.
-      canvas.current.style.setProperty('--entry-focus-filter',defocus>0?`blur(${(focus.current.radius*defocus).toFixed(3)}px)`:'none');
-      canvas.current.style.setProperty('--entry-focus-transform',defocus>0?`scale(${1+focus.current.overscan*defocus})`:'none');
+  }, []);
+
+  const finish = useCallback(() => {
+    if (finished.current) return;
+    finished.current = true;
+    video.current?.pause();
+    paint(1);
+    root.current?.classList.add('house-entry-arrived');
+    if (world.current) world.current.style.transform = 'none';
+    setArrived(true); setPaused(false);
+  }, [paint]);
+
+  useEffect(() => {
+    if (arrived) return;
+    const collection = world.current!;
+    let cancelled = false, revision = 0, queued = 0, key = '';
+    const rebuild = async () => {
+      queued = 0;
+      const nextKey = entryPhotoWallKey(collection);
+      if (!nextKey || nextKey === key) return;
+      key = nextKey;
+      const take = ++revision, next = await createEntryPhotoWall(collection);
+      if (!next) return;
+      if (cancelled || take !== revision) { URL.revokeObjectURL(next.url); return; }
+      const previous = atlas.current;
+      atlas.current = next;
+      if (photoWall.current) photoWall.current.style.backgroundImage = `url("${next.url}")`;
+      prepareWall();
+      paint(progress.current);
+      if (previous) URL.revokeObjectURL(previous.url);
+    };
+    const queue = () => { cancelAnimationFrame(queued); queued = requestAnimationFrame(() => { void rebuild(); }); };
+    const observer = new MutationObserver(queue);
+    observer.observe(collection, { childList: true, subtree: true });
+    const resize = new ResizeObserver(queue); resize.observe(collection); queue();
+    return () => {
+      cancelled = true; revision++; observer.disconnect(); resize.disconnect(); cancelAnimationFrame(queued);
+      if (atlas.current) { URL.revokeObjectURL(atlas.current.url); atlas.current = null; }
+    };
+  }, [arrived, paint, prepareWall]);
+
+  useEffect(() => {
+    const movie = video.current!;
+    if (finished.current) return;
+    const restoration = history.scrollRestoration;
+    history.scrollRestoration = 'manual';
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    let active = true, started = false, frame = 0, fallbackFrame = 0;
+    const resize = () => {
+      const rect = stage.current!.getBoundingClientRect();
+      viewport.current = { width: rect.width, height: rect.height };
+      const source = sourceSize.current;
+      const cover = Math.max(rect.width / source.width, rect.height / source.height);
+      root.current?.style.setProperty('--entry-wordmark-size', `${houseEntryFraming(source.width, source.height).size * cover}px`);
+      prepareWall();
+      paint(progress.current);
+    };
+    resize();
+    const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage.current!);
+    const advance = (seconds: number) => paint(houseEntryTiming(Math.min(1, seconds / HOUSE_ENTRY_DURATION)));
+    const nextFrame = (_now: number, metadata: VideoFrameCallbackMetadata) => {
+      if (!active || finished.current) return;
+      advance(metadata.mediaTime);
+      frame = movie.requestVideoFrameCallback(nextFrame);
+    };
+    const fallback = () => {
+      if (!active || finished.current) return;
+      advance(movie.currentTime);
+      fallbackFrame = requestAnimationFrame(fallback);
+    };
+    const play = () => {
+      if (document.hidden || finished.current || userPaused.current) return;
+      void movie.play().catch(() => { if (active && !finished.current) { userPaused.current = true; setPaused(true); } });
+    };
+    const ready = () => {
+      if (!active || started || finished.current) return;
+      started = true; setLoadProgress(1); setStatus('ready');
+      if (typeof movie.requestVideoFrameCallback === 'function') frame = movie.requestVideoFrameCallback(nextFrame);
+      else fallbackFrame = requestAnimationFrame(fallback);
+      play();
+    };
+    const loading = () => {
+      if (movie.buffered.length && Number.isFinite(movie.duration))
+        setLoadProgress(Math.max(.04, Math.min(1, movie.buffered.end(movie.buffered.length - 1) / movie.duration)));
+    };
+    const error = () => { if (active && !finished.current) setStatus('error'); };
+    const visibility = () => { if (document.hidden) movie.pause(); else if (started) play(); };
+    const motion = () => { if (reduced.matches) finish(); };
+    const jump = (event: MouseEvent) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href="#collectie"]') : null;
+      if (!link || finished.current) return;
+      event.preventDefault(); finish(); history.replaceState(null, '', '#collectie');
+      if (link.classList.contains('skip-link')) world.current?.querySelector<HTMLElement>('#collectie')?.focus({ preventScroll: true });
+    };
+    movie.addEventListener('canplay', ready); movie.addEventListener('progress', loading);
+    movie.addEventListener('error', error); movie.addEventListener('ended', finish);
+    document.addEventListener('visibilitychange', visibility); document.addEventListener('click', jump);
+    reduced.addEventListener('change', motion);
+    if (reduced.matches) finish();
+    else {
+      const mobile = window.innerWidth / window.innerHeight < 1.25 || window.innerWidth < 700 || matchMedia('(pointer: coarse)').matches;
+      sourceSize.current = ENTRY_VIDEO_SIZE[mobile ? 'mobile' : 'desktop'];
+      resize();
+      movie.muted = true;
+      setStatus('loading'); setLoadProgress(.04);
+      movie.src = entryVideoSource(navigator, mobile);
+      movie.load();
     }
-    const reveal=pinned.current?pose.reveal:0;
-    foreground.style.opacity=String(scene.current?1:1-reveal);
-    foreground.style.visibility=reveal===1?'hidden':'visible';
-    foreground.inert=reveal>.98;
-    collection.inert=pinned.current&&reveal<.98;
-    // Loading completion never grants visibility to the product plane. Only
-    // the rendered camera opening the real door can expose it behind the canvas.
-    collection.style.visibility=pinned.current&&value<1&&(!scene.current||pose.door===0)?'hidden':'visible';
-    if(projection)lastProjection.current=projection;
-    collection.style.setProperty('--entry-chrome',String(pinned.current?entryEase(.97,1,value):1));
-    const wall=photoWall.current,photo=atlas.current;
-    if(wall&&photo){
-      const {x,y,scale}=lastProjection.current;
-      wall.style.backgroundSize=`${photo.width*scale}px ${photo.height*scale}px`;
-      wall.style.backgroundPosition=`${(foreground.clientWidth-photo.worldWidth*scale)/2+x+photo.x*scale}px ${foreground.clientHeight/2*(1-scale)+y+photo.y*scale}px`;
-      wall.style.opacity=String(pinned.current?1-entryEase(.965,1,value):0);
-      wall.style.visibility=pinned.current&&!!scene.current&&pose.door>0&&value<1?'visible':'hidden';
-    }
-    if(projection&&pinned.current){
-      collection.style.setProperty('--entry-grid-x',`${projection.x}px`);
-      collection.style.setProperty('--entry-grid-y',`${projection.y}px`);
-      collection.style.setProperty('--entry-grid-scale',String(projection.scale));
-    }
+    return () => {
+      active = false; movie.pause();
+      if (frame) movie.cancelVideoFrameCallback(frame);
+      cancelAnimationFrame(fallbackFrame); resizeObserver.disconnect();
+      movie.removeEventListener('canplay', ready); movie.removeEventListener('progress', loading);
+      movie.removeEventListener('error', error); movie.removeEventListener('ended', finish);
+      document.removeEventListener('visibilitychange', visibility); document.removeEventListener('click', jump);
+      reduced.removeEventListener('change', motion); history.scrollRestoration = restoration;
+      movie.removeAttribute('src'); movie.load();
+    };
+  }, [attempt, finish, paint, prepareWall]);
+
+  useEffect(() => {
+    if (!arrived || !video.current) return;
+    video.current.removeAttribute('src'); video.current.load();
+  }, [arrived]);
+
+  function togglePause() {
+    const next = !userPaused.current;
+    userPaused.current = next; setPaused(next);
+    if (next) video.current?.pause();
+    else void video.current?.play().catch(() => { userPaused.current = true; setPaused(true); });
   }
 
-  useEffect(()=>{
-    if(arrived)return;
-    const collection=world.current;if(!collection)return;
-    let cancelled=false,revision=0,queued=0,key='';
-    const rebuild=async()=>{
-      queued=0;const nextKey=entryPhotoWallKey(collection);if(!nextKey||nextKey===key)return;
-      key=nextKey;const take=++revision;
-      const next=await createEntryPhotoWall(collection);
-      if(!next)return;
-      if(cancelled||take!==revision){URL.revokeObjectURL(next.url);return;}
-      const previous=atlas.current;atlas.current=next;
-      if(photoWall.current)photoWall.current.style.backgroundImage=`url("${next.url}")`;
-      paint(progress.current,lastProjection.current);
-      if(previous)URL.revokeObjectURL(previous.url);
-    };
-    const queue=()=>{cancelAnimationFrame(queued);queued=requestAnimationFrame(()=>{void rebuild();});};
-    const observer=new MutationObserver(queue);observer.observe(collection,{childList:true,subtree:true});
-    const resize=new ResizeObserver(queue);resize.observe(collection);queue();
-    return()=>{cancelled=true;revision++;observer.disconnect();resize.disconnect();cancelAnimationFrame(queued);if(atlas.current){URL.revokeObjectURL(atlas.current.url);atlas.current=null;}};
-  },[arrived]);
-
-  useEffect(()=>{
-    if(arrived)return;
-    const element=canvas.current;if(!element)return;
-    focus.current=window.matchMedia('(pointer: coarse), (max-width: 600px)').matches?{radius:3,overscan:.015}:{radius:7,overscan:.035};
-    let cancelled=false,owned:HouseScene|null=null,readyTimer=0,readyFrame=0;
-    setStatus('loading');setLoadProgress(.04);setLoaderDismissed(false);
-    import('./house-scene').then(module=>cancelled?null:module.mountHouse(element,undefined,{mode:'hero',onProgress:paint,onLoadProgress:value=>{if(!cancelled)setLoadProgress(value);}})).then(api=>{
-      if(!api)return;if(cancelled){api.dispose();return;}
-      owned=api;scene.current=api;api.scroll(progress.current,true);
-      // Allow the first complete WebGL frame to paint, then finish the hairline
-      // before dissolving the opaque loading surface.
-      readyFrame=requestAnimationFrame(()=>{readyFrame=requestAnimationFrame(()=>{
-        readyTimer=window.setTimeout(()=>{if(!cancelled)setStatus('ready');},240);
-      });});
-    }).catch(()=>{if(!cancelled)setStatus('error');});
-    const lost=()=>{cancelAnimationFrame(readyFrame);clearTimeout(readyTimer);setStatus('error');owned?.dispose();owned=null;scene.current=null;};
-    element.addEventListener('house-context-lost',lost);
-    return()=>{cancelled=true;cancelAnimationFrame(readyFrame);clearTimeout(readyTimer);element.removeEventListener('house-context-lost',lost);if(scene.current===owned)scene.current=null;owned?.dispose();};
-  },[attempt,arrived]);
-
-  useEffect(()=>{
-    const dismiss=(event:MouseEvent)=>{
-      if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-      if(event.target instanceof Element&&event.target.closest('a[href="#collectie"]'))setLoaderDismissed(true);
-    };
-    document.addEventListener('click',dismiss);
-    return()=>document.removeEventListener('click',dismiss);
-  },[]);
-
-  useEffect(()=>{
-    readyRef.current=status==='ready';
-    if(status==='ready')entrance.current?.play();
-    else entrance.current?.pause();
-  },[status]);
-
-  useGSAP(()=>{
-    const element=root.current!,collection=world.current!;
-    const restoration=window.history.scrollRestoration;
-    window.history.scrollRestoration='manual';
-    window.scrollTo({top:0,left:0,behavior:'instant'});
-    const media=gsap.matchMedia();
-    media.add('(prefers-reduced-motion: no-preference)',()=>{
-      pinned.current=true;pausedRef.current=false;setAutomatic(true);setArrived(false);
-      element.classList.add('house-entry-pinned','house-entry-auto');
-      let finished=false,finishFrame=0;
-      const clock={value:0};
-      const seek=(value:number)=>{
-        progress.current=value;
-        // The camera moves through a stationary page. At arrival these exact
-        // coordinates become normal document flow, without a window scroll.
-        if(scene.current)scene.current.scroll(value,true);else paint(value);
-      };
-      const finish=()=>{
-        if(finished)return;finished=true;
-        tween.pause();pausedRef.current=false;seek(1);
-        finishFrame=requestAnimationFrame(()=>{finishFrame=requestAnimationFrame(()=>{
-          element.classList.add('house-entry-arrived');
-          collection.style.transform='none';
-          setArrived(true);setPaused(false);
-        });});
-      };
-      // Preserve the architectural approach, carry speed through the open door,
-      // and reserve only the final half-second for settling into the live grid.
-      const tween=gsap.to(clock,{
-        value:1,duration:HOUSE_ENTRY_DURATION,paused:true,
-        ease:houseEntryTiming,
-        onUpdate:()=>seek(clock.value),onComplete:finish,
-      });
-      entrance.current={
-        play:()=>{if(!finished){seek(0);tween.restart(true);if(document.hidden)tween.pause();}},
-        pause:()=>tween.pause(),resume:()=>{if(!finished)tween.resume();},
-      };
-      seek(0);
-      if(readyRef.current)entrance.current.play();
-      const visibility=()=>{
-        if(document.hidden)tween.pause();
-        else if(readyRef.current&&!finished&&!pausedRef.current)tween.resume();
-      };
-      document.addEventListener('visibilitychange',visibility);
-      const jump=(event:MouseEvent)=>{
-        if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-        const link=event.target instanceof Element?event.target.closest<HTMLAnchorElement>('a[href="#collectie"]'):null;
-        if(!link||finished)return;
-        event.preventDefault();setLoaderDismissed(true);finish();
-        window.history.replaceState(null,'','#collectie');
-        if(link.classList.contains('skip-link'))collection.querySelector<HTMLElement>('#collectie')?.focus({preventScroll:true});
-      };
-      document.addEventListener('click',jump);
-      return()=>{
-        tween.kill();cancelAnimationFrame(finishFrame);entrance.current=null;
-        document.removeEventListener('visibilitychange',visibility);document.removeEventListener('click',jump);
-        pinned.current=false;setAutomatic(false);setArrived(false);setPaused(false);
-        element.classList.remove('house-entry-pinned','house-entry-auto','house-entry-arrived');
-        progress.current=0;collection.style.transform='none';
-        for(const variable of ['--entry-grid-x','--entry-grid-y','--entry-grid-scale'])collection.style.removeProperty(variable);
-        scene.current?.scroll(0,true);paint(0);
-      };
-    });
-    return()=>{media.revert();window.history.scrollRestoration=restoration;};
-  },{scope:root});
-
-  function togglePause(){
-    const next=!paused;pausedRef.current=next;setPaused(next);
-    if(next)entrance.current?.pause();else entrance.current?.resume();
-  }
-
-  return <div ref={root} className="house-entry-experience">
-    <div className={`house-entry-loader ${status==='ready'||loaderDismissed?'is-complete':''}`} aria-hidden={status==='ready'||loaderDismissed} inert={status==='ready'||loaderDismissed}>
+  return <div ref={root} className={`house-entry-experience house-entry-video house-entry-pinned house-entry-auto${arrived ? ' house-entry-arrived' : ''}`}>
+    <div className={`house-entry-loader ${status === 'ready' || arrived ? 'is-complete' : ''}`} aria-hidden={status === 'ready' || arrived} inert={status === 'ready' || arrived}>
+      <HouseEntryWordmark />
       <div className="house-entry-loader-identity">
-        <span ref={lettering} className="wordmark house-entry-loader-wordmark" aria-label="LOTHUUS"><b>LO</b><span>THUUS</span></span>
+        <span className="house-entry-logo-space" aria-hidden="true" />
         <p>Een huis voor cultuur en ontmoeting.</p>
-        <div className="house-entry-loader-rule" role="progressbar" aria-label="Het 3D-huis wordt geladen" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(loadProgress*100)} aria-valuetext={status==='error'?'Het laden is onderbroken':status==='ready'?'Het huis is klaar':'Het huis wordt opgebouwd'} style={{'--house-load':loadProgress} as CSSProperties}><span/></div>
-        <span className="sr-only" role="status">{status==='error'?'Het 3D-huis kon niet worden geladen.':status==='ready'?'Het huis is klaar.':'Het huis wordt opgebouwd…'}</span>
-        {status==='error'&&<div className="house-entry-loader-error"><p>Het huis kon niet worden geladen.</p><button onClick={()=>setAttempt(value=>value+1)}>Probeer opnieuw <RotateCcw size={14}/></button></div>}
+        <div className="house-entry-loader-rule" role="progressbar" aria-label="De introductie wordt geladen" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(loadProgress * 100)} style={{ '--house-load': loadProgress } as CSSProperties}><span /></div>
+        <span className="sr-only" role="status">{status === 'error' ? 'De introductie kon niet worden geladen.' : status === 'ready' ? 'De introductie is klaar.' : 'De introductie wordt geladen…'}</span>
+        {status === 'error' && <div className="house-entry-loader-error"><p>De introductie kon niet worden geladen.</p><button onClick={() => setAttempt(value => value + 1)}>Probeer opnieuw <RotateCcw size={14} /></button></div>}
       </div>
-      <a className="house-entry-loader-skip" href="#collectie" onClick={()=>setLoaderDismissed(true)}>Naar de collectie <ArrowDown size={13}/></a>
+      <a className="house-entry-loader-skip" href="#collectie">Naar de collectie <ArrowDown size={13} /></a>
     </div>
-    <div className="house-entry-track"><section ref={stage} className={`house-entry-stage ${status==='ready'?'is-ready':''}`} aria-label="Welkom bij LOTHUUS Vintage — een reis door de voordeur">
-      <div ref={photoWall} className="house-entry-photo-wall" aria-hidden="true"/>
-      <div ref={canvas} className="house-entry-canvas"/>
+    <div className="house-entry-track"><section ref={stage} className={`house-entry-stage ${status === 'ready' ? 'is-ready' : ''}`} aria-label="Welkom bij LOTHUUS Vintage — een reis door de voordeur" inert={arrived}>
+      <div ref={photoWall} className="house-entry-photo-wall" aria-hidden="true" />
+      <video ref={video} className="house-entry-movie" muted playsInline preload="auto" disablePictureInPicture aria-hidden="true" />
       <h1 className="sr-only">LOTHUUS Vintage</h1>
-      {automatic&&status==='ready'&&!arrived&&<>
-        <button className={`house-entry-playback ${paused?'is-paused':''}`} onClick={togglePause} aria-label={paused?'Hervat de camerarit':'Pauzeer de camerarit'} aria-pressed={paused}>
-          <span className="house-entry-pause-symbol" aria-hidden="true"><Pause size={28} strokeWidth={1.5}/></span>
+      {status === 'ready' && !arrived && <>
+        <button className={`house-entry-playback ${paused ? 'is-paused' : ''}`} onClick={togglePause} aria-label={paused ? 'Hervat de camerarit' : 'Pauzeer de camerarit'} aria-pressed={paused}>
+          <span className="house-entry-pause-symbol" aria-hidden="true">{paused ? <Play size={28} strokeWidth={1.5} /> : <Pause size={28} strokeWidth={1.5} />}</span>
         </button>
-        <div className="house-entry-flight-controls"><a href="#collectie">Overslaan <ArrowDown size={13}/></a></div>
+        <div className="house-entry-flight-controls"><a href="#collectie">Overslaan <ArrowDown size={13} /></a></div>
       </>}
-      {status==='error'&&loaderDismissed&&<div className="house-entry-status" role="status"><span>Het 3D-huis kon niet worden geladen.</span><button onClick={()=>setAttempt(value=>value+1)}>Opnieuw <RotateCcw size={14}/></button><a href="#collectie">Naar de collectie <ArrowDown size={14}/></a></div>}
     </section></div>
     <div ref={world} className="house-entry-world">{children}</div>
   </div>;
