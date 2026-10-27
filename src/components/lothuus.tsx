@@ -173,7 +173,17 @@ export function Lothuus() {
         <div className="house-copy"><span className="house-small-wordmark"><Wordmark /></span><h2 id="house-heading">Een huis voor cultuur<br />en <em>ontmoeting</em></h2><p>Sommige plekken brengen iets samen. Mensen en ideeën. Kunst en muziek. Het vertrouwde en het onverwachte.</p><p>LOTHUUS is zo’n plek. Ook onze liefde voor vintage begint hier: bij dingen die blijven boeien, en de verhalen die we met elkaar delen.</p><div className="house-topics"><span>CONCERTS</span><span>ART</span><span>MEETINGS</span><span>EVENTS</span></div><button className="text-link" onClick={() => setPanel('contact')}>Laten we kennismaken <ArrowUpRight size={17} /></button></div>
       </section>
     </main>
-    <footer className="site-footer"><div className="footer-top"><a href="#" aria-label="LOTHUUS, naar boven"><Wordmark footer /></a><p>Een huis voor cultuur<br />en ontmoeting.</p><button onClick={() => setPanel('contact')}>Kom in contact <ArrowUpRight size={16} /></button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} LOTHUUS</span><span>Met aandacht verzameld. Met liefde doorgegeven.</span><span>LOTHUUS collectie · <a href="/admin">Beheer</a></span></div><LegalLinks /></footer>
+    <footer className="site-footer"><div className="footer-top"><a href="#" aria-label="LOTHUUS, naar boven"><Wordmark footer /></a><p>Een huis voor cultuur<br />en ontmoeting.</p><button onClick={() => setPanel('contact')}>Kom in contact <ArrowUpRight size={16} /></button></div><div className="footer-bottom"><span>© {new Date().getFullYear()} LOTHUUS</span><span>Met aandacht verzameld. Met liefde doorgegeven.</span><span>LOTHUUS collectie · <a href="/admin">Beheer</a></span></div>
+      <div className="footer-colophon">
+        <LegalLinks />
+        <a className="footer-credit" href="https://www.webaanzee.be/" target="_blank" rel="noopener noreferrer">
+          <span>Gemaakt door</span>
+          <Image src="/branding/webaanzee.webp" alt="Webaanzee" width={600} height={72} unoptimized />
+          <ArrowUpRight size={14} aria-hidden="true" />
+          <span className="sr-only"> (opent in een nieuw tabblad)</span>
+        </a>
+      </div>
+    </footer>
     <div className={`selection-feedback ${feedback ? 'is-visible' : ''}`} role="status" aria-live="polite">{feedback && <><Heart size={16} fill="currentColor" /><span>{feedback}</span><button onClick={openSelection}>Bekijk selectie<ArrowUpRight size={15} /></button></>}</div>
     {currentDetail && <Detail key={`${currentDetail.id}:${currentDetail.image}`} object={currentDetail} saved={saved.includes(currentDetail.id)} onSave={() => toggleSaved(currentDetail.id)} onClose={() => setDetail(null)} onSelection={openSelection} count={saved.length} />}
     {panel === 'selection' && <SelectionDialog objects={selected} settings={publicSettings} draft={checkoutDraft} onDraft={setCheckoutDraft} attempt={checkoutAttempt} onClose={() => setPanel(null)} onRemove={toggleSaved} onOpen={object => { setPanel(null); setDetail(object); }} onRefresh={() => { void refreshCatalogue(); }} onOrdered={ids => { setCheckoutDraft({ name: '', email: '', phone: '', message: '' }); setSaved(current => removeOrderedSelection(current, ids, catalogueObjects.current)); void refreshCatalogue(); }} />}
