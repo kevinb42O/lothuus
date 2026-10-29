@@ -63,7 +63,7 @@ test('mobile photo choices precede long copy and reveal only the latest successf
   }
 });
 
-test('photo arrows wrap, track rapid choices and share selection with thumbnails and keyboard', async () => {
+test('photo arrows stop at boundaries and track rapid choices, thumbnails and keyboard', async () => {
   const ui = setupDom();
   const pending: (() => void)[] = [];
   ui.dom.window.Image = class {
@@ -86,22 +86,27 @@ test('photo arrows wrap, track rapid choices and share selection with thumbnails
     await act(async () => render());
     assert.equal(ui.container.querySelector('h2')!.textContent, 'servies');
     assert.equal(ui.container.querySelector('dialog')!.getAttribute('aria-label'), 'Vintage servies – Model 1648');
+    assert.equal(arrow('Vorige foto').hidden, true);
+    assert.equal(arrow('Volgende foto').hidden, false);
     await act(async () => arrow('Vorige foto').click());
+    assert.equal(pending.length, 0, 'previous at first must not wrap or decode');
+    await act(async () => { arrow('Volgende foto').click(); arrow('Volgende foto').click(); arrow('Volgende foto').click(); });
+    assert.equal(pending.length, 2, 'rapid next clicks stop at the final requested photo');
     await decode();
-    assert.equal(source(), '/third.jpg', 'previous from first wraps to last');
+    assert.equal(source(), '/first.jpg', 'superseded request must not commit');
+    await decode();
+    assert.equal(source(), '/third.jpg');
+    assert.equal(arrow('Vorige foto').hidden, false);
+    assert.equal(arrow('Volgende foto').hidden, true);
     assert.equal(ui.container.querySelectorAll('.detail-photo-strip button[aria-pressed="true"]').length, 1);
     assert.equal(ui.container.querySelector('.detail-photo-strip button[aria-pressed="true"]')!.getAttribute('aria-label'), 'Bekijk Onderzijde');
     await act(async () => arrow('Volgende foto').click());
-    await decode();
-    assert.equal(source(), '/first.jpg', 'next from last wraps to first');
-    await act(async () => { arrow('Volgende foto').click(); arrow('Volgende foto').click(); });
-    await decode();
-    assert.equal(source(), '/first.jpg', 'superseded arrow request must not commit');
-    await decode();
-    assert.equal(source(), '/third.jpg', 'rapid clicks advance through requested photos');
-    await act(async () => arrow('Volgende foto').dispatchEvent(new ui.dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
+    assert.equal(pending.length, 0, 'next at last must not wrap');
+    await act(async () => arrow('Vorige foto').dispatchEvent(new ui.dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
     await decode();
     assert.equal(source(), '/second.jpg');
+    assert.equal(arrow('Vorige foto').hidden, false);
+    assert.equal(arrow('Volgende foto').hidden, false);
     await act(async () => render({ ...object, photos: [object.photos[0]] }));
     assert.equal(ui.container.querySelector('.detail-photo-arrow'), null);
   } finally {

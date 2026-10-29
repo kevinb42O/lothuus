@@ -313,3 +313,6 @@ Desktop hover delay — 29 October 2026: Supersedes immediate braking/cadence-ba
 
 
 Hover deadline refinement — 29 October 2026: Count the two-second dwell during an earlier expansion’s automatic reveal as well. Reuse the dimensions of a loaded, painted thumbnail at the deadline; only await decoding for an image that has not loaded, avoiding a second decode wait before enlargement.
+
+
+Stable detail photo arrows — 29 October 2026: Anchor desktop previous/next controls 12px from the fixed gallery frame edges at its vertical midpoint, independent of the photograph’s fitted width or orientation. Hide previous on the first displayed photo and next on the last; all arrow, keyboard and swipe navigation stops at the ends instead of wrapping. Rapid input advances from the last requested image, and only a successful latest decode updates the displayed photo and arrow visibility.

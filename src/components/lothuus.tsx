@@ -87,10 +87,12 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
   function navigatePhoto(direction: -1 | 1) {
     if (photos.length < 2) return;
     const index = Math.max(0, photos.findIndex(p => photoSource(p) === (requestedPhoto.current || photo)));
-    void choosePhoto(photoSource(photos[(index + direction + photos.length) % photos.length]));
+    const next = index + direction;
+    if (next < 0 || next >= photos.length) return;
+    void choosePhoto(photoSource(photos[next]));
   }
   const layout = detailLayout(image.width / image.height, viewport, false, (photos.length > 1 ? 96 : 0));
-  const dialogStyle = { width: layout.width, '--detail-gallery-width': `${layout.mode === 'split' ? Math.min(layout.width * .55, layout.width - 340) : layout.width}px`, '--detail-panel-height': `${viewport.height - Math.max(16, Math.min(24, viewport.height * .025)) * 2}px`, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px`, '--detail-strip-height': photos.length > 1 ? '96px' : '0px', '--detail-image-width': `${Math.min(layout.photoWidth, layout.photoHeight * image.width / image.height)}px` } as CSSProperties;
+  const dialogStyle = { width: layout.width, '--detail-gallery-width': `${layout.mode === 'split' ? Math.min(layout.width * .55, layout.width - 340) : layout.width}px`, '--detail-panel-height': `${viewport.height - Math.max(16, Math.min(24, viewport.height * .025)) * 2}px`, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px`, '--detail-strip-height': photos.length > 1 ? '96px' : '0px' } as CSSProperties;
   const live = object.priceCents !== undefined;
   const fullTitle = displayProductTitle(object.title);
   const detailTitle = fullTitle.replace(/^Vintage\s+/i, '').replace(/\s+[–—-]\s+Model\s+.+$/i, '');
@@ -123,8 +125,8 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
       if (loaded.naturalWidth && loaded.naturalHeight) setImage(current => current.src === photo && (current.width !== loaded.naturalWidth || current.height !== loaded.naturalHeight) ? { src: photo, width: loaded.naturalWidth, height: loaded.naturalHeight } : current);
     }} />
       {photos.length > 1 && <>
-        <button type="button" className="detail-photo-arrow detail-photo-prev" aria-label="Vorige foto" onClick={() => navigatePhoto(-1)}><ChevronLeft size={24} strokeWidth={1.7} aria-hidden="true" /></button>
-        <button type="button" className="detail-photo-arrow detail-photo-next" aria-label="Volgende foto" onClick={() => navigatePhoto(1)}><ChevronRight size={24} strokeWidth={1.7} aria-hidden="true" /></button>
+        <button type="button" className="detail-photo-arrow detail-photo-prev" hidden={activePhotoIndex === 0} aria-label="Vorige foto" onClick={() => navigatePhoto(-1)}><ChevronLeft size={24} strokeWidth={1.7} aria-hidden="true" /></button>
+        <button type="button" className="detail-photo-arrow detail-photo-next" hidden={activePhotoIndex === photos.length - 1} aria-label="Volgende foto" onClick={() => navigatePhoto(1)}><ChevronRight size={24} strokeWidth={1.7} aria-hidden="true" /></button>
         <span className="sr-only" role="status" aria-live="polite">Foto {activePhotoIndex + 1} van {photos.length}</span>
       </>}
     </div>
