@@ -10,6 +10,15 @@ export const dynamic = 'force-dynamic';
 // gecontroleerde verbeteringen toe; neem nooit automatisch GitHub-teksten over.
 const updates: WorkspaceUpdate[] = [
   {
+    id: '2026-10-29-product-detail-redesign', date: '2026-10-29',
+    title: 'Een rustigere en overzichtelijkere productweergave',
+    body: [
+      'Je objecten krijgen meer ruimte. Op de computer staat de grote foto links, met de titel en prijs ernaast. Materiaal, afmetingen en staat zijn meteen zichtbaar. De langere beschrijving vind je onder ‘Over dit object’; de volledige gegevens staan onder ‘Alle kenmerken’. Zo kunnen bezoekers eerst rustig kijken en de belangrijkste informatie snel terugvinden.',
+      'Met ‘Bewaar in mijn selectie’ verzamelen bezoekers hun favorieten. Na het bewaren verandert de knop in ‘In mijn selectie’. Dubbele hartjes en herhaalde meldingen over beschikbaarheid zijn weggehaald.',
+      'De kleine foto’s blijven direct onder de grote foto staan. Alleen een gekleurde rand geeft aan welk beeld je bekijkt, zonder vinkje. Op je telefoon staan de foto’s boven de productinformatie en blijft de sluitknop bereikbaar.',
+    ],
+  },
+  {
     id: '2026-10-29-product-layout', date: '2026-10-29',
     title: 'Foto en productinformatie blijven samen in beeld',
     body: [

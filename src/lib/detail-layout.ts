@@ -13,7 +13,7 @@ export function detailLayout(ratio: number, viewport: { width: number; height: n
   if (mobile) {
     return { mode: 'stacked' as const, width: available, photoWidth: available, photoHeight: available / aspect };
   }
-  const textWidth = Math.min(640, Math.max(340, available * .36));
+  const textWidth = Math.max(340, available * .45);
   const maxPhotoHeight = Math.max(1, availableHeight - chromeHeight);
   const photoWidth = Math.min(Math.max(1, available - textWidth), maxPhotoHeight * aspect);
   const photoHeight = photoWidth / aspect;

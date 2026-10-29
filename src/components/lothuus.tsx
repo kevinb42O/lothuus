@@ -31,17 +31,6 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
   const [photoError, setPhotoError] = useState('');
   const photoRequest = useRef(0);
   const photoFrame = useRef<HTMLDivElement>(null);
-  const heading = useRef<HTMLElement>(null);
-  const [headingHeight, setHeadingHeight] = useState(96);
-  useLayoutEffect(() => {
-    const element = heading.current;
-    if (!element || typeof ResizeObserver === 'undefined') return;
-    const measure = () => setHeadingHeight(element.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
   const photoStrip = useRef<HTMLDivElement>(null);
   const revealPhoto = useRef(false);
   const swipe = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -100,14 +89,12 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
     const index = Math.max(0, photos.findIndex(p => photoSource(p) === (requestedPhoto.current || photo)));
     void choosePhoto(photoSource(photos[(index + direction + photos.length) % photos.length]));
   }
-  const layout = detailLayout(image.width / image.height, viewport, false, headingHeight + (photos.length > 1 ? 96 : 0));
-  const dialogStyle = { width: layout.width, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px`, '--detail-strip-height': photos.length > 1 ? '96px' : '0px', '--detail-image-width': `${Math.min(layout.photoWidth, layout.photoHeight * image.width / image.height)}px` } as CSSProperties;
+  const layout = detailLayout(image.width / image.height, viewport, false, (photos.length > 1 ? 96 : 0));
+  const dialogStyle = { width: layout.width, '--detail-gallery-width': `${layout.mode === 'split' ? Math.min(layout.width * .55, layout.width - 340) : layout.width}px`, '--detail-panel-height': `${viewport.height - Math.max(16, Math.min(24, viewport.height * .025)) * 2}px`, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px`, '--detail-strip-height': photos.length > 1 ? '96px' : '0px', '--detail-image-width': `${Math.min(layout.photoWidth, layout.photoHeight * image.width / image.height)}px` } as CSSProperties;
   const live = object.priceCents !== undefined;
+  const fullTitle = displayProductTitle(object.title);
+  const detailTitle = fullTitle.replace(/^Vintage\s+/i, '').replace(/\s+[–—-]\s+Model\s+.+$/i, '');
   return <Dialog title={displayProductTitle(object.title)} onClose={onClose} className={`detail-dialog detail-${layout.mode}`} style={dialogStyle}>
-    <header className="detail-heading" ref={heading}>
-      <h2>{displayProductTitle(object.title)}</h2>
-      <HeartButton className="detail-header-heart" selected={saved} aria-label={`${saved ? 'Verwijder' : 'Bewaar'} ${displayProductTitle(object.title)} ${saved ? 'uit' : 'in'} je selectie`} onClick={onSave} />
-    </header>
     <div className="detail-gallery">
     <div className="detail-image" ref={photoFrame}
       onPointerDown={event => {
@@ -140,28 +127,46 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
         <button type="button" className="detail-photo-arrow detail-photo-next" aria-label="Volgende foto" onClick={() => navigatePhoto(1)}><ChevronRight size={24} strokeWidth={1.7} aria-hidden="true" /></button>
         <span className="sr-only" role="status" aria-live="polite">Foto {activePhotoIndex + 1} van {photos.length}</span>
       </>}
-      <HeartButton className="detail-heart" selected={saved} aria-label={`${saved ? 'Verwijder' : 'Bewaar'} ${displayProductTitle(object.title)} ${saved ? 'uit' : 'in'} je selectie`} onClick={onSave} />
     </div>
-      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip" ref={photoStrip}>{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photoSource(p) === photo} onClick={() => { void choosePhoto(photoSource(p)); }}><img src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} />{photoSource(p) === photo && <span className="detail-thumbnail-current" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>}</button>)}</div>}
+      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip" ref={photoStrip}>{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photoSource(p) === photo} onClick={() => { void choosePhoto(photoSource(p)); }}><img src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
     </div>
     <div className="detail-content">
-      <p className="detail-category">{categoryLabel(object.category)} <span>{object.date}</span></p>
-      {live && <p className="detail-price">{money(object.priceCents!)} <span>{({ available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht' })[object.availability || 'available']}</span></p>}
-      {photoError && <p className="detail-note" role="status">{photoError}</p>}
-      <p className="detail-intro">{object.description || "Bekijk dit object uit de LOTHUUS-collectie vanuit verschillende hoeken. Meer productinformatie volgt binnenkort."}</p>
-      {object.condition && <p className="detail-intro">{object.condition}</p>}
-      <dl className="object-facts">{object.date && <div><dt>Periode</dt><dd>{object.date}</dd></div>}<div><dt>Materiaal</dt><dd>{object.material}</dd></div>{object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}</dl>
-      {!live && object.description && <details className="original-description"><summary>Het verhaal achter dit object <Plus size={14} /></summary><p lang="en">{object.description}</p></details>}
-      <p className="availability">{live ? ({ available: "Beschikbaar", reserved: "Gereserveerd", sold: "Verkocht" })[object.availability || "available"] : "Uit de LOTHUUS-collectie"}</p>
-      <button type="button" className={`primary-button detail-add-button ${saved ? 'is-saved' : ''}`} aria-pressed={saved} onClick={onSave}>
-        {saved ? 'Toegevoegd aan mijn selectie' : 'Voeg toe aan mijn selectie'}
-        {saved ? <Check size={19} aria-hidden="true" /> : <Heart size={19} aria-hidden="true" />}
-      </button>
-      {saved && <p className="detail-save-status" role="status">Bewaard. Klik nogmaals om dit object te verwijderen.</p>}
-      {count > 0 && <button className="text-link detail-selection-link" onClick={onSelection}>Bekijk mijn selectie ({count})<ArrowUpRight size={17} /></button>}
-      {(!live || object.availability === 'reserved' || object.availability === 'sold') && <p className="detail-note">{object.availability === 'reserved' ? 'Dit object is tijdelijk voor een andere klant gereserveerd. Het blijft hier zichtbaar, maar is nu niet bestelbaar.' : object.availability === 'sold' ? 'Dit object heeft een nieuw thuis gevonden.' : 'Bewaar dit object en laat je selectie reserveren. Katrien bevestigt daarna de prijs en betaalafspraak.'}</p>}
-      {!live && object.source && <a href={object.source} target="_blank" rel="noreferrer" className="text-link">Herkomst & objectinformatie <ArrowUpRight size={15} /></a>}
-      {!live && <span className="image-credit">Fotografie: LOTHUUS</span>}
+      <div className="detail-reading">
+        <header className="detail-heading">
+          <h2>{detailTitle}</h2>
+          <p className="detail-context">{[object.maker, object.date].filter(Boolean).join(' · ') || categoryLabel(object.category)}</p>
+        </header>
+        {live && <p className="detail-price">{money(object.priceCents!)} <span className={`detail-stock detail-stock-${object.availability || 'available'}`}>{({ available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht' })[object.availability || 'available']}</span></p>}
+        {photoError && <p className="detail-note" role="status">{photoError}</p>}
+        {(object.material || object.dimensions) && <dl className="detail-essentials">
+          {object.material && <div><dt>Materiaal</dt><dd>{object.material}</dd></div>}
+          {object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}
+        </dl>}
+        {object.condition && <section className="detail-condition"><h3>Staat</h3><p>{object.condition}</p></section>}
+        <div className="detail-actions">
+          <button type="button" className={`primary-button detail-add-button ${saved ? 'is-saved' : ''}`} aria-pressed={saved} onClick={onSave}>
+            {saved ? <Check size={19} aria-hidden="true" /> : <Heart size={19} aria-hidden="true" />}
+            {saved ? 'In mijn selectie' : 'Bewaar in mijn selectie'}
+          </button>
+          <p className="detail-save-status" role="status">{saved ? 'Bewaard. Klik nogmaals om te verwijderen.' : 'Verzamel je favorieten en bestel ze samen.'}</p>
+          {count > 0 && <button className="text-link detail-selection-link" onClick={onSelection}>Bekijk mijn selectie ({count})<ArrowUpRight size={17} /></button>}
+          {(!live || object.availability === 'reserved' || object.availability === 'sold') && <p className="detail-note">{object.availability === 'reserved' ? 'Dit object is tijdelijk voor een andere klant gereserveerd en is nu niet bestelbaar.' : object.availability === 'sold' ? 'Dit object heeft een nieuw thuis gevonden.' : 'Katrien bevestigt na je aanvraag de prijs en betaalafspraak.'}</p>}
+        </div>
+        <div className="detail-more">
+          {object.description && <details className="detail-disclosure"><summary>Over dit object <Plus size={18} aria-hidden="true" /></summary><p>{object.description}</p></details>}
+          <details className="detail-disclosure"><summary>Alle kenmerken <Plus size={18} aria-hidden="true" /></summary>
+            <dl className="object-facts">
+              <div><dt>Object</dt><dd>{fullTitle}</dd></div>
+              <div><dt>Categorie</dt><dd>{categoryLabel(object.category)}</dd></div>
+              {object.maker && <div><dt>Maker</dt><dd>{object.maker}</dd></div>}
+              {object.date && <div><dt>Periode</dt><dd>{object.date}</dd></div>}
+              {object.material && <div><dt>Materiaal</dt><dd>{object.material}</dd></div>}
+              {object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}
+            </dl>
+          </details>
+        </div>
+        {!live && object.source && <a href={object.source} target="_blank" rel="noreferrer" className="text-link">Herkomst & objectinformatie <ArrowUpRight size={15} /></a>}
+      </div>
     </div>
   </Dialog>;
 }

@@ -31,7 +31,7 @@ test('mobile photo choices precede long copy and reveal only the latest successf
     assert.equal(strip.parentElement, gallery);
     assert.equal(gallery.children[0].className, 'detail-image');
     assert.ok(gallery.compareDocumentPosition(content) & 4);
-    assert.ok(ui.container.querySelector('.detail-heading')!.compareDocumentPosition(gallery) & 4);
+    assert.ok(content.contains(ui.container.querySelector('.detail-heading')), 'title belongs with product information after the gallery');
     const frame = ui.container.querySelector<HTMLElement>('.detail-image')!;
     const dialog = ui.container.querySelector('dialog')!;
     dialog.getBoundingClientRect = () => rect(12, 812);
@@ -84,13 +84,12 @@ test('photo arrows wrap, track rapid choices and share selection with thumbnails
   const decode = async () => { await act(async () => { pending.shift()!(); await settle(); }); };
   try {
     await act(async () => render());
-    assert.equal(ui.container.querySelector('h2')!.textContent, 'Vintage servies – Model 1648');
+    assert.equal(ui.container.querySelector('h2')!.textContent, 'servies');
     assert.equal(ui.container.querySelector('dialog')!.getAttribute('aria-label'), 'Vintage servies – Model 1648');
     await act(async () => arrow('Vorige foto').click());
     await decode();
     assert.equal(source(), '/third.jpg', 'previous from first wraps to last');
-    assert.equal(ui.container.querySelectorAll('.detail-thumbnail-current').length, 1);
-    assert.ok(ui.container.querySelector('.detail-photo-strip button[aria-pressed="true"] .detail-thumbnail-current'));
+    assert.equal(ui.container.querySelectorAll('.detail-photo-strip button[aria-pressed="true"]').length, 1);
     assert.equal(ui.container.querySelector('.detail-photo-strip button[aria-pressed="true"]')!.getAttribute('aria-label'), 'Bekijk Onderzijde');
     await act(async () => arrow('Volgende foto').click());
     await decode();
@@ -146,8 +145,8 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
       pointer('pointerdown', 150, 150);
       pointer('pointerdown', 160, 150, { isPrimary: false });
       pointer('pointerup', 40, 150);
-      const heart = frame.querySelector('.detail-heart')!;
-      pointer('pointerdown', 150, 150, { target: heart });
+      const photoControl = frame.querySelector('button')!;
+      pointer('pointerdown', 150, 150, { target: photoControl });
       pointer('pointerup', 40, 150);
       pointer('pointerdown', 150, 150, { pointerType: 'mouse' });
       pointer('pointerup', 40, 150, { pointerType: 'mouse' });
