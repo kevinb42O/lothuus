@@ -26,10 +26,12 @@ test('mobile photo choices precede long copy and reveal only the latest successf
   try {
     await act(async () => render());
     const content = ui.container.querySelector('.detail-content')!;
-    const children = [...content.children];
+    const gallery = ui.container.querySelector('.detail-gallery')!;
     const strip = ui.container.querySelector('.detail-photo-strip')!;
-    assert.ok(children.indexOf(strip) > children.indexOf(content.querySelector('.detail-price')!));
-    assert.ok(children.indexOf(strip) < children.indexOf(content.querySelector('.detail-intro')!));
+    assert.equal(strip.parentElement, gallery);
+    assert.equal(gallery.children[0].className, 'detail-image');
+    assert.ok(gallery.compareDocumentPosition(content) & 4);
+    assert.ok(ui.container.querySelector('.detail-heading')!.compareDocumentPosition(gallery) & 4);
     const frame = ui.container.querySelector<HTMLElement>('.detail-image')!;
     const dialog = ui.container.querySelector('dialog')!;
     dialog.getBoundingClientRect = () => rect(12, 812);

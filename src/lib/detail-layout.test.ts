@@ -9,20 +9,20 @@ test('detail frames fit the viewport and reserve a readable desktop text column'
       assert.ok(layout.width <= viewport.width - 24);
       assert.ok(layout.photoWidth <= layout.width);
       if (layout.mode !== 'stacked') assert.ok(layout.photoHeight <= viewport.height - 24);
-      if (layout.mode === 'split') {
-        assert.ok(layout.width - layout.photoWidth >= 340);
-        // Contain fits the complete photo within a stable frame, without distortion or crop.
-        const scale = Math.min(layout.photoWidth / ratio, layout.photoHeight);
-        assert.ok(scale * ratio <= layout.photoWidth + .00001);
-        assert.ok(scale <= layout.photoHeight + .00001);
-      } else assert.ok(Math.abs(layout.photoWidth / layout.photoHeight - ratio) < .00001);
+      if (layout.mode === 'split') assert.ok(layout.width - layout.photoWidth >= 340);
+      assert.ok(Math.abs(layout.photoWidth / layout.photoHeight - ratio) < .00001);
     }
   }
 });
-test('switching between portrait and landscape preserves both desktop columns and frame geometry', () => {
+test('all desktop orientations retain adjacent information without adding blank photo margins', () => {
   const viewport = { width: 1280, height: 720 };
   const portrait = detailLayout(.75, viewport);
-  for (const ratio of [.3, 1, 4 / 3, 2.5]) assert.deepEqual(detailLayout(ratio, viewport), portrait);
+  for (const ratio of [.3, 1, 4 / 3, 2.5]) {
+    const layout = detailLayout(ratio, viewport, false, 192);
+    assert.equal(layout.mode, 'split');
+    assert.ok(Math.abs(layout.photoWidth / layout.photoHeight - ratio) < .00001);
+    assert.ok(layout.photoHeight + 192 <= viewport.height - 48 + .00001);
+  }
   assert.equal(portrait.mode, 'split');
   assert.equal(detailLayout(.75, { width: 390, height: 844 }).mode, 'stacked');
   assert.equal(detailLayout(4 / 3, { width: 390, height: 844 }).mode, 'stacked');

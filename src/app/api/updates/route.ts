@@ -13,15 +13,15 @@ const updates: WorkspaceUpdate[] = [
     id: '2026-10-29-product-layout', date: '2026-10-29',
     title: 'Foto en productinformatie blijven samen in beeld',
     body: [
-      'Op de computer staat de productinformatie nu ook bij horizontale foto’s naast de foto. Tijdens het bladeren blijft het detailvenster dezelfde indeling houden. Iedere foto blijft volledig zichtbaar en je kunt apart door de informatie scrollen.',
-      'Een gekleurde rand en een vinkje bij de kleine foto tonen duidelijk welk beeld je bekijkt. Wanneer je op je telefoon door de foto’s swipet, schuift de bijbehorende kleine foto mee in beeld. Op je telefoon blijft de productinformatie onder de grote foto staan.',
+      'De titel staat nu bovenaan het detailvenster. Op de computer staan de grote foto en de kleine foto’s samen links, met de prijs en productinformatie rechts. Ook horizontale foto’s blijven volledig zichtbaar, zonder extra lege banden. Door de informatie kun je apart scrollen.',
+      'Een gekleurde rand en een vinkje bij de kleine foto tonen duidelijk welk beeld je bekijkt. Wanneer je op je telefoon door de foto’s swipet, schuift de bijbehorende kleine foto mee in beeld. Op je telefoon staan de titel, grote foto en kleine foto’s onder elkaar, gevolgd door de prijs en productinformatie.',
     ],
   },
   {
     id: '2026-10-29-product-photos', date: '2026-10-29',
     title: 'Makkelijker alle foto’s van een object bekijken',
     body: [
-      'De kleine foto’s staan nu direct onder de prijs, boven de beschrijving. Ook bij een uitgebreide tekst, bijvoorbeeld bij een groot servies, hoef je niet eerst door alle informatie te scrollen om een andere foto te kiezen.',
+      'De kleine foto’s staan nu direct onder de grote foto, boven de beschrijving. Ook bij een uitgebreide tekst, bijvoorbeeld bij een groot servies, hoef je niet eerst door alle informatie te scrollen om een andere foto te kiezen.',
       'Op je telefoon kun je op de grote foto naar links of rechts swipen om door de beelden te bladeren. Op de computer gebruik je de pijlen links en rechts op de foto. De kleine foto’s blijven ook beschikbaar; wanneer je op je telefoon zo een ander beeld kiest, komt de grote foto weer in beeld.',
       'Producttitels op de website tonen alleen de naam van het object, zonder de voorraadcode ervoor. In je werkruimte blijven de codes bewaard om je producten terug te vinden.',
     ],
