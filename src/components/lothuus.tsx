@@ -157,9 +157,9 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
         {saved ? 'Toegevoegd aan mijn selectie' : 'Voeg toe aan mijn selectie'}
         {saved ? <Check size={19} aria-hidden="true" /> : <Heart size={19} aria-hidden="true" />}
       </button>
-      <p className="detail-save-status" role="status">{saved ? 'Bewaard. Klik nogmaals om dit object te verwijderen.' : 'Bewaar je favoriete vondsten en bekijk ze samen in je selectie.'}</p>
+      {saved && <p className="detail-save-status" role="status">Bewaard. Klik nogmaals om dit object te verwijderen.</p>}
       {count > 0 && <button className="text-link detail-selection-link" onClick={onSelection}>Bekijk mijn selectie ({count})<ArrowUpRight size={17} /></button>}
-      <p className="detail-note">{object.availability === 'reserved' ? 'Dit object is tijdelijk voor een andere klant gereserveerd. Het blijft hier zichtbaar, maar is nu niet bestelbaar.' : object.availability === 'sold' ? 'Dit object heeft een nieuw thuis gevonden.' : live ? 'Verzamel je vondsten in je selectie en bestel ze samen. Je betaalt buiten de website.' : 'Bewaar dit object en laat je selectie reserveren. Katrien bevestigt daarna de prijs en betaalafspraak.'}</p>
+      {(!live || object.availability === 'reserved' || object.availability === 'sold') && <p className="detail-note">{object.availability === 'reserved' ? 'Dit object is tijdelijk voor een andere klant gereserveerd. Het blijft hier zichtbaar, maar is nu niet bestelbaar.' : object.availability === 'sold' ? 'Dit object heeft een nieuw thuis gevonden.' : 'Bewaar dit object en laat je selectie reserveren. Katrien bevestigt daarna de prijs en betaalafspraak.'}</p>}
       {!live && object.source && <a href={object.source} target="_blank" rel="noreferrer" className="text-link">Herkomst & objectinformatie <ArrowUpRight size={15} /></a>}
       {!live && <span className="image-credit">Fotografie: LOTHUUS</span>}
     </div>
