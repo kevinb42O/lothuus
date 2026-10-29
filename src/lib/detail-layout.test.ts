@@ -36,6 +36,20 @@ test('large screens are no longer capped at a small fixed modal width', () => {
   for (const width of [1440, 1920, 2560, 3440]) {
     const layout = detailLayout(.75, { width, height: 1440 }, false, 192);
     assert.ok(layout.width >= width * .94);
-    assert.ok(layout.width - layout.photoWidth <= 640);
+    assert.ok(layout.width - layout.photoWidth >= 340);
+  }
+});
+
+test('portrait whitespace becomes information width while each photo frame keeps its exact ratio', () => {
+  for (const viewport of [{ width: 1440, height: 817 }, { width: 1920, height: 1080 }, { width: 3440, height: 1440 }]) {
+    const portrait = detailLayout(.75, viewport, false, 184);
+    const landscape = detailLayout(4 / 3, viewport, false, 184);
+    assert.equal(portrait.width, landscape.width);
+    assert.ok(portrait.photoWidth < landscape.photoWidth);
+    assert.ok(portrait.width - portrait.photoWidth > landscape.width - landscape.photoWidth);
+    for (const ratio of [.3, .75, 1, 4 / 3, 2.5]) {
+      const layout = detailLayout(ratio, viewport, false, 184);
+      assert.ok(Math.abs(layout.photoWidth / layout.photoHeight - ratio) < .00001);
+    }
   }
 });

@@ -14,7 +14,8 @@ export function detailLayout(ratio: number, viewport: { width: number; height: n
     return { mode: 'stacked' as const, width: available, photoWidth: available, photoHeight: available / aspect };
   }
   const textWidth = Math.min(640, Math.max(340, available * .36));
-  const photoWidth = Math.max(1, available - textWidth);
-  const photoHeight = Math.min(photoWidth / aspect, Math.max(1, availableHeight - chromeHeight));
+  const maxPhotoHeight = Math.max(1, availableHeight - chromeHeight);
+  const photoWidth = Math.min(Math.max(1, available - textWidth), maxPhotoHeight * aspect);
+  const photoHeight = photoWidth / aspect;
   return { mode: 'split' as const, width: available, photoWidth, photoHeight };
 }

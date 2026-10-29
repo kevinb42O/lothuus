@@ -13,7 +13,7 @@ const updates: WorkspaceUpdate[] = [
     id: '2026-10-29-product-layout', date: '2026-10-29',
     title: 'Foto en productinformatie blijven samen in beeld',
     body: [
-      'Het detailvenster gebruikt op de computer meer van je scherm. De titel staat ruimer en gecentreerd bovenaan, met het hartje naast de sluitknop. Op de computer staan de grote foto en de kleine foto’s samen links, met de prijs en productinformatie rechts. Ook horizontale foto’s blijven volledig zichtbaar, zonder extra lege banden. Door de informatie kun je apart scrollen.',
+      'Het detailvenster gebruikt op de computer meer van je scherm. De titel staat ruimer en gecentreerd bovenaan, met het hartje linksboven en de sluitknop rechtsboven. Op de computer staan de grote foto en de kleine foto’s samen links, met de prijs en productinformatie rechts. Ook horizontale foto’s blijven volledig zichtbaar, zonder extra lege banden. Bij verticale foto’s krijgt de productinformatie automatisch meer breedte. Door de informatie kun je apart scrollen.',
       'Een gekleurde rand en een vinkje bij de kleine foto tonen duidelijk welk beeld je bekijkt. Wanneer je op je telefoon door de foto’s swipet, schuift de bijbehorende kleine foto mee in beeld. Op je telefoon staan de titel, grote foto en kleine foto’s onder elkaar, gevolgd door de prijs en productinformatie.',
     ],
   },
