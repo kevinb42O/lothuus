@@ -10,6 +10,14 @@ export const dynamic = 'force-dynamic';
 // gecontroleerde verbeteringen toe; neem nooit automatisch GitHub-teksten over.
 const updates: WorkspaceUpdate[] = [
   {
+    id: '2026-10-29-product-layout', date: '2026-10-29',
+    title: 'Foto en productinformatie blijven samen in beeld',
+    body: [
+      'Op de computer staat de productinformatie nu ook bij horizontale foto’s naast de foto. Tijdens het bladeren blijft het detailvenster dezelfde indeling houden. Iedere foto blijft volledig zichtbaar en je kunt apart door de informatie scrollen.',
+      'Een gekleurde rand en een vinkje bij de kleine foto tonen duidelijk welk beeld je bekijkt. Wanneer je op je telefoon door de foto’s swipet, schuift de bijbehorende kleine foto mee in beeld. Op je telefoon blijft de productinformatie onder de grote foto staan.',
+    ],
+  },
+  {
     id: '2026-10-29-product-photos', date: '2026-10-29',
     title: 'Makkelijker alle foto’s van een object bekijken',
     body: [

@@ -151,7 +151,7 @@ em { font-family: var(--font-editorial), serif; font-weight: 400; }
 .detail-dialog[open] { display: grid; grid-template-columns: var(--detail-photo-width) minmax(0, 1fr); align-items: start; }
 .detail-image { touch-action: pan-y pinch-zoom; width: var(--detail-photo-width); height: var(--detail-photo-height); min-height: 0; position: relative; overflow: hidden; background: transparent; }
 .detail-image img { display: block; width: 100%; height: 100%; object-fit: contain; padding: 0; }
-.detail-content { padding: 65px 42px 35px; height: var(--detail-photo-height); overflow-y: auto; overscroll-behavior: contain; }
+.detail-content { min-width: 0; padding: 65px 42px 35px; height: var(--detail-photo-height); overflow-y: auto; overscroll-behavior: contain; }
 .detail-stacked[open], .detail-photo[open] { display: block; }
 .detail-stacked .detail-image { width: 100%; height: auto; }
 .detail-stacked .detail-image img { height: auto; }
@@ -332,8 +332,11 @@ em { font-family: var(--font-editorial), serif; font-weight: 400; }
 .catalogue-notice { padding: 18px 0; font-size: 12px; line-height: 1.8; }
 .catalogue-empty { padding: 45px 0; font-size: 15px; }
 .detail-photo-strip { display: flex; gap: 8px; margin: 18px 0; flex-wrap: wrap; }
-.detail-photo-strip button { flex-shrink: 0; padding: 0; border: 1px solid transparent; }
-.detail-photo-strip button[aria-pressed='true'] { border-color: var(--ink); }
+.detail-photo-strip button { position: relative; flex-shrink: 0; padding: 3px; border: 2px solid transparent; background: transparent; }
+.detail-photo-strip button[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.detail-photo-strip button[aria-pressed='false'] img { opacity: .7; }
+.detail-photo-strip button:hover img, .detail-photo-strip button:focus-visible img { opacity: 1; }
+.detail-thumbnail-current { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 18px; height: 18px; background: var(--accent); color: var(--on-accent); }
 .detail-photo-strip img { display: block; width: 54px; height: 62px; object-fit: cover; }
 .detail-content .reserve-button { margin-top: 12px; }
 button.primary-button:disabled { opacity: .5; cursor: not-allowed; }
@@ -606,6 +609,7 @@ body:has(.house-entry-auto:not(.house-entry-arrived)) { position: fixed; inset: 
 }
 
 @media (max-width: 700px) {
+  .detail-stacked { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
   .detail-photo-strip { flex-wrap: nowrap; overflow-x: auto; padding: 7px; margin-inline: -7px; overscroll-behavior-x: contain; }
 }
 

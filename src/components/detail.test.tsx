@@ -87,6 +87,8 @@ test('photo arrows wrap, track rapid choices and share selection with thumbnails
     await act(async () => arrow('Vorige foto').click());
     await decode();
     assert.equal(source(), '/third.jpg', 'previous from first wraps to last');
+    assert.equal(ui.container.querySelectorAll('.detail-thumbnail-current').length, 1);
+    assert.ok(ui.container.querySelector('.detail-photo-strip button[aria-pressed="true"] .detail-thumbnail-current'));
     assert.equal(ui.container.querySelector('.detail-photo-strip button[aria-pressed="true"]')!.getAttribute('aria-label'), 'Bekijk Onderzijde');
     await act(async () => arrow('Volgende foto').click());
     await decode();
