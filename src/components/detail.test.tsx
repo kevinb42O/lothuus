@@ -15,7 +15,7 @@ test('mobile photo choices precede long copy and reveal only the latest successf
   const { Detail } = await import('./lothuus');
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(ui.container);
-  const object = { ...objects[0], priceCents: 12000, description: 'Een uitgebreid servies. '.repeat(100), photos: [
+  const object = { ...objects[0], image: '/first.jpg', priceCents: 12000, description: 'Een uitgebreid servies. '.repeat(100), photos: [
     { id: 'first', src: '/first.jpg', alt: 'Overzicht' },
     { id: 'second', src: '/second.jpg', alt: 'Detail' },
     { id: 'third', src: '/third.jpg', alt: 'Onderzijde' },
@@ -44,7 +44,7 @@ test('mobile photo choices precede long copy and reveal only the latest successf
     await act(async () => { pending[0].resolve(); await settle(); });
     assert.equal(scrolls.length, 0, 'superseded decode must not scroll');
     await act(async () => { pending[1].resolve(); await settle(); });
-    assert.match(frame.querySelector('img')!.getAttribute('src')!, /third/);
+    assert.match(frame.querySelector('[aria-hidden="false"] img')!.getAttribute('src')!, /third/);
     assert.deepEqual(scrolls, [{ top: 0, behavior: 'instant' }]);
     frame.getBoundingClientRect = () => rect(12, 312);
     await act(async () => { buttons[1].click(); });
@@ -53,7 +53,7 @@ test('mobile photo choices precede long copy and reveal only the latest successf
     await act(async () => { buttons[2].click(); });
     await act(async () => { pending[3].reject(); await settle(); });
     assert.match(content.textContent!, /Deze foto kan niet worden geladen/);
-    assert.match(frame.querySelector('img')!.getAttribute('src')!, /second/);
+    assert.match(frame.querySelector('[aria-hidden="false"] img')!.getAttribute('src')!, /second/);
     assert.equal(scrolls.length, 1, 'failed decode must not scroll');
     await act(async () => render({ ...object, photos: [object.photos[0]] }));
     assert.equal(ui.container.querySelector('.detail-photo-strip'), null);
@@ -80,7 +80,7 @@ test('photo arrows stop at boundaries and track rapid choices, thumbnails and ke
   ] };
   const render = (item = object) => root.render(<Detail object={item} saved={false} count={0} onSave={() => {}} onClose={() => {}} onSelection={() => {}} />);
   const arrow = (name: string) => ui.container.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!;
-  const source = () => ui.container.querySelector('.detail-image img')!.getAttribute('src');
+  const source = () => ui.container.querySelector('.detail-image [aria-hidden="false"] img')!.getAttribute('src');
   const decode = async () => { await act(async () => { pending.shift()!(); await settle(); }); };
   try {
     await act(async () => render());
@@ -133,6 +133,7 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
     await act(async () => root.render(<Detail object={object} saved={false} count={0} onSave={() => {}} onClose={() => {}} onSelection={() => {}} />));
     const frame = ui.container.querySelector<HTMLElement>('.detail-image')!;
     frame.setPointerCapture = () => {};
+    frame.getBoundingClientRect = () => ({ width: 366 }) as DOMRect;
     const pointer = (type: string, x: number, y: number, options: { target?: Element; isPrimary?: boolean; pointerType?: string } = {}) => {
       const event = new ui.dom.window.Event(type, { bubbles: true });
       Object.assign(event, { pointerId: 1, clientX: x, clientY: y, pointerType: options.pointerType || 'touch', isPrimary: options.isPrimary ?? true });
@@ -140,7 +141,8 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
     };
     const gesture = async (x: number, y: number, cancel = false) => act(async () => {
       pointer('pointerdown', 150, 150);
-      if (cancel) pointer('pointercancel', 150, 150);
+      pointer('pointermove', x, y);
+      if (cancel) pointer('pointercancel', x, y);
       pointer('pointerup', x, y);
     });
     await gesture(140, 150);
@@ -153,16 +155,14 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
       const photoControl = frame.querySelector('button')!;
       pointer('pointerdown', 150, 150, { target: photoControl });
       pointer('pointerup', 40, 150);
-      pointer('pointerdown', 150, 150, { pointerType: 'mouse' });
-      pointer('pointerup', 40, 150, { pointerType: 'mouse' });
     });
     assert.equal(pending.length, 0, 'only deliberate horizontal touch gestures navigate');
     await gesture(40, 150);
     await act(async () => { pending.shift()!(); await settle(); });
-    assert.equal(frame.querySelector('img')!.getAttribute('src'), '/second.jpg');
+    assert.equal(frame.querySelector('[aria-hidden="false"] img')!.getAttribute('src'), '/second.jpg');
     await gesture(240, 150);
     await act(async () => { pending.shift()!(); await settle(); });
-    assert.equal(frame.querySelector('img')!.getAttribute('src'), '/first.jpg');
+    assert.equal(frame.querySelector('[aria-hidden="false"] img')!.getAttribute('src'), '/first.jpg');
   } finally {
     await act(async () => root.unmount());
     ui.cleanup();

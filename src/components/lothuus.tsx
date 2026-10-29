@@ -3,6 +3,8 @@ import { displayProductTitle } from '@/lib/product-title';
 import { observeFreshness } from '@/lib/client-refresh';
 
 import Image from 'next/image';
+import { motion } from 'motion/react';
+import { usePhotoSwipe } from './use-photo-swipe';
 import { DoorwayHero } from './doorway-hero';
 import { ArrowUpRight, Heart, Download, Plus, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type CSSProperties } from 'react';
@@ -33,7 +35,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
   const photoFrame = useRef<HTMLDivElement>(null);
   const photoStrip = useRef<HTMLDivElement>(null);
   const revealPhoto = useRef(false);
-  const swipe = useRef<{ id: number; x: number; y: number } | null>(null);
+  const swipe = usePhotoSwipe(activePhotoIndex, photos.length, index => choosePhoto(photoSource(photos[index]), false));
   useLayoutEffect(() => {
     if (!revealPhoto.current) return;
     revealPhoto.current = false;
@@ -68,7 +70,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
     resize(); window.addEventListener('resize', resize);
     return () => { photoRequest.current++; window.removeEventListener('resize', resize); };
   }, []);
-  async function choosePhoto(src: string) {
+  async function choosePhoto(src: string, reveal = true) {
     const request = ++photoRequest.current;
     requestedPhoto.current = src;
     setPhotoError('');
@@ -78,11 +80,12 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
         requestedPhoto.current = photo;
         setPhotoError('Deze foto kan niet worden geladen. Probeer opnieuw.');
       }
-      return;
+      return false;
     }
-    if (request !== photoRequest.current) return;
-    revealPhoto.current = true;
+    if (request !== photoRequest.current) return false;
+    revealPhoto.current = reveal;
     setImage({ src, width: next.naturalWidth, height: next.naturalHeight });
+    return true;
   }
   function navigatePhoto(direction: -1 | 1) {
     if (photos.length < 2) return;
@@ -99,31 +102,24 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
   return <Dialog title={displayProductTitle(object.title)} onClose={onClose} className={`detail-dialog detail-${layout.mode}`} style={dialogStyle}>
     <div className="detail-gallery">
     <div className="detail-image" ref={photoFrame}
-      onPointerDown={event => {
-        if (!event.isPrimary) { swipe.current = null; return; }
-        if (event.pointerType === 'mouse' || photos.length < 2 || (event.target as Element).closest('button')) return;
-        swipe.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }}
-      onPointerCancel={() => { swipe.current = null; }}
-      onLostPointerCapture={() => { swipe.current = null; }}
-      onPointerUp={event => {
-        const start = swipe.current;
-        swipe.current = null;
-        if (!start || start.id !== event.pointerId) return;
-        const dx = event.clientX - start.x;
-        const dy = event.clientY - start.y;
-        if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.3) navigatePhoto(dx < 0 ? 1 : -1);
-      }}
+      {...swipe.handlers}
       onKeyDown={event => {
       if (photos.length > 1 && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
         event.preventDefault();
         navigatePhoto(event.key === 'ArrowLeft' ? -1 : 1);
       }
-    }}><Image src={photo} unoptimized alt={object.photos?.find(p => photo.includes(p.id))?.alt || displayProductTitle(object.title)} width={image.width} height={image.height} sizes="(max-width: 700px) 95vw, 800px" preload onLoad={event => {
-      const loaded = event.currentTarget;
-      if (loaded.naturalWidth && loaded.naturalHeight) setImage(current => current.src === photo && (current.width !== loaded.naturalWidth || current.height !== loaded.naturalHeight) ? { src: photo, width: loaded.naturalWidth, height: loaded.naturalHeight } : current);
-    }} />
+    }}><motion.div className="detail-photo-track" style={{ x: swipe.x }}>
+      {(photos.length ? photos : [{ id: object.id, alt: displayProductTitle(object.title), src: object.image }]).map((p, index) => {
+        const src = photoSource(p);
+        const active = src === photo || (photos.length === 0 && index === 0);
+        return <div className="detail-photo-slide" key={p.id} style={{ left: `${index * 100}%` }} aria-hidden={!active}>
+          <Image src={src} unoptimized alt={active ? p.alt : ''} width={image.width} height={image.height} sizes="(max-width: 700px) 95vw, 800px" loading={Math.abs(index - activePhotoIndex) <= 1 ? 'eager' : 'lazy'} draggable={false} onLoad={event => {
+            const loaded = event.currentTarget;
+            if (active && loaded.naturalWidth && loaded.naturalHeight) setImage(current => current.src === src && (current.width !== loaded.naturalWidth || current.height !== loaded.naturalHeight) ? { src, width: loaded.naturalWidth, height: loaded.naturalHeight } : current);
+          }} />
+        </div>;
+      })}
+    </motion.div>
       {photos.length > 1 && <>
         <button type="button" className="detail-photo-arrow detail-photo-prev" hidden={activePhotoIndex === 0} aria-label="Vorige foto" onClick={() => navigatePhoto(-1)}><ChevronLeft size={24} strokeWidth={1.7} aria-hidden="true" /></button>
         <button type="button" className="detail-photo-arrow detail-photo-next" hidden={activePhotoIndex === photos.length - 1} aria-label="Volgende foto" onClick={() => navigatePhoto(1)}><ChevronRight size={24} strokeWidth={1.7} aria-hidden="true" /></button>
