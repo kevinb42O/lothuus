@@ -21,8 +21,8 @@ test('updates are private, require an owner session and return only curated fiel
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'private, no-store');
     const { updates } = await response.json();
-    assert.equal(updates.length, 21);
-    assert.equal(new Set(updates.map((update: { id: string }) => update.id)).size, 21);
+    assert.equal(updates.length, 22);
+    assert.equal(new Set(updates.map((update: { id: string }) => update.id)).size, 22);
     assert.equal(updates.filter((update: { date: string }) => update.date < '2026-10-27').length, 12);
     assert.deepEqual(updates.map((update: { date: string }) => update.date), updates.map((update: { date: string }) => update.date).sort().reverse());
     for (const update of updates) {

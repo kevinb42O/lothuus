@@ -10,6 +10,15 @@ export const dynamic = 'force-dynamic';
 // gecontroleerde verbeteringen toe; neem nooit automatisch GitHub-teksten over.
 const updates: WorkspaceUpdate[] = [
   {
+    id: '2026-10-29-collection-refinements', date: '2026-10-29',
+    title: 'Rustiger kijken en bladeren in je collectie',
+    body: [
+      'Op de computer vergroot een object pas nadat de muis er ongeveer twee seconden op blijft staan. Ga je eerder naar een ander object, dan begint de wachttijd opnieuw. Zo kun je rustig over de collectie bewegen. Een klik opent nog steeds meteen de detailweergave.',
+      'Op je telefoon staan er geen hartjes meer over de productfoto’s in het overzicht. Bezoekers bewaren hun favorieten via ‘Bewaar in mijn selectie’ in de detailweergave.',
+      'De zichtbare schuifbalk onder de kleine foto’s is weggehaald. Swipen en horizontaal scrollen blijven werken, en de gekozen kleine foto schuift automatisch mee in beeld.',
+    ],
+  },
+  {
     id: '2026-10-29-product-detail-redesign', date: '2026-10-29',
     title: 'Een rustigere en overzichtelijkere productweergave',
     body: [

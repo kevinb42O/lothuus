@@ -304,3 +304,12 @@ Supersedes the full-width title header and portrait-dependent reading width abov
 
 
 Thumbnail selection refinement — 29 October 2026: The active product thumbnail uses only its raspberry frame and soft rose ground. Remove the checkmark overlay; retain aria-pressed selection and automatic horizontal reveal of the chosen thumbnail.
+
+
+Mobile collection hearts — 29 October 2026: Hide product-tile hearts on compact screens through 700px and on touch devices (no hover or coarse primary pointer), including saved hearts, in both the native and animated grids. Visitors save from the detail view. Desktop pointer hover/focus hearts and the header selection entry retain their behavior.
+
+
+Desktop hover delay — 29 October 2026: Supersedes immediate braking/cadence-based pointer intent. Enlarge an object only after the mouse remains over that same object for two uninterrupted seconds. Movement within the object keeps the original start; entering another object or a gap resets the delay. Leaving the grid, scrolling, opening details, filtering, blur and resize cancel pending expansion. Existing live hit validation and decode cancellation remain; keyboard focus and clicking keep their immediate behavior.
+
+
+Hover deadline refinement — 29 October 2026: Count the two-second dwell during an earlier expansion’s automatic reveal as well. Reuse the dimensions of a loaded, painted thumbnail at the deadline; only await decoding for an image that has not loaded, avoiding a second decode wait before enlargement.

@@ -331,7 +331,8 @@ em { font-family: var(--font-editorial), serif; font-weight: 400; }
 .reservation-page h1 { font-size: 42px; }
 .catalogue-notice { padding: 18px 0; font-size: 12px; line-height: 1.8; }
 .catalogue-empty { padding: 45px 0; font-size: 15px; }
-.detail-photo-strip { display: flex; gap: 8px; margin: 18px 0; flex-wrap: wrap; }
+.detail-photo-strip { display: flex; gap: 8px; margin: 18px 0; flex-wrap: wrap; scrollbar-width: none; }
+.detail-photo-strip::-webkit-scrollbar { display: none; }
 .detail-photo-strip button { position: relative; flex-shrink: 0; padding: 3px; border: 2px solid transparent; background: transparent; }
 .detail-photo-strip button[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); }
 .detail-photo-strip button[aria-pressed='false'] img { opacity: .7; }
@@ -421,7 +422,9 @@ button.primary-button:disabled { opacity: .5; cursor: not-allowed; }
 .order-private-link { margin: 16px 0 28px; }
 .reservation-error { line-height: 1.7; font-size: 13px; }
 .reservation-local { background: var(--saved-soft); color: var(--saved); }
-@media (hover: none), (pointer: coarse) { .grid-heart { opacity: 1; pointer-events: auto; } }
+@media (max-width: 700px), (hover: none), (pointer: coarse) {
+  .object-tile .grid-heart { display: none; }
+}
 @media (max-width: 540px) {
   .cart-dialog { padding: 48px 20px 20px; }
   .cart-list li { flex-wrap: wrap; gap: 6px; }

@@ -4,13 +4,13 @@ import { displayProductTitle } from '@/lib/product-title';
 import { MosaicPhoto, prepareMosaicPhoto } from './mosaic-photo';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type HTMLMotionProps } from 'motion/react';
 import { ArrowUpRight } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { categories, categoryLabel, type CollectionObject } from '@/lib/collection';
 import { HeartButton } from './heart-button';
 import { useElasticGrid } from './use-elastic-grid';
 import { useMosaicReveal } from './use-mosaic-reveal';
 import { collectionLayout, type ActiveCell } from '@/lib/grid-layout';
-import { PointerIntent, type IntentTarget } from '@/lib/pointer-intent';
+import { PointerIntent } from '@/lib/pointer-intent';
 import { categoryDirection, collectionColumns, filterTransition, type TileBounds } from '@/lib/filter-transition';
 import { captureWall, CollectionWall, type CapturedWall } from './collection-wall';
 import { useVisibleMosaicPhotos } from './use-visible-mosaic-photos';
@@ -54,7 +54,8 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
   const generation = useRef(0);
   const measuredWidth = useRef(0);
   const candidate = useRef<string | null>(null);
-  const intent = useRef(new PointerIntent());
+  // Recreate the controller on Fast Refresh; useRef would retain an obsolete class instance.
+  const intent = useMemo(() => new PointerIntent(), []);
   const intentFrame = useRef(0);
   const cursor = useRef<{ x: number; y: number } | null>(null);
   const reduced = useReducedMotion();
@@ -69,8 +70,8 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
     generation.current++;
   }, []);
   const clearIntent = useCallback(() => {
-    cancelAnimationFrame(intentFrame.current); intentFrame.current = 0; intent.current.reset(); cursor.current = null;
-  }, []);
+    cancelAnimationFrame(intentFrame.current); intentFrame.current = 0; intent.reset(); cursor.current = null;
+  }, [intent]);
   const resetHover = useCallback(() => { clearIntent(); clearPending(); candidate.current = null; }, [clearIntent, clearPending]);
   const settle = useCallback(() => { resetHover(); setActive(null); }, [resetHover]);
   useEffect(() => {
@@ -172,7 +173,10 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
       if (!image && keyboard) {
         const object = objects.find(object => object.id === id);
         if (object) image = await prepareMosaicPhoto(object, cell);
-      } else if (image) await image.decode();
+      } else if (image && (!image.complete || !image.naturalWidth)) {
+        // Painted photos already have usable geometry; only await missing pixels.
+        await image.decode();
+      }
     } catch { if (request === generation.current) candidate.current = null; return; }
     if (!image) { candidate.current = null; return; }
     if (request !== generation.current || !button.isConnected || busy.current) return;
@@ -186,12 +190,6 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
     setActive({ id, column, row, aspectRatio: image.naturalWidth / image.naturalHeight, maxPhotoHeight: Math.max(180, Math.min(620, window.innerHeight - 180)) });
   }
 
-  function snapshot(): IntentTarget[] {
-    return Array.from(container.current?.querySelectorAll<HTMLButtonElement>('[data-object]') ?? []).map(button => {
-      const rect = button.getBoundingClientRect();
-      return { id: button.dataset.object!, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-    }).filter(rect => rect.bottom > 0 && rect.top < window.innerHeight);
-  }
   function pointerButton(id: string) {
     const point = cursor.current;
     if (!point || document.hidden || document.body.style.overflow === 'hidden') return null;
@@ -206,8 +204,19 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
   function finishJourney(now: number) {
     intentFrame.current = 0;
     if (elastic.scrolling.current) { clearIntent(); clearPending(); candidate.current = null; return; }
-    land(intent.current.finish(now));
-    if (intent.current.tracking) intentFrame.current = requestAnimationFrame(finishJourney);
+    land(intent.finish(now));
+    if (intent.tracking) intentFrame.current = requestAnimationFrame(finishJourney);
+  }
+  function hoverObject(event: ReactPointerEvent<HTMLDivElement>) {
+    if (busy.current || elastic.scrolling.current || event.pointerType !== 'mouse' || !window.matchMedia('(min-width: 768px) and (any-hover: hover)').matches) return;
+    if (event.buttons || document.body.style.overflow === 'hidden') { resetHover(); return; }
+    cursor.current = { x: event.clientX, y: event.clientY };
+    const button = (event.target as Element).closest<HTMLButtonElement>('[data-object]');
+    const id = button && event.currentTarget.contains(button) ? button.dataset.object! : null;
+    if (intent.move(id, performance.now())) {
+      clearPending(); candidate.current = null;
+    }
+    if (intent.tracking && !intentFrame.current) intentFrame.current = requestAnimationFrame(finishJourney);
   }
   const movement = reduced ? { duration: 0 } : { type: 'spring' as const, stiffness: 320, damping: 38, mass: .85, restDelta: .2, restSpeed: 2 };
 
@@ -217,20 +226,8 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
       inert={!!wall || undefined}
       data-filtering={changing} data-focused={presentation.focused} data-filter={presentation.filterKey}
       initial={false} animate={{ height: layout.height }} transition={changing ? filterMovement : movement}
-      onPointerMove={event => {
-        if (busy.current || revealing.current || elastic.scrolling.current || event.pointerType !== 'mouse' || !window.matchMedia('(min-width: 768px) and (any-hover: hover)').matches) return;
-        if (event.buttons || document.body.style.overflow === 'hidden') { clearIntent(); clearPending(); candidate.current = null; return; }
-        cursor.current = { x: event.clientX, y: event.clientY };
-        const point = intent.current.point;
-        // Small corrections retain an in-flight image decode; only renewed travel cancels it.
-        if (point && Math.hypot(event.clientX - point.x, event.clientY - point.y) < (intent.current.tracking ? 1.5 : 8)) {
-          intent.current.move({ x: event.clientX, y: event.clientY, time: performance.now() }, snapshot); return;
-        }
-        clearPending(); candidate.current = null;
-        land(intent.current.move({ x: event.clientX, y: event.clientY, time: performance.now() }, snapshot));
-        if (intent.current.tracking && !intentFrame.current) intentFrame.current = requestAnimationFrame(finishJourney);
-      }}
-      onPointerEnter={() => { clearPending(); candidate.current = null; }}
+      onPointerMove={hoverObject}
+      onPointerEnter={hoverObject}
       onPointerLeave={resetHover}
       onPointerCancel={settle}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) settle(); }}
