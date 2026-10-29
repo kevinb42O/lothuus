@@ -101,10 +101,13 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
     void choosePhoto(photoSource(photos[(index + direction + photos.length) % photos.length]));
   }
   const layout = detailLayout(image.width / image.height, viewport, false, headingHeight + (photos.length > 1 ? 96 : 0));
-  const dialogStyle = { width: layout.width, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px`, '--detail-strip-height': photos.length > 1 ? '96px' : '0px' } as CSSProperties;
+  const dialogStyle = { width: layout.width, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px`, '--detail-strip-height': photos.length > 1 ? '96px' : '0px', '--detail-image-width': `${Math.min(layout.photoWidth, layout.photoHeight * image.width / image.height)}px` } as CSSProperties;
   const live = object.priceCents !== undefined;
   return <Dialog title={displayProductTitle(object.title)} onClose={onClose} className={`detail-dialog detail-${layout.mode}`} style={dialogStyle}>
-    <header className="detail-heading" ref={heading}><h2>{displayProductTitle(object.title)}</h2></header>
+    <header className="detail-heading" ref={heading}>
+      <h2>{displayProductTitle(object.title)}</h2>
+      <HeartButton className="detail-header-heart" selected={saved} aria-label={`${saved ? 'Verwijder' : 'Bewaar'} ${displayProductTitle(object.title)} ${saved ? 'uit' : 'in'} je selectie`} onClick={onSave} />
+    </header>
     <div className="detail-gallery">
     <div className="detail-image" ref={photoFrame}
       onPointerDown={event => {
