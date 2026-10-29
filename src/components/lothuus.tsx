@@ -35,7 +35,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
   const photoFrame = useRef<HTMLDivElement>(null);
   const photoStrip = useRef<HTMLDivElement>(null);
   const revealPhoto = useRef(false);
-  const swipe = usePhotoSwipe(activePhotoIndex, photos.length, index => choosePhoto(photoSource(photos[index]), false));
+  const swipe = usePhotoSwipe(activePhotoIndex, photos.length, index => choosePhoto(photoSource(photos[index]), false), photoFrame);
   useLayoutEffect(() => {
     if (!revealPhoto.current) return;
     revealPhoto.current = false;
@@ -101,7 +101,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
   const detailTitle = fullTitle.replace(/^Vintage\s+/i, '').replace(/\s+[–—-]\s+Model\s+.+$/i, '');
   return <Dialog title={displayProductTitle(object.title)} onClose={onClose} className={`detail-dialog detail-${layout.mode}`} style={dialogStyle}>
     <div className="detail-gallery">
-    <div className="detail-image" ref={photoFrame}
+    <div className="detail-image" ref={photoFrame} data-swipeable={photos.length > 1}
       {...swipe.handlers}
       onKeyDown={event => {
       if (photos.length > 1 && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {

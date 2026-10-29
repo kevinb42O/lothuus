@@ -691,3 +691,7 @@ body:has(.house-entry-auto:not(.house-entry-arrived)) { position: fixed; inset: 
 .detail-photo-track { position: absolute; inset: 0; }
 .detail-photo-slide { position: absolute; top: 0; width: 100%; height: 100%; }
 .detail-dialog .detail-photo-slide img { width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+
+/* Reserve the whole one-finger gesture before it starts. Changing touch-action
+   after horizontal intent is detected is too late to stop native pointercancel. */
+.detail-image[data-swipeable="true"] { touch-action: pinch-zoom; }

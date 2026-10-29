@@ -132,6 +132,7 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
   try {
     await act(async () => root.render(<Detail object={object} saved={false} count={0} onSave={() => {}} onClose={() => {}} onSelection={() => {}} />));
     const frame = ui.container.querySelector<HTMLElement>('.detail-image')!;
+    assert.equal(frame.dataset.swipeable, 'true');
     frame.setPointerCapture = () => {};
     frame.getBoundingClientRect = () => ({ width: 366 }) as DOMRect;
     const pointer = (type: string, x: number, y: number, options: { target?: Element; isPrimary?: boolean; pointerType?: string } = {}) => {
@@ -146,7 +147,7 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
       pointer('pointerup', x, y);
     });
     await gesture(140, 150);
-    await gesture(100, 260);
+    await gesture(150, 260);
     await gesture(40, 150, true);
     await act(async () => {
       pointer('pointerdown', 150, 150);
