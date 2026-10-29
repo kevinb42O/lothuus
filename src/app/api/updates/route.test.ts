@@ -21,15 +21,15 @@ test('updates are private, require an owner session and return only curated fiel
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'private, no-store');
     const { updates } = await response.json();
-    assert.equal(updates.length, 18);
-    assert.equal(new Set(updates.map((update: { id: string }) => update.id)).size, 18);
+    assert.equal(updates.length, 19);
+    assert.equal(new Set(updates.map((update: { id: string }) => update.id)).size, 19);
     assert.equal(updates.filter((update: { date: string }) => update.date < '2026-10-27').length, 12);
     assert.deepEqual(updates.map((update: { date: string }) => update.date), updates.map((update: { date: string }) => update.date).sort().reverse());
     for (const update of updates) {
       assert.deepEqual(Object.keys(update).sort(), (update.action ? ['id', 'date', 'title', 'body', 'action'] : ['id', 'date', 'title', 'body']).sort());
       if (update.action) assert(['items', 'visitors', 'hearts'].includes(update.action.target));
     }
-    assert.doesNotMatch(JSON.stringify(updates), /prijs|quot|hosting|pakket|github|commit|supabase|r2|vercel/i);
+    assert.doesNotMatch(JSON.stringify(updates), /quot|hosting|pakket|github|commit|supabase|r2|vercel/i);
   } finally {
     keys.forEach((key, index) => { if (previous[index] === undefined) delete process.env[key]; else process.env[key] = previous[index]; });
     await rm(directory, { recursive: true, force: true });

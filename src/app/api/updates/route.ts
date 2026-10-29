@@ -10,6 +10,15 @@ export const dynamic = 'force-dynamic';
 // gecontroleerde verbeteringen toe; neem nooit automatisch GitHub-teksten over.
 const updates: WorkspaceUpdate[] = [
   {
+    id: '2026-10-29-product-photos', date: '2026-10-29',
+    title: 'Makkelijker alle foto’s van een object bekijken',
+    body: [
+      'De kleine foto’s staan nu direct onder de prijs, boven de beschrijving. Ook bij een uitgebreide tekst, bijvoorbeeld bij een groot servies, hoef je niet eerst door alle informatie te scrollen om een andere foto te kiezen.',
+      'Op je telefoon kun je op de grote foto naar links of rechts swipen om door de beelden te bladeren. Op de computer gebruik je de pijlen links en rechts op de foto. De kleine foto’s blijven ook beschikbaar; wanneer je op je telefoon zo een ander beeld kiest, komt de grote foto weer in beeld.',
+      'Producttitels op de website tonen alleen de naam van het object, zonder de voorraadcode ervoor. In je werkruimte blijven de codes bewaard om je producten terug te vinden.',
+    ],
+  },
+  {
     id: '2026-10-27-house-intro', date: '2026-10-27',
     title: 'Een vernieuwde binnenkomst bij LOTHUUS',
     body: [

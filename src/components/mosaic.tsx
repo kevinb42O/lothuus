@@ -1,4 +1,5 @@
 'use client';
+import { displayProductTitle } from '@/lib/product-title';
 
 import { MosaicPhoto, prepareMosaicPhoto } from './mosaic-photo';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type HTMLMotionProps } from 'motion/react';
@@ -248,7 +249,7 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
           exit={{ opacity: 0, transition: { duration: reduced ? 0 : .16 } }}
           transition={changing ? filterMovement : movement}>
           <button data-object={object.id} className="object-button" aria-expanded={expanded}
-            aria-label={`${object.title}, ${categoryLabel(object.category)}. ${object.availability === 'reserved' ? 'Gereserveerd. ' : object.availability === 'sold' ? 'Verkocht. ' : ''}Bekijk het object`}
+            aria-label={`${displayProductTitle(object.title)}, ${categoryLabel(object.category)}. ${object.availability === 'reserved' ? 'Gereserveerd. ' : object.availability === 'sold' ? 'Verkocht. ' : ''}Bekijk het object`}
             onFocus={event => {
               if (!event.currentTarget.matches(':focus-visible') || window.innerWidth < 768) return;
               const button = event.currentTarget;
@@ -269,11 +270,11 @@ function AnimatedMosaic({ objects: requestedObjects, filterKey, focused, onOpen,
             <span className="object-photograph">{photoVisible&&<MosaicPhoto key={object.image} object={object} width={position.width} />}</span>
             {object.availability && object.availability !== 'available' && <span className={`stock-badge ${object.availability}`}>{object.availability === 'reserved' ? 'Gereserveerd' : 'Verkocht'}</span>}
             <motion.span className="fluid-caption" initial={false} animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: reduced ? 0 : .18 }} aria-hidden={!expanded}>
-              <span><span className="object-category">{categoryLabel(object.category)}{object.availability === 'reserved' ? ' · Gereserveerd' : object.availability === 'sold' ? ' · Verkocht' : ''}</span><strong className="object-title">{object.title}</strong></span>
+              <span><span className="object-category">{categoryLabel(object.category)}{object.availability === 'reserved' ? ' · Gereserveerd' : object.availability === 'sold' ? ' · Verkocht' : ''}</span><strong className="object-title">{displayProductTitle(object.title)}</strong></span>
               <ArrowUpRight size={19} strokeWidth={1.3} />
             </motion.span>
           </button>
-          <HeartButton className={`grid-heart ${saved.includes(object.id) ? 'saved-marker' : ''}`} selected={saved.includes(object.id)} size={22} aria-label={`${saved.includes(object.id) ? 'Verwijder' : 'Bewaar'} ${object.title} ${saved.includes(object.id) ? 'uit' : 'in'} je selectie`}
+          <HeartButton className={`grid-heart ${saved.includes(object.id) ? 'saved-marker' : ''}`} selected={saved.includes(object.id)} size={22} aria-label={`${saved.includes(object.id) ? 'Verwijder' : 'Bewaar'} ${displayProductTitle(object.title)} ${saved.includes(object.id) ? 'uit' : 'in'} je selectie`}
             onPointerDown={() => { clearIntent(); clearPending(); candidate.current = null; }}
             onClick={() => onToggle(object.id)} />
         </TileFrame>;

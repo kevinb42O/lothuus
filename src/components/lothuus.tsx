@@ -1,10 +1,11 @@
 'use client';
+import { displayProductTitle } from '@/lib/product-title';
 import { observeFreshness } from '@/lib/client-refresh';
 
 import Image from 'next/image';
 import { DoorwayHero } from './doorway-hero';
-import { ArrowUpRight, Heart, Download, Plus, Check } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type CSSProperties } from 'react';
+import { ArrowUpRight, Heart, Download, Plus, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type CSSProperties } from 'react';
 import { objects as suppliedObjects, categories, categoryLabel, photoVariant, type Category, type CollectionObject } from '@/lib/collection';
 import { Mosaic } from './mosaic';
 import { Dialog } from './dialog';
@@ -19,12 +20,37 @@ import { reconcileSelection, removeOrderedSelection } from '@/lib/selection';
 function Wordmark({ footer = false }: { footer?: boolean }) {
   return <span className={`wordmark ${footer ? 'wordmark-footer' : ''}`} aria-label="LOTHUUS"><b>LO</b><span>THUUS</span></span>;
 }
-function Detail({ object, saved, onSave, onClose, onSelection, count }: { object: CollectionObject; saved: boolean; onSave: () => void; onClose: () => void; onSelection: () => void; count: number }) {
+export function Detail({ object, saved, onSave, onClose, onSelection, count }: { object: CollectionObject; saved: boolean; onSave: () => void; onClose: () => void; onSelection: () => void; count: number }) {
   const [image, setImage] = useState({ src: photoVariant(object.image, 'detail'), width: 1200, height: 1600 });
   const photo = image.src;
+  const photos = object.photos || [];
+  const photoSource = (p: typeof photos[number]) => p.src ? photoVariant(p.src, 'detail') : `/api/images/${p.id}?size=detail`;
+  const requestedPhoto = useRef<string | null>(null);
+  const activePhotoIndex = Math.max(0, photos.findIndex(p => photoSource(p) === photo));
   const [viewport, setViewport] = useState({ width: 1200, height: 900 });
   const [photoError, setPhotoError] = useState('');
   const photoRequest = useRef(0);
+  const photoFrame = useRef<HTMLDivElement>(null);
+  const revealPhoto = useRef(false);
+  const swipe = useRef<{ id: number; x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!revealPhoto.current) return;
+    revealPhoto.current = false;
+    if (window.innerWidth > 700) return;
+    const frame = photoFrame.current;
+    const dialog = frame?.closest('dialog');
+    if (!frame || !dialog) return;
+    const photoBounds = frame.getBoundingClientRect();
+    const dialogBounds = dialog.getBoundingClientRect();
+    const top = dialogBounds.top + dialog.clientTop;
+    const bottom = top + dialog.clientHeight;
+    if (photoBounds.top < top - 1 || photoBounds.bottom > bottom + 1) {
+      dialog.scrollTo({
+        top: Math.max(0, dialog.scrollTop + photoBounds.top - top),
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+      });
+    }
+  }, [image]);
   useEffect(() => {
     const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
     resize(); window.addEventListener('resize', resize);
@@ -32,33 +58,70 @@ function Detail({ object, saved, onSave, onClose, onSelection, count }: { object
   }, []);
   async function choosePhoto(src: string) {
     const request = ++photoRequest.current;
+    requestedPhoto.current = src;
     setPhotoError('');
     const next = new window.Image(); next.src = src;
     try { await next.decode(); } catch {
-      if (request === photoRequest.current) setPhotoError('Deze foto kan niet worden geladen. Probeer opnieuw.');
+      if (request === photoRequest.current) {
+        requestedPhoto.current = photo;
+        setPhotoError('Deze foto kan niet worden geladen. Probeer opnieuw.');
+      }
       return;
     }
     if (request !== photoRequest.current) return;
+    revealPhoto.current = true;
     setImage({ src, width: next.naturalWidth, height: next.naturalHeight });
+  }
+  function navigatePhoto(direction: -1 | 1) {
+    if (photos.length < 2) return;
+    const index = Math.max(0, photos.findIndex(p => photoSource(p) === (requestedPhoto.current || photo)));
+    void choosePhoto(photoSource(photos[(index + direction + photos.length) % photos.length]));
   }
   const layout = detailLayout(image.width / image.height, viewport, false);
   const dialogStyle = { width: layout.width, '--detail-photo-width': `${layout.photoWidth}px`, '--detail-photo-height': `${layout.photoHeight}px` } as CSSProperties;
   const live = object.priceCents !== undefined;
-  return <Dialog title={object.title} onClose={onClose} className={`detail-dialog detail-${layout.mode}`} style={dialogStyle}>
-    <div className="detail-image"><Image src={photo} unoptimized alt={object.photos?.find(p => photo.includes(p.id))?.alt || object.title} width={image.width} height={image.height} sizes="(max-width: 700px) 95vw, 800px" preload onLoad={event => {
+  return <Dialog title={displayProductTitle(object.title)} onClose={onClose} className={`detail-dialog detail-${layout.mode}`} style={dialogStyle}>
+    <div className="detail-image" ref={photoFrame}
+      onPointerDown={event => {
+        if (!event.isPrimary) { swipe.current = null; return; }
+        if (event.pointerType === 'mouse' || photos.length < 2 || (event.target as Element).closest('button')) return;
+        swipe.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerCancel={() => { swipe.current = null; }}
+      onLostPointerCapture={() => { swipe.current = null; }}
+      onPointerUp={event => {
+        const start = swipe.current;
+        swipe.current = null;
+        if (!start || start.id !== event.pointerId) return;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.3) navigatePhoto(dx < 0 ? 1 : -1);
+      }}
+      onKeyDown={event => {
+      if (photos.length > 1 && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault();
+        navigatePhoto(event.key === 'ArrowLeft' ? -1 : 1);
+      }
+    }}><Image src={photo} unoptimized alt={object.photos?.find(p => photo.includes(p.id))?.alt || displayProductTitle(object.title)} width={image.width} height={image.height} sizes="(max-width: 700px) 95vw, 800px" preload onLoad={event => {
       const loaded = event.currentTarget;
       if (loaded.naturalWidth && loaded.naturalHeight) setImage(current => current.src === photo && (current.width !== loaded.naturalWidth || current.height !== loaded.naturalHeight) ? { src: photo, width: loaded.naturalWidth, height: loaded.naturalHeight } : current);
     }} />
-      <HeartButton className="detail-heart" selected={saved} aria-label={`${saved ? 'Verwijder' : 'Bewaar'} ${object.title} ${saved ? 'uit' : 'in'} je selectie`} onClick={onSave} />
+      {photos.length > 1 && <>
+        <button type="button" className="detail-photo-arrow detail-photo-prev" aria-label="Vorige foto" onClick={() => navigatePhoto(-1)}><ChevronLeft size={24} strokeWidth={1.7} aria-hidden="true" /></button>
+        <button type="button" className="detail-photo-arrow detail-photo-next" aria-label="Volgende foto" onClick={() => navigatePhoto(1)}><ChevronRight size={24} strokeWidth={1.7} aria-hidden="true" /></button>
+        <span className="sr-only" role="status" aria-live="polite">Foto {activePhotoIndex + 1} van {photos.length}</span>
+      </>}
+      <HeartButton className="detail-heart" selected={saved} aria-label={`${saved ? 'Verwijder' : 'Bewaar'} ${displayProductTitle(object.title)} ${saved ? 'uit' : 'in'} je selectie`} onClick={onSave} />
     </div>
     <div className="detail-content">
       <p className="detail-category">{categoryLabel(object.category)} <span>{object.date}</span></p>
-      <h2>{object.title}</h2>
+      <h2>{displayProductTitle(object.title)}</h2>
       {live && <p className="detail-price">{money(object.priceCents!)} <span>{({ available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht' })[object.availability || 'available']}</span></p>}
+      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip">{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photoSource(p) === photo} onClick={() => { void choosePhoto(photoSource(p)); }}><img src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
+      {photoError && <p className="detail-note" role="status">{photoError}</p>}
       <p className="detail-intro">{object.description || "Bekijk dit object uit de LOTHUUS-collectie vanuit verschillende hoeken. Meer productinformatie volgt binnenkort."}</p>
       {object.condition && <p className="detail-intro">{object.condition}</p>}
-      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip">{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photo.includes(p.id)} onClick={() => { void choosePhoto(p.src ? photoVariant(p.src, 'detail') : `/api/images/${p.id}?size=detail`); }}><img src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
-      {photoError && <p className="detail-note" role="status">{photoError}</p>}
       <dl className="object-facts">{object.date && <div><dt>Periode</dt><dd>{object.date}</dd></div>}<div><dt>Materiaal</dt><dd>{object.material}</dd></div>{object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}</dl>
       {!live && object.description && <details className="original-description"><summary>Het verhaal achter dit object <Plus size={14} /></summary><p lang="en">{object.description}</p></details>}
       <p className="availability">{live ? ({ available: "Beschikbaar", reserved: "Gereserveerd", sold: "Verkocht" })[object.availability || "available"] : "Uit de LOTHUUS-collectie"}</p>
@@ -119,7 +182,7 @@ export function Lothuus() {
     return () => { if (downloadUrl.current) URL.revokeObjectURL(downloadUrl.current); };
   }, []);
   useEffect(() => { const sync = (event: StorageEvent) => { if (event.key !== 'lothuus-selection') return; try { const info = JSON.parse(localStorage.getItem('lothuus-selection-info') || '{}'); if (info && typeof info === 'object' && !Array.isArray(info)) snapshots.current = info; const ids: unknown = JSON.parse(event.newValue || '[]'); if (Array.isArray(ids)) setSaved(reconcileSelection([...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length < 128))].slice(0, 500), objects)); } catch {} }; window.addEventListener('storage', sync); return () => window.removeEventListener('storage', sync); }, [objects]);
-  useEffect(() => { if (storageReady) { try { for (const object of objects) if (saved.includes(object.id)) snapshots.current[object.id] = { title: object.title, image: object.image }; localStorage.setItem('lothuus-selection-info', JSON.stringify(Object.fromEntries(saved.map(id => [id, snapshots.current[id]])))); localStorage.setItem('lothuus-selection', JSON.stringify(saved)); } catch { /* Selection remains usable without storage. */ } } }, [saved, storageReady, objects]);
+  useEffect(() => { if (storageReady) { try { for (const object of objects) if (saved.includes(object.id)) snapshots.current[object.id] = { title: displayProductTitle(object.title), image: object.image }; localStorage.setItem('lothuus-selection-info', JSON.stringify(Object.fromEntries(saved.map(id => [id, snapshots.current[id]])))); localStorage.setItem('lothuus-selection', JSON.stringify(saved)); } catch { /* Selection remains usable without storage. */ } } }, [saved, storageReady, objects]);
   const selected: SelectionObject[] = saved.map(id => {
     const current = objects.find(object => object.id === id);
     if (current) return current;
@@ -145,7 +208,7 @@ export function Lothuus() {
   function prepareEnquiry(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const text = `LOTHUUS — Informatieaanvraag\n\nNaam: ${data.get('name')}\nE-mail: ${data.get('email')}\n\n${data.get('message') || ''}\n\nMijn selectie:\n${selected.map(object => `— ${object.title} (${object.date})\n  ${object.source}`).join('\n')}\n\nDit document is lokaal voorbereid. Er is nog niets verstuurd.\n`;
+    const text = `LOTHUUS — Informatieaanvraag\n\nNaam: ${data.get('name')}\nE-mail: ${data.get('email')}\n\n${data.get('message') || ''}\n\nMijn selectie:\n${selected.map(object => `— ${displayProductTitle(object.title)} (${object.date})\n  ${object.source}`).join('\n')}\n\nDit document is lokaal voorbereid. Er is nog niets verstuurd.\n`;
     if (downloadUrl.current) URL.revokeObjectURL(downloadUrl.current);
     downloadUrl.current = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a'); link.href = downloadUrl.current; link.download = 'lothuus-informatieaanvraag.txt'; link.click(); setDownloaded(true);

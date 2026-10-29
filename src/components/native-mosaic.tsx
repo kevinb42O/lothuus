@@ -1,4 +1,5 @@
 'use client';
+import { displayProductTitle } from '@/lib/product-title';
 
 import { MosaicPhoto } from './mosaic-photo';
 import { useEffect, useRef, useState } from 'react';
@@ -27,7 +28,7 @@ export function NativeMosaic({objects,filterKey,focused,saved,onToggle,onOpen}:P
       style={{gridTemplateColumns:`repeat(${columns}, minmax(0, 1fr))`,gap}}>
       {objects.map((object,index)=><div key={object.id} className="object-tile" data-id={object.id} data-present="true" data-column={index%columns} data-row={Math.floor(index/columns)}>
         <button className="object-button" data-object={object.id}
-          aria-label={`${object.title}, ${categoryLabel(object.category)}. ${object.availability==='reserved'?'Gereserveerd. ':object.availability==='sold'?'Verkocht. ':''}Bekijk het object`}
+          aria-label={`${displayProductTitle(object.title)}, ${categoryLabel(object.category)}. ${object.availability==='reserved'?'Gereserveerd. ':object.availability==='sold'?'Verkocht. ':''}Bekijk het object`}
           onClick={()=>onOpen(object)}
           onKeyDown={event=>{
             const deltas:Record<string,number>={ArrowRight:1,ArrowLeft:-1,ArrowDown:columns,ArrowUp:-columns,Home:-index,End:objects.length-1-index};
@@ -40,7 +41,7 @@ export function NativeMosaic({objects,filterKey,focused,saved,onToggle,onOpen}:P
           {object.availability&&object.availability!=='available'&&<span className={`stock-badge ${object.availability}`}>{object.availability==='reserved'?'Gereserveerd':'Verkocht'}</span>}
         </button>
         <HeartButton className={`grid-heart ${saved.includes(object.id)?'saved-marker':''}`} selected={saved.includes(object.id)} size={22}
-          aria-label={`${saved.includes(object.id)?'Verwijder':'Bewaar'} ${object.title} ${saved.includes(object.id)?'uit':'in'} je selectie`} onClick={()=>onToggle(object.id)}/>
+          aria-label={`${saved.includes(object.id)?'Verwijder':'Bewaar'} ${displayProductTitle(object.title)} ${saved.includes(object.id)?'uit':'in'} je selectie`} onClick={()=>onToggle(object.id)}/>
       </div>)}
     </div>
     <p className="sr-only" aria-live="polite">{objects.length} objecten in de collectie.</p>

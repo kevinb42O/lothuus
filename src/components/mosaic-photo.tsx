@@ -1,4 +1,5 @@
 'use client';
+import { displayProductTitle } from '@/lib/product-title';
 
 import Image, { getImageProps } from 'next/image';
 import { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import type { CollectionObject } from '@/lib/collection';
 
 export function mosaicPhotoProps(object: CollectionObject, width: number) {
   const source = mosaicPhotoSource(object.image, width, typeof window === 'undefined' ? 1 : window.devicePixelRatio);
-  return { src: source.src, alt: object.title, fill: true as const, sizes: `${Math.ceil(width)}px`,
+  return { src: source.src, alt: displayProductTitle(object.title), fill: true as const, sizes: `${Math.ceil(width)}px`,
     unoptimized: object.image.startsWith('/api/'), 'data-source-width': object.image.startsWith('/api/') ? source.sourceWidth : undefined };
 }
 
@@ -38,5 +39,5 @@ export function MosaicPhoto({ object, width }: { object: CollectionObject; width
     }).catch(() => { /* Keep the already painted photo if its replacement fails. */ });
     return () => { cancelled = true; };
   }, [object, width, desired.src, desired.sizes, painted.src, painted.sizes]);
-  return <Image {...painted} alt={object.title} loading="eager" draggable={false} />;
+  return <Image {...painted} alt={displayProductTitle(object.title)} loading="eager" draggable={false} />;
 }

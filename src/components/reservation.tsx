@@ -1,4 +1,5 @@
 'use client';
+import { displayProductTitle } from '@/lib/product-title';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, Copy, Heart, X } from 'lucide-react';
 import { Dialog } from './dialog';
@@ -39,7 +40,7 @@ export function ReservationConfirmation({ result: initialResult }: { result: Res
   return <div className="reservation-confirmation">
     <h2 ref={resultHeading} tabIndex={-1}>{result.status === 'expired' ? 'Je betaalafspraak is vervallen.' : result.status === 'cancelled' ? 'Bestelling geannuleerd.' : result.status === 'completed' ? 'Bedankt voor je aankoop.' : paid ? 'Je betaling is bevestigd.' : 'Voor jou gereserveerd.'}</h2>
     <p className="order-reference">{result.reference}</p>
-    {result.lines ? <ul className="order-lines">{result.lines.map(line => <li key={line.itemId}>{line.image && <img src={line.image} alt="" width={52} height={60} />}<span>{line.title}{line.productNumber && <small>{line.productNumber}</small>}</span><strong>{line.pricePending ? 'Prijs te bevestigen' : money(line.priceCents)}</strong></li>)}</ul> : <p>{result.title}</p>}
+    {result.lines ? <ul className="order-lines">{result.lines.map(line => <li key={line.itemId}>{line.image && <img src={line.image} alt="" width={52} height={60} />}<span>{displayProductTitle(line.title)}{line.productNumber && <small>{line.productNumber}</small>}</span><strong>{line.pricePending ? 'Prijs te bevestigen' : money(line.priceCents)}</strong></li>)}</ul> : <p>{displayProductTitle(result.title)}</p>}
     <div className="reservation-local">E-mailverzending volgt later. Er is geen e-mail verstuurd. {result.paymentPending ? 'Bewaar je privélink.' : 'Bewaar je privélink en de betaalgegevens hieronder.'}</div>
     {statusError && <p className="reservation-error" role="alert">{statusError}</p>}
     {active && result.paymentPending && <><p>Je selectie is ontvangen en de objecten zijn tijdelijk voor je gereserveerd tot <strong>{dateTime(result.deadline)}</strong>.</p><p>{result.pricePending ? 'Katrien bevestigt nog de prijs en de betaalafspraak.' : 'Katrien zet de betaalafspraak nog klaar.'} Je e-mailadres is bij je reservering opgeslagen. Maak nog niets over.</p><p>Wanneer e-mailverzending is aangesloten, kunnen de betaalinstructies met het rekeningnummer naar dat adres worden gestuurd. Na bevestiging van je betaling zijn de objecten definitief verkocht en klaar voor ophaling.</p></>}
@@ -99,10 +100,10 @@ export function SelectionDialog({ objects, settings, onClose, onRemove, onOpen, 
       <h2 ref={heading} tabIndex={-1}>{step === 'selection' ? 'Mijn selectie' : 'Je selectie reserveren'}</h2>
       <p className="selection-subtitle">{objects.length ? `${objects.length} ${objects.length === 1 ? 'object' : 'objecten'} met een volgend hoofdstuk.` : 'Een mooie vondst begint met een hartje.'}</p>
       {objects.length ? <ul className="saved-list cart-list">{objects.map(object => <li key={object.id}>
-        <button className="cart-object" onClick={() => onOpen(object)} disabled={busy || uncertain || !object.image} aria-label={`Bekijk ${object.title}`}>
-          {object.image && <img src={object.image} alt="" width={64} height={74} />}<span><strong>{object.title}</strong><small>{object.missing ? 'Niet meer beschikbaar in de collectie' : object.availability === 'reserved' ? 'Gereserveerd · niet bestelbaar' : object.availability === 'sold' ? 'Verkocht · niet bestelbaar' : !object.priceCents ? 'Beschikbaar voor reservering' : 'Beschikbaar'}</small></span>
+        <button className="cart-object" onClick={() => onOpen(object)} disabled={busy || uncertain || !object.image} aria-label={`Bekijk ${displayProductTitle(object.title)}`}>
+          {object.image && <img src={object.image} alt="" width={64} height={74} />}<span><strong>{displayProductTitle(object.title)}</strong><small>{object.missing ? 'Niet meer beschikbaar in de collectie' : object.availability === 'reserved' ? 'Gereserveerd · niet bestelbaar' : object.availability === 'sold' ? 'Verkocht · niet bestelbaar' : !object.priceCents ? 'Beschikbaar voor reservering' : 'Beschikbaar'}</small></span>
         </button><div className="cart-price">{object.priceCents ? money(object.priceCents) : 'Prijs te bevestigen'}</div>
-        {step === 'selection' && <button className="icon-button" disabled={busy || uncertain} aria-label={`${object.title} verwijderen`} onClick={() => onRemove(object.id)}><X size={18} /></button>}
+        {step === 'selection' && <button className="icon-button" disabled={busy || uncertain} aria-label={`${displayProductTitle(object.title)} verwijderen`} onClick={() => onRemove(object.id)}><X size={18} /></button>}
       </li>)}</ul> : <div className="empty-selection"><Heart size={32} strokeWidth={1.2} /><p>Tik op een hartje bij een object.<br />Je vindt het hier terug.</p><button className="text-link" onClick={onClose}>Ontdek de collectie<ArrowUpRight size={16} /></button></div>}
       {error && <p className="reservation-error" role="alert">{error}</p>}
       {uncertain && <div className="cart-actions"><p role="status">Je eerdere aanvraag is mogelijk al ontvangen. Haal eerst de bevestiging van diezelfde aanvraag op.</p><button type="button" className="primary-button" disabled={busy} onClick={() => { if (attempt.current) void sendAttempt(attempt.current); }}>{busy ? 'Bevestiging ophalen…' : 'Bevestiging opnieuw ophalen'}<ArrowUpRight size={17} /></button></div>}
