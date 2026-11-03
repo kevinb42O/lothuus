@@ -57,13 +57,6 @@
 .hc-plan .a-button, .hc-plan .a-secondary, .hc-current { margin-top: auto; width: 100%; min-height: 45px; justify-content: center; }
 .hc-current { display: flex; align-items: center; gap: 8px; padding-top: 14px; color: var(--a-accent); font-size: 13px; font-weight: 600; margin-bottom: 0; }
 .hc-muted { color: var(--a-muted); font-weight: 450; font-size: 12px; text-align: center; }
-.hc-expansion { border: 1px solid var(--a-line); border-radius: 10px; background: #fff; padding: 28px; display: flex; align-items: center; gap: 28px; }
-.hc-expansion > div { flex: 1; }
-.hc-expansion > div > svg { color: var(--a-muted); margin-bottom: 10px; }
-.hc-expansion h2 { margin: 0 0 9px; }
-.hc-expansion p { margin: 0; color: var(--a-muted); font-size: 13px; }
-.hc-expansion .hc-note { margin-top: 9px; font-size: 12px; }
-.hc-expansion > button { flex-shrink: 0; }
 .hc-empty { border-top: 1px solid var(--a-line); padding: 23px 0; color: var(--a-muted); font-size: 13px; }
 .hc-cancel { display: block; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; color: var(--a-muted); margin-top: 7px; }
 .hc-footnote { font-size: 12px; color: var(--a-muted); max-width: 72ch; margin: 0; }
@@ -102,8 +95,8 @@
 .hc-order-confirmed { display: flex; gap: 12px; align-items: center; background: #f3f3f3; border-radius: 6px; padding: 16px; margin-top: 25px; font-size: 13px; color: #262626; }
 .hc-order-confirmed p { margin: 4px 0 0; font-size: 12px; }
 @media(max-width:1200px){.hc-plan-grid{gap:12px}.hc-plan{padding:24px 18px}.hc-limit-alert{flex-wrap:wrap}.hc-payment-details,.hc-payment-bank{padding:45px 25px 30px}.hc-iban>span:first-child{font-size:13px}.hc-iban small{display:none}}
-@media(max-width:950px){.hc-usage-grid{grid-template-columns:1fr}.hc-backup{align-items:flex-start;flex-direction:column;gap:16px}.hc-backup-details{text-align:left;padding-left:36px}.hc-backup-status{justify-content:flex-start}.hc-plan-grid{grid-template-columns:1fr}.hc-plan-description{min-height:0}.hc-plan .a-button,.hc-plan .a-secondary{margin-top:8px}.hc-plan .hc-features{grid-template-columns:1fr 1fr}.hc-expansion{align-items:flex-start;flex-direction:column}.dialog.hc-payment[open]{grid-template-columns:1fr}.hc-payment-bank{border-left:0;border-top:1px solid var(--a-line)}.hc-qr{max-width:250px}.hc-iban>span:first-child{font-size:15px}.hc-iban small{display:inline}}
-@media(max-width:540px){.hc-root{gap:24px}.hc-toolbar{align-items:flex-start}.hc-toolbar p{font-size:12px}.hc-usage-grid{grid-template-columns:1fr;gap:12px}.hc-usage{padding:22px}.hc-backup{padding:22px}.hc-amount{font-size:36px}.hc-limit-alert{padding:19px}.hc-limit-alert>div{flex-basis:calc(100% - 40px)}.hc-plan .hc-features{grid-template-columns:1fr}.hc-expansion{padding:23px}.hc-expansion>.a-button{width:100%;justify-content:center}.hc-payment-details,.hc-payment-bank{padding:40px 22px 27px}.hc-payment-details h2{font-size:27px}.hc-payment .hc-iban{flex-wrap:wrap}.hc-payment-bank .hc-activation{align-items:flex-start}.hc-price strong{font-size:52px}.hc-options button{font-size:12px}.hc-iban small{display:none}.hc-plan-price strong{font-size:39px}}
+@media(max-width:950px){.hc-usage-grid{grid-template-columns:1fr}.hc-backup{align-items:flex-start;flex-direction:column;gap:16px}.hc-backup-details{text-align:left;padding-left:36px}.hc-backup-status{justify-content:flex-start}.hc-plan-grid{grid-template-columns:1fr}.hc-plan-description{min-height:0}.hc-plan .a-button,.hc-plan .a-secondary{margin-top:8px}.hc-plan .hc-features{grid-template-columns:1fr 1fr}.dialog.hc-payment[open]{grid-template-columns:1fr}.hc-payment-bank{border-left:0;border-top:1px solid var(--a-line)}.hc-qr{max-width:250px}.hc-iban>span:first-child{font-size:15px}.hc-iban small{display:inline}}
+@media(max-width:540px){.hc-root{gap:24px}.hc-toolbar{align-items:flex-start}.hc-toolbar p{font-size:12px}.hc-usage-grid{grid-template-columns:1fr;gap:12px}.hc-usage{padding:22px}.hc-backup{padding:22px}.hc-amount{font-size:36px}.hc-limit-alert{padding:19px}.hc-limit-alert>div{flex-basis:calc(100% - 40px)}.hc-plan .hc-features{grid-template-columns:1fr}.hc-payment-details,.hc-payment-bank{padding:40px 22px 27px}.hc-payment-details h2{font-size:27px}.hc-payment .hc-iban{flex-wrap:wrap}.hc-payment-bank .hc-activation{align-items:flex-start}.hc-price strong{font-size:52px}.hc-options button{font-size:12px}.hc-iban small{display:none}.hc-plan-price strong{font-size:39px}}
 @media(prefers-reduced-motion:reduce){.hc-root *, .hc-payment *{animation:none!important;transition:none!important}}
 
 .hc-billing-options { max-width: 360px; margin: 0 0 24px; }

@@ -15,7 +15,7 @@ test('dashboard shows the exact overage without blocking actions and updates aft
   try {
     await render(195); assert.equal(ui.container.textContent, ''); assert.equal(overLimit, false); assert.equal(plan, 'basis');
     await render(297); assert.equal(overLimit, true); assert.match(ui.container.textContent!, /297 van 200 objecten · 97 boven/);
-    assert.match(ui.container.textContent!, /Breid je capaciteit uit of kies een groter pakket/);
+    assert.match(ui.container.textContent!, /Kies een groter pakket/);
     await act(async () => ui.container.querySelector('button')!.click()); assert.equal(opened, true);
     await render(298); assert.match(ui.container.textContent!, /98 boven/);
     await render(200); assert.equal(ui.container.textContent, ''); assert.equal(overLimit, false);
@@ -38,7 +38,7 @@ test('hosting keeps one shared over-limit notice and explains Free inactivity pa
     assert.equal(ui.container.textContent!.match(/Je collectie is groter dan je huidige pakket/g)?.length, 1);
     const cards = ui.container.querySelectorAll('.hc-plan');
     assert.match(cards[0].textContent!, /weinig activiteit gedurende 7 dagen/);
-    assert.match(ui.container.textContent!, /Eenmalige objectuitbreidingen op Free veranderen niets/);
+
     for (const card of [cards[1], cards[2]]) assert.match(card.textContent!, /Geen automatische pauzering bij inactiviteit/);
     assert.match(cards[1].textContent!, /1\.000 objecten/);
     assert.match(cards[2].textContent!, /Business/); assert.match(cards[2].textContent!, /5\.000 objecten/);
