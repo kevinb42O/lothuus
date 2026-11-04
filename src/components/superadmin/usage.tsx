@@ -125,7 +125,7 @@ export function UsageInsights() {
                 <MousePointer2 size={20} />
                 <span>Geregistreerde acties</span>
                 <strong>{totals!.actions}</strong>
-                <small>Bekeken onderdelen tellen apart</small>
+                <small>Openingen en bekeken onderdelen tellen apart</small>
               </article>
               <article>
                 <Eye size={20} />

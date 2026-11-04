@@ -96,7 +96,7 @@ export function ActivityExplorer({
               ["all", "Alle handelingen"],
               ["product", "Producten"],
               ["capacity", "Capaciteit"],
-              ["access", "Aanmeldingen"],
+              ["access", "Aanmeldingen & bezoeken"],
               ["payment", "Pakketbetalingen"],
               ["operator", "Beheeracties"],
             ].map(([value, label]) => (
@@ -126,6 +126,14 @@ export function ActivityExplorer({
           </select>
         </label>
       </div>
+      {kind === "access" && (
+        <p className="sa-info">
+          ‘Eigenaar aangemeld’ is een succesvolle login. ‘Werkruimte opnieuw
+          geopend’ betekent een aangemelde pagina die zichtbaar wordt na laden
+          of herladen, of een terugkeer na minstens 30 minuten in de
+          achtergrond. Het is geen meting van werktijd of aanwezigheid.
+        </p>
+      )}
       <div className="sa-work-toolbar sa-period">
         <label>
           Van

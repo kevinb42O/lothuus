@@ -1,5 +1,6 @@
 // A fixed action catalogue: no button text, form values, URLs or credentials.
 export const usageActions = {
+  workspace_open: "Werkruimte opnieuw geopend",
   nav_overview: "Overzicht openen",
   nav_items: "Producten openen",
   nav_reservations: "Bestellingen openen",

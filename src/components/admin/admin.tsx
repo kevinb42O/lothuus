@@ -14,6 +14,7 @@ import { ToastProvider, useToast } from './toasts';
 import { Inventory, WorkspaceOverview } from './inventory';
 import { LatestUpdate, Updates, useUpdates } from './updates';
 import { adminApi as api, invalidateStoreCache, storeGeneration } from '@/lib/admin-client';
+import {useWorkspaceArrival} from './workspace-arrival';
 import { trackAdminUsage,flushAdminUsage } from '@/lib/admin-usage-client';
 import type { UsageAction } from '@/lib/admin-usage';
 import './admin.css';
@@ -50,7 +51,9 @@ function AdminWorkspace() {
     try { downloadFile(name, body, type); notify({ id: 'download', tone: 'success', message: 'Download klaargezet.' }); }
     catch { notify({ id: 'download', tone: 'error', message: 'Download mislukt. Probeer opnieuw.' }); }
   };
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null); const [configured, setConfigured] = useState(true);
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [configured, setConfigured] = useState(true);
+  useWorkspaceArrival(authenticated);
   const [store, setStore] = useState<AdminStore | null>(null);
   const latestItemCount = useRef(0);
   const [section, setSection] = useState<Section>('overview');

@@ -7,6 +7,7 @@ export type OperatorReport = {
  activity: Activity[]; hosting: HostingReport | null; technicalError: string | null; pulse?:OperatorPulse|null; jobs?:OperatorJob[]; fetchedAt?:string;
 };
 export const activityLabels: Record<string, string> = {
+ workspace_open:"Werkruimte opnieuw geopend",
  product_restored:'Productinhoud hersteld',product_status_changed:'Productstatus door beheer gewijzigd',note_changed:'Interne taak gewijzigd',maintenance_requested:'Onderhoud aangevraagd',export_created:'Export gemaakt',sessions_revoked:'Andere sessies afgemeld',product_created: 'Product toegevoegd', product_updated: 'Product gewijzigd', product_published: 'Product gepubliceerd', product_unpublished: 'Terug naar concept', product_archived: 'Product gearchiveerd', product_removed: 'Product verwijderd',
  owner_login: 'Eigenaar aangemeld', superadmin_login: 'Superadmin aangemeld', photo_uploaded: 'Foto geüpload', capacity_denied: 'Toevoeging geweigerd', policy_changed: 'Objectrechten gewijzigd', package_granted:'Pakket handmatig toegekend',payment_activated: 'Pakket geactiveerd', website_settings_updated: 'Website-instellingen gewijzigd',
 };

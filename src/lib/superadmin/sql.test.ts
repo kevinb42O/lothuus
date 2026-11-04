@@ -263,6 +263,38 @@ test(
         ]),
         /INVALID_USAGE/,
       );
+      const arrival = {
+        id: randomUUID(),
+        action: "workspace_open",
+        section: "overview",
+      };
+      for (let n = 0; n < 2; n++)
+        await db.query("select public.lothuus_admin_usage($1,$2)", [
+          owner,
+          JSON.stringify([arrival]),
+        ]);
+      const arrivals = await one<{
+        total: number;
+        activity: { kind: string; actor: string }[];
+      }>(
+        "select public.lothuus_operator_activity_page($1,'','access','owner') as value",
+        [operator],
+      );
+      assert.equal(arrivals.total, 1);
+      assert.equal(arrivals.activity[0].kind, "workspace_open");
+      assert.equal(arrivals.activity[0].actor, "Eigenaar");
+      assert.equal(
+        await one(
+          "select count(*)::int as value from app_private.operator_activity where kind='owner_login'",
+        ),
+        0,
+      );
+      const afterArrival = await one<Usage>(
+        "select public.lothuus_operator_usage($1) as value",
+        [operator],
+      );
+      assert.equal(afterArrival.totals.actions, 1);
+      assert.equal(afterArrival.events[0].action, "workspace_open");
       for (const action of Object.keys(usageActions))
         await db.query("select public.lothuus_admin_usage($1,$2)", [
           owner,
