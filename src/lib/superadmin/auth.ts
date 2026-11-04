@@ -20,7 +20,7 @@ export async function operatorClient() {
 export function operatorIdentity(user: { id: string; email?: string; app_metadata?: Record<string, unknown> } | null) {
   return user?.app_metadata?.role === 'superadmin' && user.email?.toLowerCase() === 'kevin@webaanzee.be' ? user.id : null;
 }
-export async function requireOperator(mfa = true) {
+export async function requireOperator(_legacyMfa?: boolean) {
   const client = await operatorClient();
   const { data, error } = await client.auth.getUser();
   const actor = error ? null : operatorIdentity(data.user);
@@ -28,9 +28,5 @@ export async function requireOperator(mfa = true) {
   const enabled = await serverDatabase().rpc('lothuus_operator_enabled', { actor });
   if (enabled.error) throw new BusinessError('De toegangscontrole is tijdelijk niet beschikbaar.', 503);
   if (enabled.data !== true) throw new BusinessError('Dit account heeft geen superadmintoegang.', 403);
-  if (mfa) {
-    const assurance = await client.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (assurance.error || assurance.data?.currentLevel !== 'aal2') throw new BusinessError('Bevestig eerst je authenticatorcode.', 403);
-  }
   return { client, actor, email: data.user!.email! };
 }

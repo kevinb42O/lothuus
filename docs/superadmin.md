@@ -2,13 +2,9 @@
 
 Route: `https://www.lothuus.be/superadmin`. Persoonlijke login: `kevin@webaanzee.be`. Het wachtwoord staat uitsluitend bij Supabase Auth en wordt niet in Git, documentatie of browseropslag bewaard.
 
-## Eerste aanmelding
+## Aanmelden
 
-1. Meld aan met het afzonderlijke superadminaccount.
-2. Kies Authenticator instellen en scan de QR-code met je eigen authenticator-app.
-3. Bevestig de actuele zescijferige code. Pas daarna worden beheerdata geladen en beheeracties toegestaan.
-
-Bij volgende aanmeldingen volgt na het wachtwoord de authenticatorcode. De superadmin gebruikt eigen HTTP-only sessiecookies op `/api/superadmin`, los van de eigenaarsessie. De server vereist de vaste accountidentiteit, `app_metadata.role=superadmin`, een actieve private operatorregistratie en AAL2. Zelf ingevulde gebruikersmetadata verlenen geen rol. De gewone eigenaarslogin en haar rechten zijn niet uitgebreid.
+Sinds 4 november 2026 is de authenticator op uitdrukkelijk verzoek van Kevin verwijderd. Inloggen gaat uitsluitend met het persoonlijke e-mailadres en wachtwoord. Er is geen QR-code, setupstap of eenmalige code meer. De server blijft de vaste identiteit, serverrol en actieve private operatorregistratie controleren. De HTTP-only superadmincookie blijft gescheiden van de eigenaarsessie.
 
 ## Functies
 
@@ -53,6 +49,6 @@ Gerichte tests controleren identiteit en rollen, cross-origin weigering, de verp
 
 Productie-uitrol `dpl_E2RetnumWGYiEXDpbdaomeUeGnxe` is READY op `www.lothuus.be`. De broncode is gepusht naar `main` in `e349393`. Alle 225 tests, de typecheck en productiebuild slagen. De desktop- en telefoonweergave zijn bekeken; de ingelogde layout is gecontroleerd met geïsoleerde testgegevens.
 
-De echte aparte login is via de productie-API gecontroleerd zonder wachtwoorden of sessietokens af te drukken of op te slaan. Zonder login geeft het rapport HTTP 401; na alleen wachtwoordlogin geven rapport en beheeracties HTTP 403 totdat MFA is bevestigd. Een superadmincookie geeft geen toegang tot de eigenaarsstore (HTTP 401). De testaanmelding is daarna uitgelogd. MFA is niet door de bouwer gekoppeld: Kevin koppelt zijn eigen authenticator bij de eerste aanmelding.
+Historische controle vóór het verwijderen van de authenticator: de echte aparte login is via de productie-API gecontroleerd zonder wachtwoorden of sessietokens af te drukken of op te slaan. Zonder login geeft het rapport HTTP 401; na alleen wachtwoordlogin geven rapport en beheeracties HTTP 403 totdat MFA is bevestigd. Een superadmincookie geeft geen toegang tot de eigenaarsstore (HTTP 401). De testaanmelding is daarna uitgelogd. MFA is niet door de bouwer gekoppeld: Kevin koppelt zijn eigen authenticator bij de eerste aanmelding.
 
 De productie-RPC retourneert de effectieve policy 304/200 met handhaving aan. Anonieme rechtstreekse RPC-toegang is geweigerd. De uitgebreide back-upsnapshot valideert met 18 tabellen. De productcollectie is vóór en na de installatie identiek: 304 records, revisie 2892, SHA-256 `da3757b1c77e40690836c2e58c6fdd0c70cf01c82688a939ebdea10f170cab89`. Er zijn geen testproducten, testbetalingen of kunstmatige productactiviteiten in productie aangemaakt.

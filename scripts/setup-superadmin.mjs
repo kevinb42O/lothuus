@@ -20,6 +20,6 @@ async function main() {
  if (user.app_metadata?.role !== 'superadmin') throw new Error('Het bestaande account heeft een andere rol. Geen rechten of wachtwoord gewijzigd.');
  const result = await db.rpc('lothuus_operator_bootstrap', { actor: user.id });
  if (result.error) throw new Error('Operatorregistratie mislukt. Controleer de migratie en bestaande registratie.');
- console.log({ configured: true, email, authenticatorSetupRequired: !user.factors?.some(f => f.status === 'verified') });
+ console.log({ configured: true, email, login: 'email-password' });
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });
