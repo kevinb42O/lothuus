@@ -48,3 +48,11 @@ Toegang intrekken: zet `app_private.operator_users.enabled=false` voor de betrok
 De bestaande dagelijkse snapshot bevat nu ook `operator_users`, `operator_settings` en `operator_activity` (18 tabellen). Eerdere complete v2-snapshots met 15 tabellen blijven geldig. Auth-wachtwoorden en MFA-geheimen zitten niet in deze applicatiesnapshot. Bij een daadwerkelijke volledige PostgreSQL-restore moeten identity-sequences, waaronder `operator_activity_id_seq`, op minstens de hoogste herstelde ID worden gezet voordat schrijven weer wordt toegestaan.
 
 Gerichte tests controleren identiteit en rollen, cross-origin weigering, de verplichte MFA-stap in de UI, atomiciteit van activiteitregels, verboden normale rollen, intrekking, dubbele betaalactivering, policyversies, verlopen uitzonderingen, behoud van collecties boven de limiet en back-upcompatibiliteit/herstel. Browsercontrole bekijkt desktop en telefoon met geïsoleerde testgegevens; productiecontrole maakt geen testproducten of testbetalingen aan.
+
+## Livecontrole bij oplevering — 4 november 2026
+
+Productie-uitrol `dpl_E2RetnumWGYiEXDpbdaomeUeGnxe` is READY op `www.lothuus.be`. De broncode is gepusht naar `main` in `e349393`. Alle 225 tests, de typecheck en productiebuild slagen. De desktop- en telefoonweergave zijn bekeken; de ingelogde layout is gecontroleerd met geïsoleerde testgegevens.
+
+De echte aparte login is via de productie-API gecontroleerd zonder wachtwoorden of sessietokens af te drukken of op te slaan. Zonder login geeft het rapport HTTP 401; na alleen wachtwoordlogin geven rapport en beheeracties HTTP 403 totdat MFA is bevestigd. Een superadmincookie geeft geen toegang tot de eigenaarsstore (HTTP 401). De testaanmelding is daarna uitgelogd. MFA is niet door de bouwer gekoppeld: Kevin koppelt zijn eigen authenticator bij de eerste aanmelding.
+
+De productie-RPC retourneert de effectieve policy 304/200 met handhaving aan. Anonieme rechtstreekse RPC-toegang is geweigerd. De uitgebreide back-upsnapshot valideert met 18 tabellen. De productcollectie is vóór en na de installatie identiek: 304 records, revisie 2892, SHA-256 `da3757b1c77e40690836c2e58c6fdd0c70cf01c82688a939ebdea10f170cab89`. Er zijn geen testproducten, testbetalingen of kunstmatige productactiviteiten in productie aangemaakt.
