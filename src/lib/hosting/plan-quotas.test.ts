@@ -61,5 +61,15 @@ test('SQL plan rights match the catalogue and retain expansions and expiry behav
     await db.exec("update app_private.hosting_account set valid_until=now()-interval '1 day' where id");
     await write(305, 'Na vervallen abonnement');
     await assert.rejects(write(306), /HOSTING_OBJECT_LIMIT/);
+    // Execute the exact rollback procedure from the runbook, without deleting data.
+    const rollback = readFileSync('docs/objectlimiet-handhaving.md', 'utf8').match(/```sql\n([\s\S]*?)```/);
+    assert.ok(rollback);
+    await db.exec(rollback[1]);
+    assert.equal(await count(), 305);
+    await write(306, 'Limiet tijdelijk uitgeschakeld');
+    await db.exec(readFileSync('supabase/migrations/20261104120000_enforce_object_capacity.sql', 'utf8'));
+    assert.equal(await count(), 306);
+    await write(306, 'Na opnieuw inschakelen');
+    await assert.rejects(write(307), /HOSTING_OBJECT_LIMIT/);
   } finally { await db.close(); }
 });

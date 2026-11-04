@@ -49,7 +49,9 @@ function AdminWorkspace() {
     catch { notify({ id: 'download', tone: 'error', message: 'Download mislukt. Probeer opnieuw.' }); }
   };
   const [authenticated, setAuthenticated] = useState<boolean | null>(null); const [configured, setConfigured] = useState(true);
-  const [store, setStore] = useState<AdminStore | null>(null); const [section, setSection] = useState<Section>('overview');
+  const [store, setStore] = useState<AdminStore | null>(null);
+  const latestItemCount = useRef(0);
+  const [section, setSection] = useState<Section>('overview');
   const updatesState = useUpdates(authenticated);
   const hasNewUpdates = updatesState.updates.some(update => !updatesState.viewed.includes(update.id));
   const [hostingOverLimit, setHostingOverLimit] = useState(false);
@@ -66,24 +68,31 @@ function AdminWorkspace() {
   const [onlineAccount, setOnlineAccount] = useState(false);
   const [accountEmail, setAccountEmail] = useState('');
   const reloadVersion = useRef(0), storeLoaded = useRef(0);
-  const acceptData = useCallback((data: AdminStore) => { ++reloadVersion.current; invalidateStoreCache(); storeLoaded.current = Date.now(); setStore(data); }, []);
+  const acceptData = useCallback((data: AdminStore) => { latestItemCount.current = data.items.length; ++reloadVersion.current; invalidateStoreCache(); storeLoaded.current = Date.now(); setStore(data); }, []);
   const [salesOpen, setSalesOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   useEffect(() => { if (error) notify({ id: 'admin-action', tone: 'error', message: error }); }, [error, notify]);
   useEffect(() => { if (notice) notify({ id: 'admin-action', tone: 'success', message: notice }); }, [notice, notify]);
-  const reload = useCallback(async () => { const request = ++reloadVersion.current, started = storeGeneration(); try { const data = await api('/api/store'); if (request === reloadVersion.current && started === storeGeneration()) { storeLoaded.current = Date.now(); setStore(data); } } catch (e) { if (request === reloadVersion.current && started === storeGeneration()) setError((e as Error).message); } }, []);
+  const reload = useCallback(async () => { const request = ++reloadVersion.current, started = storeGeneration(); try { const data = await api('/api/store'); if (request === reloadVersion.current && started === storeGeneration()) { storeLoaded.current = Date.now(); latestItemCount.current = data.items.length; setStore(data); } } catch (e) { if (request === reloadVersion.current && started === storeGeneration()) setError((e as Error).message); } }, []);
   useEffect(() => { api('/api/session').then(s => { setConfigured(s.configured); setOnlineAccount(!s.local); setAccountEmail(s.email || ''); setAuthenticated(s.authenticated); if (s.authenticated) void reload(); }).catch(() => { setAuthenticated(false); setError('De verbinding is onderbroken. Probeer opnieuw.'); }); }, [reload]);
   useEffect(() => { if (!authenticated || busy || editItem || editCustomer || ['hosting', 'visitors', 'hearts', 'updates'].includes(section)) return; if (Date.now() - storeLoaded.current >= 60000) void reload(); return observeFreshness(reload, () => storeLoaded.current); }, [authenticated, busy, editItem, editCustomer, reload, section]);
   const mutate = async (body: unknown, message = 'Opgeslagen.') => { ++reloadVersion.current; notify({ id: 'admin-action', tone: 'loading', message: 'Wijziging opslaan…' }); setBusy(true); setError(''); setNotice(''); try { acceptData(await api('/api/store', body)); setNotice(message); return true; } catch (e) { setError((e as Error).message); return false; } finally { setBusy(false); } };
-  const navigate = async (next: Section) => { if (leaveGuard.current && !await leaveGuard.current()) return false; setSection(next); setSearch(''); setEditItem(null); setEditCustomer(null); setSelectedReservation(null); setSelectedMail(null); setError(''); setNotice(''); window.scrollTo({ top: 0 }); return true; };
+  const navigate = async (next: Section, canLeave?: () => boolean) => { if (leaveGuard.current && !await leaveGuard.current()) return false; if (canLeave && !canLeave()) return false; setSection(next); setSearch(''); setEditItem(null); setEditCustomer(null); setSelectedReservation(null); setSelectedMail(null); setError(''); setNotice(''); window.scrollTo({ top: 0 }); return true; };
   const newProduct = async () => {
     if (checkingCapacity.current) return;
     checkingCapacity.current = true;
     try {
-      const report = await api('/api/admin/hosting');
+      const report = await api('/api/admin/hosting?view=capacity');
       if (!Number.isSafeInteger(report.count) || report.count < 0 || !Number.isSafeInteger(report.limit) || report.limit <= 0) throw new Error('Je pakketlimiet kan nu niet worden gecontroleerd. Probeer opnieuw.');
       if (report.count >= report.limit) { setCapacityBlock({ count: report.count, limit: report.limit }); return; }
-      if (await navigate('items')) { setEditorSession(n => n + 1); setEditItem('new'); }
+      // Leaving can save a new draft and consume the last slot. Read the
+      // synchronous save callback's count before replacing that editor.
+      const countBeforeLeave = latestItemCount.current;
+      if (await navigate('items', () => {
+        const count = latestItemCount.current === countBeforeLeave ? report.count : Math.max(report.count, latestItemCount.current);
+        if (count >= report.limit) { setCapacityBlock({ count, limit: report.limit }); return false; }
+        return true;
+      })) { setEditorSession(n => n + 1); setEditItem('new'); }
     } catch (e) { notify({ id: 'capacity-check', tone: 'error', message: (e as Error).message }); }
     finally { checkingCapacity.current = false; }
   };

@@ -16,10 +16,43 @@ De migratie is op 4 november 2026 uitgevoerd via de SQL-editor van LOTHUUS produ
 
 ## Validatie
 
-Volledige testsuite (213 tests), productiebuild en typecheck slagen. Een aanvullend geïsoleerd transporttest controleert een concurrerende toevoeging: de eerste commit mist zijn revisie, de tweede uitlezing ziet de volle collectie en verstuurt geen tweede commit. Componenttests controleren blokkade op 200/304, toegang op 199, mislukte capaciteitsuitlezing en herstel van een al geopend nieuw formulier na HTTP 409. SQL-tests controleren uitbreidingen, verlopen rechten, behoud van bestaande collecties boven de limiet en herhaalde installatie.
+Volledige testsuite (216 tests), productiebuild en typecheck slagen. Een aanvullend geïsoleerd transporttest controleert een concurrerende toevoeging: de eerste commit mist zijn revisie, de tweede uitlezing ziet de volle collectie en verstuurt geen tweede commit. Componenttests controleren blokkade op 200/304, toegang op 199, mislukte capaciteitsuitlezing en herstel van een al geopend nieuw formulier na HTTP 409. SQL-tests controleren uitbreidingen, verlopen rechten, behoud van bestaande collecties boven de limiet en herhaalde installatie.
 
 ## Live-uitrol en behoudcontrole
 
 Vercel-deployment `dpl_Boqjm39CD6nUXYYBQgJzAgsYwcdn` is READY en gekoppeld aan `https://www.lothuus.be`. De live eigenaarssessie toont de modal met 304/200 na Product toevoegen; sluiten herstelt de focus op de toevoegknop en Bekijk de pakketten opent Hosting & capaciteit. De modal is op desktop en telefoonformaat bekeken.
 
 Een alleen-lezen vergelijking vóór en na de uitrol geeft exact dezelfde productcollectie: 304 records, revisie 2854 en SHA-256 `54eadeff210259e9b92bd950b587708dabb1a005b65e1d316ba44e1c1b0f228b`. Er zijn geen productieproducten, betalingen of testbestellingen aangemaakt. Het aanvullende concurrentietest slaagt, evenals de nieuwe typecheck. De extra SQL-migratie is vervolgens op productie uitgevoerd en onafhankelijk gecontroleerd via een tijdelijke tabel met een kopie van de collectie. Een update zonder groei slaagt; een extra object geeft exact `HOSTING_OBJECT_LIMIT`. De tijdelijke tabel verdwijnt bij de commit. De controle bevestigt 304 objecten, actieve limiethandhaving, ingeschakelde trigger en geweigerde anonieme uitvoering. De echte productiecollectie is hiervoor niet gewijzigd.
+
+## Gerichte bugcontrole en terugdraaien
+
+De controle na oplevering vond twee randgevallen, beide hersteld:
+
+- Een nieuw concept kon tijdens het verlaten van de editor de laatste vrije plaats innemen nadat de eerste capaciteitscontrole al was uitgevoerd. Vóór de editor wordt vervangen, controleert de navigatie nu ook het door de opslag bevestigde objectaantal. Het zojuist opgeslagen product blijft open wanneer de limiet daarmee bereikt is.
+- Product toevoegen vroeg het volledige hostingrapport op, inclusief aanvullende provider-/backupmetingen. Een storing in die aanvullende rapportage kon een geldige toevoeging verhinderen. De geauthenticeerde `?view=capacity`-weergave haalt alleen het basisrapport op en retourneert uitsluitend count/limit, zonder de extra operations-RPC. Onbekende objectcapaciteit blijft een geldige reden om nieuwe toevoegingen tijdelijk tegen te houden; bestaand beheer vraagt daarvoor geen hostingrapport op.
+
+Gerichte regressietests dekken de laatste vrije plaats, toegang tot de compacte capaciteitsweergave, lezen/bewerken boven de limiet zonder hostingverbinding, gelijktijdige toevoegingen en behoud van invoer na weigering. De controle verandert geen pakketprijzen of bestaande productiegegevens.
+
+### Limiet later verwijderen
+
+Dit is omkeerbaar zonder producten, foto's, orders of pakketgegevens te verwijderen. Er zijn bewust drie handhavingslagen; uitsluitend de SQL-trigger uitschakelen is onvoldoende. Er is momenteel geen klantbedienbare aan/uitknop.
+
+1. Draai de toevoeging van de clientcontrole in `admin.tsx` en de groeicontroles in `cloud.ts` en `repository.ts` terug en rol de applicatie uit. De oorspronkelijke volledige implementatie is commit `eef276e`; neem de bijbehorende auditcorrectie eveneens mee bij een Git-revert. Laat latere onafhankelijke wijzigingen staan. De database blijft tijdens deze overgang nog beschermen.
+2. Voer daarna onderstaande vervangende functie uit in de SQL-editor van LOTHUUS productie. De tellertrigger en pakketregistratie blijven bestaan. Deze stap verwijdert geen tabel of product.
+3. Controleer met een geïsoleerde test dat toevoegen boven de limiet weer slaagt en dat bestaande objecten bewerkbaar blijven. Gebruik geen echte klantproducten voor een tijdelijke test. De waarschuwingsbanner blijft zichtbaar zolang die niet afzonderlijk wordt aangepast.
+
+```sql
+begin;
+create or replace function app_private.hosting_check_capacity() returns trigger
+language plpgsql security invoker set search_path='' as $$
+begin
+ return new;
+end; $$;
+revoke all on function app_private.hosting_check_capacity() from public,anon,authenticated;
+grant execute on function app_private.hosting_check_capacity() to service_role;
+commit;
+```
+
+De SQL-procedure voor uitschakelen en opnieuw inschakelen is ook rechtstreeks vanuit dit document uitgevoerd in de geïsoleerde PostgreSQL-test: records blijven bestaan, toevoegen wordt tijdelijk toegestaan en opnieuw activeren blokkeert uitsluitend verdere groei.
+
+Opnieuw activeren gebeurt door de applicatiecontrole terug te plaatsen en uitsluitend `20261104120000_enforce_object_capacity.sql` opnieuw uit te voeren. Bestaande objecten boven de limiet blijven ook dan behouden en bewerkbaar. Het bovenstaande is een procedure voor later; de limiet is bij deze audit niet uitgeschakeld.
