@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { expireOrders, type Store } from './types';
 import { BusinessError } from './service';
+import { OBJECT_LIMIT_MESSAGE } from '../hosting/capacity';
 import { CATALOGUE_TAG, HEARTS_TAG, invalidateReadCache } from './cache-tags';
 export const cloudMode = () => process.env.BACKEND_MODE === 'supabase';
 export function serverDatabase() {
@@ -21,9 +22,18 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
     if (loaded.error || !loaded.data?.state) throw new BusinessError('De opslag is tijdelijk niet bereikbaar. Probeer opnieuw.', 503);
     const state = loaded.data.state as Store, before = JSON.stringify(state);
     expireOrders(state);
+    const previousCount = state.items.length;
     const result = operation(state);
     if (JSON.stringify(state) === before) { onRevision?.(loaded.data.revision); return result; }
+    // Recheck on every revision retry. The compare-and-swap commit serializes
+    // competing creates, including stale forms and requests bypassing the UI.
+    if (state.items.length > previousCount) {
+      const capacity = await db.rpc('lothuus_hosting_report');
+      if (capacity.error || !Number.isSafeInteger(capacity.data?.limit) || capacity.data.limit <= 0) throw new BusinessError('Je pakketlimiet kan nu niet worden gecontroleerd. Je invoer blijft behouden. Probeer opnieuw.', 503);
+      if (state.items.length > capacity.data.limit) throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
+    }
     const saved = await db.rpc('lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state });
+    if (saved.error?.message.includes('HOSTING_OBJECT_LIMIT')) throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
     if (saved.error) throw new BusinessError('Opslaan is niet gelukt. Vernieuw de gegevens en probeer opnieuw.', 503);
     if (saved.data === true) { invalidateReadCache(CATALOGUE_TAG, HEARTS_TAG); onRevision?.(loaded.data.revision + 1); return result; }
   }

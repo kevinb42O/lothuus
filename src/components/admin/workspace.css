@@ -422,3 +422,10 @@ html:has(.admin-shell) ::-webkit-scrollbar-thumb { background: #b8b8b8; }
 .admin-shell .a-notice { color: var(--a-success); background: var(--a-success-soft); }
 .admin-shell .a-sidebar nav button[aria-current] > svg { color: var(--a-ink); }
 .admin-shell .a-sidebar nav button[aria-current] > svg.a-hosting-attention { color: #a62d29; }
+
+.admin-shell .dialog.a-capacity-dialog { width: min(540px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 56px 28px 28px; color: var(--a-ink); background: #fff; overflow-y: auto; }
+.a-capacity-dialog h2 { margin: 0 0 20px; font-size: clamp(24px, 5vw, 30px); line-height: 1.2; letter-spacing: -.025em; }
+.a-capacity-dialog p { margin: 0 0 16px; font-size: 15px; line-height: 1.65; }
+.a-capacity-dialog > .close-dialog { color: var(--a-ink); }
+.a-capacity-dialog-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+@media (max-width: 540px) { .admin-shell .dialog.a-capacity-dialog { padding: 56px 20px 24px; } .a-capacity-dialog-actions > button { width: 100%; justify-content: center; } }

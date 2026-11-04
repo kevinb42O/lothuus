@@ -1,3 +1,6 @@
+import { PLANS } from '../hosting/catalogue';
+import { OBJECT_LIMIT_MESSAGE } from '../hosting/capacity';
+import { BusinessError } from './service';
 import { DatabaseSync } from 'node:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -17,7 +20,9 @@ export function transact<T>(operation: (state: Store) => T): T {
     const state: Store = row ? JSON.parse(row.body) : initialStore();
     if (state.schemaVersion !== 1) throw new Error('Onbekende databaseversie.');
     expireOrders(state);
+    const previousCount = state.items.length;
     const result = operation(state);
+    if (state.items.length > previousCount && state.items.length > PLANS.basis.objects) throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
     for (const item of state.items) for (const photo of item.photos) if (!existsSync(resolve(dataDirectory(), 'images', `${photo.id}-detail.webp`))) throw new Error('Een foto is niet volledig opgeslagen. Upload deze opnieuw.');
     db.prepare('INSERT INTO app_state(id,body) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(JSON.stringify(state));
     db.exec('COMMIT');

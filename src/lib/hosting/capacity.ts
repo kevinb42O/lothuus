@@ -1,0 +1,1 @@
+export const OBJECT_LIMIT_MESSAGE = 'Je pakketlimiet is bereikt. Upgrade je pakket om nieuwe producten toe te voegen. Je bestaande collectie blijft bewerkbaar. Je invoer blijft in dit formulier staan; het nieuwe product is nog niet opgeslagen.';

@@ -104,7 +104,7 @@ test('PostgreSQL projections, report windows, ingest budgets, retention and comp
   } finally { await db.close(); }
 });
 
-test('Postgres permits 297 objects on the unchanged 200-object package and classifies I/P/T order hearts', { timeout: 60000 }, async () => {
+test('Postgres preserves an existing over-limit collection and classifies I/P/T order hearts', { timeout: 60000 }, async () => {
   const db = await database();
   try {
     const state = initialStore();
@@ -113,8 +113,11 @@ test('Postgres permits 297 objects on the unchanged 200-object package and class
       date: '', material: '', dimensions: '', maker: '', condition: '', publication: 'draft', photos: [], version: 1, createdAt: new Date().toISOString(),
       ...(index < 3 ? { sourceReference: ['I001','P001','T001'][index], productNumber: ['I1','P1','T1'][index] } : {}),
     }));
+    // Seed the historical collection under Pro, then return to Free.
+    await db.exec("update app_private.hosting_account set plan='pro',valid_until=now()+interval '1 month' where id");
     const loaded = (await db.query<{ revision: number }>('select revision from app_private.store where id')).rows[0];
     assert.equal((await db.query<{ ok: boolean }>('select public.lothuus_commit_state($1,$2) as ok', [loaded.revision, JSON.stringify(state)])).rows[0].ok, true);
+    await db.exec("update app_private.hosting_account set plan='basis',valid_until=null where id");
     const report = (await db.query<{ report: { count: number; limit: number; plan: string } }>('select public.lothuus_hosting_report() as report')).rows[0].report;
     assert.equal(report.count, 297); assert.equal(report.limit, 200); assert.equal(report.plan, 'basis');
     state.items[0].title = 'Ook boven de limiet bewerkbaar';

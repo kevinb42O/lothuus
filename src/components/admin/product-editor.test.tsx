@@ -39,3 +39,31 @@ test('an upload-only expired session can sign in with the configured owner and r
     assert.ok(ui.container.querySelector('img[alt="Nieuwe foto"]'));
   } finally { await act(async () => { root.unmount(); }); globalThis.fetch = originalFetch; ui.cleanup(); }
 });
+
+test('a stale new-product form keeps its text, photos and recovery copy when capacity rejects saving', async () => {
+  const ui = setupDom(), originalFetch = globalThis.fetch;
+  const { createRoot } = await import('react-dom/client');
+  const { ProductEditor } = await import('./product-editor');
+  const { ToastProvider } = await import('./toasts');
+  const { OBJECT_LIMIT_MESSAGE } = await import('../../lib/hosting/capacity');
+  const root = createRoot(ui.container);
+  const photo = { id: randomUUID(), alt: 'Bewaarde foto' };
+  const draft = { title: 'Onvoltooide vaas', description: 'Mijn eigen tekst', date: '', dimensions: '', condition: '', price: '', maker: '', material: '', materialGroup: 'K', category: 'keramiek', publication: 'draft', photos: [photo], editorReady: false };
+  localStorage.setItem('lothuus:product:new', JSON.stringify({ draft, creationKey: randomUUID() }));
+  let saved = false, next = false;
+  globalThis.fetch = async () => Response.json({ error: OBJECT_LIMIT_MESSAGE }, { status: 409 });
+  try {
+    await act(async () => { root.render(<ToastProvider><ProductEditor store={initialStore()} accountEmail="" onDirect={async () => {}} onData={() => { saved = true; }} onBack={() => {}} onNext={() => { next = true; }} registerLeave={() => {}} /></ToastProvider>); await settle(); });
+    const restore = [...ui.container.querySelectorAll('button')].find(b => b.textContent === 'Invoer herstellen')!;
+    await act(async () => { restore.click(); });
+    const finish = [...ui.container.querySelectorAll('button')].find(b => b.textContent?.includes('Opslaan en volgend product'))!;
+    await act(async () => { finish.click(); await settle(); });
+    assert.match(ui.container.textContent!, /Je pakketlimiet is bereikt/);
+    assert.equal(ui.container.querySelector<HTMLInputElement>('#product-title')!.value, draft.title);
+    assert.ok(ui.container.querySelector('img[alt="Bewaarde foto"]'));
+    const recovery = JSON.parse(localStorage.getItem('lothuus:product:new')!);
+    assert.equal(recovery.draft.description, draft.description);
+    assert.deepEqual(recovery.draft.photos, [photo]);
+    assert.equal(saved, false); assert.equal(next, false);
+  } finally { await act(async () => root.unmount()); globalThis.fetch = originalFetch; ui.cleanup(); }
+});
