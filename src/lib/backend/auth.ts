@@ -30,13 +30,18 @@ export async function authClient(remember?: boolean) {
     cookies: { getAll: () => jar.getAll(), setAll: values => { values.forEach(({name,value,options}) => jar.set(name,value,sessionCookieLifetime(options,persistent))); } },
   });
 }
-export async function isOwner(request: NextRequest) {
-  if (!cloudMode()) return process.env.NODE_ENV !== 'production' && (await local()).isOwner(request);
+export async function ownerIdentity(request: NextRequest): Promise<string | undefined> {
+  if (!cloudMode()) return process.env.NODE_ENV !== 'production' && (await local()).isOwner(request) ? 'local-owner' : undefined;
   const client = await authClient();
   const { data, error } = await client.auth.getUser();
-  return !error && !!data.user && data.user.id === process.env.ADMIN_USER_ID && data.user.app_metadata.role === 'owner';
+  return !error && !!data.user && data.user.id === process.env.ADMIN_USER_ID && data.user.app_metadata.role === 'owner' ? data.user.id : undefined;
 }
-export async function requireOwner(request: NextRequest) { if (!await isOwner(request)) throw new BusinessError('Log opnieuw in om verder te gaan.',401); }
+export async function isOwner(request: NextRequest) { return Boolean(await ownerIdentity(request)); }
+export async function requireOwner(request: NextRequest) {
+  const actor = await ownerIdentity(request);
+  if (!actor) throw new BusinessError('Log opnieuw in om verder te gaan.', 401);
+  return actor;
+}
 export async function authenticate(password: string, email: string, remember = false) {
   if (!cloudMode()) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online toegang ontbreekt.',503);

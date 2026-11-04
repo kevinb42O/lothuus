@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticate, configured, isOwner, readJson, sameOrigin, sessionCookie, throttle } from '@/lib/backend/auth';
 import { cloudMode } from '@/lib/backend/cloud';
 import { authClient } from '@/lib/backend/auth';
+import { recordActivity } from '@/lib/superadmin/server';
 import { BusinessError, safeError } from '@/lib/backend/service';
 import { rememberCookie, rememberedSessionSeconds } from '@/lib/backend/session-policy';
 export const runtime = 'nodejs';
@@ -15,6 +16,7 @@ export async function POST(request: NextRequest) {
     if (input.remember !== undefined && typeof input.remember !== 'boolean') throw new BusinessError('Controleer je keuze voor ingelogd blijven.');
     const remember = input.remember ?? request.cookies.get(rememberCookie)?.value === '1';
     const token = await authenticate(input.password, typeof input.email === 'string' ? input.email : '', remember);
+    if (cloudMode()) await recordActivity(process.env.ADMIN_USER_ID, 'owner_login', undefined, 'Eigenaar aangemeld');
     const response = NextResponse.json({ authenticated: true, email: cloudMode() ? process.env.ADMIN_EMAIL : undefined });
     if (token) response.cookies.set(sessionCookie, token, { httpOnly: true, secure: request.nextUrl.protocol === 'https:', sameSite: 'strict', ...(remember ? { maxAge: rememberedSessionSeconds } : {}), path: '/' });
     response.cookies.set(rememberCookie, remember ? '1' : '', { httpOnly: true, secure: request.nextUrl.protocol === 'https:', sameSite: 'strict', maxAge: remember ? rememberedSessionSeconds : 0, path: '/' });

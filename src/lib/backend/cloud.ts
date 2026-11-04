@@ -10,7 +10,7 @@ export function serverDatabase() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store', signal: AbortSignal.timeout(15000) }) } });
 }
 /** Callback must be pure: a concurrent writer can cause a retry. No emails or uploads here. */
-export async function withStore<T>(operation: (state: Store) => T, onRevision?: (revision: number) => void): Promise<T> {
+export async function withStore<T>(operation: (state: Store) => T, onRevision?: (revision: number) => void, actor?: string): Promise<T> {
   if (!cloudMode()) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online opslag ontbreekt.', 503);
     const { transact } = await import('./repository');
@@ -28,12 +28,21 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
     // Recheck on every revision retry. The compare-and-swap commit serializes
     // competing creates, including stale forms and requests bypassing the UI.
     if (state.items.length > previousCount) {
-      const capacity = await db.rpc('lothuus_hosting_report');
+      const capacity = await db.rpc('lothuus_capacity_policy');
       if (capacity.error || !Number.isSafeInteger(capacity.data?.limit) || capacity.data.limit <= 0) throw new BusinessError('Je pakketlimiet kan nu niet worden gecontroleerd. Je invoer blijft behouden. Probeer opnieuw.', 503);
-      if (state.items.length > capacity.data.limit) throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
+      if (typeof capacity.data.enforced !== 'boolean') throw new BusinessError('Je pakketlimiet kan nu niet worden gecontroleerd.', 503);
+      if (capacity.data.enforced && state.items.length > capacity.data.limit) {
+        const { recordActivity } = await import('../superadmin/server');
+        await recordActivity(actor, 'capacity_denied');
+        throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
+      }
     }
-    const saved = await db.rpc('lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state });
-    if (saved.error?.message.includes('HOSTING_OBJECT_LIMIT')) throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
+    const saved = await db.rpc(actor ? 'lothuus_commit_state_audited' : 'lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state, ...(actor ? { actor } : {}) });
+    if (saved.error?.message.includes('HOSTING_OBJECT_LIMIT')) {
+      const { recordActivity } = await import('../superadmin/server');
+      await recordActivity(actor, 'capacity_denied');
+      throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
+    }
     if (saved.error) throw new BusinessError('Opslaan is niet gelukt. Vernieuw de gegevens en probeer opnieuw.', 503);
     if (saved.data === true) { invalidateReadCache(CATALOGUE_TAG, HEARTS_TAG); onRevision?.(loaded.data.revision + 1); return result; }
   }

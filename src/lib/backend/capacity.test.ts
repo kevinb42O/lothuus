@@ -17,7 +17,8 @@ test('a competing create fills the last slot and a revision retry refuses the se
       state.items = Array.from({ length: reads++ === 0 ? 199 : 200 }, (_, n) => ({ id: String(n), title: 'Bestaand' })) as typeof state.items;
       return Response.json({ state, revision: reads });
     }
-    if (url.endsWith('/lothuus_hosting_report')) return Response.json({ limit: 200 });
+    if (url.endsWith('/lothuus_capacity_policy')) return Response.json({ limit: 200, enforced: true });
+    if (url.endsWith('/lothuus_record_activity')) return Response.json(null);
     if (url.endsWith('/lothuus_commit_state')) { commits++; return Response.json(false); }
     throw new Error(`Unexpected request: ${url}`);
   };

@@ -18,7 +18,7 @@ test('the capacity view requires an owner and returns only uncached capacity dat
     const response = await GET(new NextRequest(url, { headers: { cookie: `lothuus-owner=${authenticate(process.env.ADMIN_PASSWORD)}` } }));
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'private, no-store');
-    assert.deepEqual(await response.json(), { count: 0, limit: 200 });
+    assert.deepEqual(await response.json(), { count: 0, limit: 200, enforced: true });
   } finally {
     for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
     rmSync(dir, { recursive: true, force: true });

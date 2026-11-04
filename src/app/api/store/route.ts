@@ -20,6 +20,6 @@ export async function GET(request: NextRequest) {
   catch (e) { const error = safeError(e); return NextResponse.json({ error: error.message }, { status: error.status }); }
 }
 export async function POST(request: NextRequest) {
-  try { sameOrigin(request); await requireOwner(request); const input = await readJson(request); return NextResponse.json(await withStore(s => { command(s, input); return adminView(s); }), { headers: { 'Cache-Control': 'no-store' } }); }
+  try { sameOrigin(request); const actor = await requireOwner(request); const input = await readJson(request); return NextResponse.json(await withStore(s => { command(s, input); return adminView(s); }, undefined, actor), { headers: { 'Cache-Control': 'no-store' } }); }
   catch (e) { const error = safeError(e); return NextResponse.json({ error: error.message }, { status: error.status }); }
 }

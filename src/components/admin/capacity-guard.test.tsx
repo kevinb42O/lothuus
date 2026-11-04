@@ -14,6 +14,7 @@ test('adding checks live capacity, preserves the current screen, and opens packa
   let count = 304, unavailable = false, writes = 0;
   const store = initialStore();
   globalThis.fetch = async (url, options) => {
+    if (url === '/api/admin/capacity-attempt') return Response.json({ recorded: true });
     if (options?.method === 'POST') writes++;
     if (url === '/api/session') return Response.json({ authenticated: true, configured: true, local: true });
     if (url === '/api/store') return Response.json(store);
@@ -62,6 +63,7 @@ test('saving the last available draft while leaving does not open another empty 
   const draft = { title: 'Laatste vrije plaats', description: 'Invoer bewaren', date: '', dimensions: '', condition: '', price: '', maker: '', material: '', materialGroup: 'K', category: 'keramiek', publication: 'draft', photos: [], editorReady: false };
   let count = 199, saves = 0;
   globalThis.fetch = async (url, options) => {
+    if (url === '/api/admin/capacity-attempt') return Response.json({ recorded: true });
     if (url === '/api/session') return Response.json({ authenticated: true, configured: true, local: true });
     if (url === '/api/updates') return Response.json({ updates: [] });
     if (String(url).startsWith('/api/admin/hosting')) return Response.json({ count, limit: 200, plan: 'basis' });

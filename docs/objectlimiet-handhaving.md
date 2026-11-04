@@ -1,5 +1,7 @@
 # Objectlimiet — 4 november 2026
 
+> Sinds de superadmininstallatie is de gedeelde limietschakelaar beschikbaar onder `/superadmin` → Pakket & rechten. Zie [Superadmin](superadmin.md). De oorspronkelijke implementatie en audit hieronder blijven als opleverhistorie bewaard; de handmatige terugdraaiprocedure is daarmee niet meer nodig voor een gewone capaciteitsuitzondering.
+
 Nieuwe producten worden geweigerd zodra de actuele pakketlimiet bereikt is. De bestaande collectie wordt niet verwijderd, verborgen of opnieuw opgeslagen door deze wijziging. Bestaande fiches, foto's en verkoopbeheer blijven bewerkbaar.
 
 Alle ingangen voor een nieuw product, inclusief ‘Opslaan en volgend product’, controleren `/api/admin/hosting` vóór de editor opent. Bij onvoldoende capaciteit verschijnt ‘Je pakketlimiet is bereikt’, met de actuele aantallen en een actie naar de bestaande pakketten. Een mislukte capaciteitscontrole laat de huidige pagina staan.

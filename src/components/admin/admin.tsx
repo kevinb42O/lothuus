@@ -84,13 +84,13 @@ function AdminWorkspace() {
     try {
       const report = await api('/api/admin/hosting?view=capacity');
       if (!Number.isSafeInteger(report.count) || report.count < 0 || !Number.isSafeInteger(report.limit) || report.limit <= 0) throw new Error('Je pakketlimiet kan nu niet worden gecontroleerd. Probeer opnieuw.');
-      if (report.count >= report.limit) { setCapacityBlock({ count: report.count, limit: report.limit }); return; }
+      if (report.enforced !== false && report.count >= report.limit) { setCapacityBlock({ count: report.count, limit: report.limit }); void api('/api/admin/capacity-attempt', {}).catch(() => {}); return; }
       // Leaving can save a new draft and consume the last slot. Read the
       // synchronous save callback's count before replacing that editor.
       const countBeforeLeave = latestItemCount.current;
       if (await navigate('items', () => {
         const count = latestItemCount.current === countBeforeLeave ? report.count : Math.max(report.count, latestItemCount.current);
-        if (count >= report.limit) { setCapacityBlock({ count, limit: report.limit }); return false; }
+        if (report.enforced !== false && count >= report.limit) { setCapacityBlock({ count, limit: report.limit }); void api('/api/admin/capacity-attempt', {}).catch(() => {}); return false; }
         return true;
       })) { setEditorSession(n => n + 1); setEditItem('new'); }
     } catch (e) { notify({ id: 'capacity-check', tone: 'error', message: (e as Error).message }); }
