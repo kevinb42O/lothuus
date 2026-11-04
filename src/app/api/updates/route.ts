@@ -10,6 +10,15 @@ export const dynamic = 'force-dynamic';
 // gecontroleerde verbeteringen toe; neem nooit automatisch GitHub-teksten over.
 const updates: WorkspaceUpdate[] = [
   {
+    id: '2026-11-04-material-description', date: '2026-11-04',
+    title: 'Geen dubbele materiaalvermelding meer',
+    body: [
+      'De materiaalomschrijving onder ‘Meer gegevens’ is weggehaald. Je hoeft die niet meer apart in te vullen: de categorie blijft op de website bij ‘Alle kenmerken’ staan.',
+      'Ook bovenaan de productfiche en bij de kenmerken staat geen aparte materiaalomschrijving meer. Dit geldt meteen voor alle producten. Eerder ingevulde omschrijvingen blijven bewaard.',
+    ],
+    action: { label: 'Producten bekijken', target: 'items' },
+  },
+  {
     id: '2026-10-29-collection-refinements', date: '2026-10-29',
     title: 'Rustiger kijken en bladeren in je collectie',
     body: [

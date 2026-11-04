@@ -136,8 +136,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
         </header>
         {live && <p className="detail-price">{money(object.priceCents!)} <span className={`detail-stock detail-stock-${object.availability || 'available'}`}>{({ available: 'Beschikbaar', reserved: 'Gereserveerd', sold: 'Verkocht' })[object.availability || 'available']}</span></p>}
         {photoError && <p className="detail-note" role="status">{photoError}</p>}
-        {(object.material || object.dimensions) && <dl className="detail-essentials">
-          {object.material && <div><dt>Materiaal</dt><dd>{object.material}</dd></div>}
+        {object.dimensions && <dl className="detail-essentials">
           {object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}
         </dl>}
         {object.condition && <section className="detail-condition"><h3>Staat</h3><p>{object.condition}</p></section>}
@@ -158,7 +157,6 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
               <div><dt>Categorie</dt><dd>{categoryLabel(object.category)}</dd></div>
               {object.maker && <div><dt>Maker</dt><dd>{object.maker}</dd></div>}
               {object.date && <div><dt>Periode</dt><dd>{object.date}</dd></div>}
-              {object.material && <div><dt>Materiaal</dt><dd>{object.material}</dd></div>}
               {object.dimensions && <div><dt>Afmetingen</dt><dd>{object.dimensions}</dd></div>}
             </dl>
           </details>

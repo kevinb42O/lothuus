@@ -67,3 +67,40 @@ test('a stale new-product form keeps its text, photos and recovery copy when cap
     assert.equal(saved, false); assert.equal(next, false);
   } finally { await act(async () => root.unmount()); globalThis.fetch = originalFetch; ui.cleanup(); }
 });
+
+test('saving other details preserves a legacy material description without showing its input', async () => {
+  const ui = setupDom(), originalFetch = globalThis.fetch;
+  const { createRoot } = await import('react-dom/client');
+  const { ProductEditor } = await import('./product-editor');
+  const { ToastProvider } = await import('./toasts');
+  const root = createRoot(ui.container), store = initialStore();
+  const item: Item = { id: randomUUID(), title: 'Vaas', category: 'keramiek', description: '', priceCents: 1000, date: '', material: 'Geglazuurd aardewerk', dimensions: '', maker: '', condition: '', publication: 'draft', materialGroup: 'K', productNumber: 'K1', photos: [], version: 1, createdAt: new Date().toISOString() };
+  store.items.push(item);
+  let saves = 0;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/store');
+    const request = JSON.parse(String(options?.body));
+    assert.equal(request.action, 'save-item');
+    assert.equal(request.item.material, item.material);
+    assert.equal(request.item.category, item.category);
+    assert.equal(request.item.materialGroup, item.materialGroup);
+    assert.equal(request.item.title, 'Vaas aangepast');
+    saves++;
+    return Response.json({ ...store, items: [{ ...item, ...request.item, version: 2 }] });
+  };
+  try {
+    await act(async () => root.render(<ToastProvider><ProductEditor item={item} store={store} accountEmail="" onDirect={async () => {}} onData={() => {}} onBack={() => {}} onNext={() => {}} registerLeave={() => {}} /></ToastProvider>));
+    assert.equal(ui.container.querySelector('#product-material'), null);
+    assert.doesNotMatch(ui.container.textContent!, /Materiaalomschrijving/);
+    const title = ui.container.querySelector<HTMLInputElement>('#product-title')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(ui.dom.window.HTMLInputElement.prototype, 'value')!.set!.call(title, 'Vaas aangepast');
+      title.dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      ui.container.querySelector('form.pe-form')!.dispatchEvent(new ui.dom.window.Event('submit', { bubbles: true, cancelable: true }));
+      await settle();
+    });
+    assert.equal(saves, 1);
+  } finally { await act(async () => root.unmount()); globalThis.fetch = originalFetch; ui.cleanup(); }
+});

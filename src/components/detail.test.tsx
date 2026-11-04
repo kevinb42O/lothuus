@@ -169,3 +169,24 @@ test('touch swipes navigate both ways while taps, vertical scroll, cancellation 
     ui.cleanup();
   }
 });
+
+test('product details show the category without repeating stored material descriptions', async () => {
+  const ui = setupDom();
+  const { Detail } = await import('./lothuus');
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(ui.container);
+  const object = { ...objects[0], category: 'keramiek' as const, material: 'Geglazuurd aardewerk', dimensions: '20 × 15 cm' };
+  try {
+    for (const width of [1440, 390]) {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+      await act(async () => root.render(<Detail key={width} object={object} saved={false} count={0} onSave={() => {}} onClose={() => {}} onSelection={() => {}} />));
+      const facts = ui.container.querySelector('.object-facts')!;
+      assert.match(facts.textContent!, /CategorieKeramiek/);
+      assert.doesNotMatch(ui.container.textContent!, /Geglazuurd aardewerk|Materiaal/);
+      assert.match(ui.container.querySelector('.detail-essentials')!.textContent!, /Afmetingen20 × 15 cm/);
+    }
+    await act(async () => root.render(<Detail object={{ ...object, dimensions: '' }} saved={false} count={0} onSave={() => {}} onClose={() => {}} onSelection={() => {}} />));
+    assert.equal(ui.container.querySelector('.detail-essentials'), null);
+    assert.equal(object.material, 'Geglazuurd aardewerk');
+  } finally { await act(async () => root.unmount()); ui.cleanup(); }
+});
