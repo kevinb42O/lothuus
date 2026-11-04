@@ -52,3 +52,58 @@ Productie-uitrol `dpl_E2RetnumWGYiEXDpbdaomeUeGnxe` is READY op `www.lothuus.be`
 Historische controle vóór het verwijderen van de authenticator: de echte aparte login is via de productie-API gecontroleerd zonder wachtwoorden of sessietokens af te drukken of op te slaan. Zonder login geeft het rapport HTTP 401; na alleen wachtwoordlogin geven rapport en beheeracties HTTP 403 totdat MFA is bevestigd. Een superadmincookie geeft geen toegang tot de eigenaarsstore (HTTP 401). De testaanmelding is daarna uitgelogd. MFA is niet door de bouwer gekoppeld: Kevin koppelt zijn eigen authenticator bij de eerste aanmelding.
 
 De productie-RPC retourneert de effectieve policy 304/200 met handhaving aan. Anonieme rechtstreekse RPC-toegang is geweigerd. De uitgebreide back-upsnapshot valideert met 18 tabellen. De productcollectie is vóór en na de installatie identiek: 304 records, revisie 2892, SHA-256 `da3757b1c77e40690836c2e58c6fdd0c70cf01c82688a939ebdea10f170cab89`. Er zijn geen testproducten, testbetalingen of kunstmatige productactiviteiten in productie aangemaakt.
+
+## Uitgebreide persoonlijke werkruimte
+
+**Opleverstatus (4 november 2026):** de uitgebreide werkruimte en klik-/pakketuitbreiding zijn geïmplementeerd; 237 tests, typecheck en productiebuild zijn geslaagd. Migraties `20261104190000_operator_workspace.sql` en `20261104210000_workspace_usage_packages.sql` zijn via de officiële Supabase-CLI op LOTHUUS productie (`gzrxxdmhonzcfkomowpo`) uitgevoerd. De collectie bleef bytegelijk aan de vooraf gemaakte reservekopie: 304 producten, 304 nieuwe baselineversies en 24 tabellen in de uitgebreide snapshot. De productie-RPC's voor het overzicht, gebruik en pakketrechten zijn rechtstreeks gecontroleerd. De browserverbinding blijft door de Work-instelling geblokkeerd; een visuele browsercontrole is daarom niet uitgevoerd. De releasecontrole gebruikt daarnaast de geauthenticeerde HTTP-routes na deployment. De persoonlijke login gebruikt geen authenticator.
+
+De uitbreiding voegt negen samenhangende onderdelen toe. De authenticator is verwijderd: de volledige omgeving gebruikt de persoonlijke wachtwoordlogin, serverrol en actieve operatorregistratie.
+
+### Overzicht en aandachtspunten
+
+Het startscherm koppelt aandachtspunten aan de juiste actie: objectlimiet, verouderde of falende reservekopie, open pakketbestellingen en verstreken interne taken. De fichecontrole leidt naar ontbrekende prijzen, onvolledige beschrijvingen en onvoldoende of te veel geselecteerde foto's. Een dertigdaagse grafiek toont opgeslagen producthandelingen, met een doorklik naar de dag in het logboek. Dit is geen meting van schermtijd of aanwezigheid. Verkoopcijfers zijn gebaseerd op geregistreerde ontvangsten/terugbetalingen en niet op de bank.
+
+### Collectie en productversies
+
+De collectie heeft serverfilters, titel-/nummerzoeken, sortering en paginering met 40 resultaten. De projectie maakt onderscheid tussen concept, publicatie, archief en beschikbare/gereserveerde/verkochte voorraad. Foto's lopen via een eigen superadmin-geauthenticeerde fotoroute: privéfoto's worden niet publiek gemaakt en een browsercache wordt pas na een nieuwe toegangscontrole hergebruikt.
+
+De migratie legt een baseline vast van bestaande producten zonder de productcollectie bij te werken. Een private trigger bewaart daarna gewijzigde producten als versie. De interface toont maximaal de dertig recentste bewaarde versies per product. Versies blijven maximaal negentig dagen bewaard; de dagelijkse retentie houdt maximaal vijftig versies per product bij om de opslag te begrenzen. De baseline is de toestand bij installatie, geen reconstructie van gebeurtenissen voordien.
+
+Een vergelijking laat toe om gekozen tekst-, categorie- en prijsvelden te herstellen. Productidentiteit, vaste nummers, foto's, publicatiestatus en verkoop-/klantgeschiedenis vallen buiten deze herstelactie. De actuele itemversie wordt gecontroleerd voordat de mutatie wordt uitgevoerd; de bestaande bedrijfsregels verbieden onder meer prijswijzigingen tijdens reserveringen of na verkoop. Het herstel en de aanvullende operatorauditregel zijn onderdeel van dezelfde committransactie. Publicatie, terugzetten naar concept en archiveren hebben een afzonderlijke actie met reden en bevestiging; dezelfde bestaande validatieregels blijven gelden.
+
+### Activiteiten en exports
+
+Het logboek zoekt op titel, productnummer, handeling en beheerreden. Filters omvatten soort handeling, actor en begin-/einddatum. Cursorpaginering gebruikt stabiele numerieke ID's. Een CSV-export bevat maximaal de duizend recentste overeenkomende activiteiten; het dashboard vermeldt expliciet hoeveel van het volledige resultaat zijn meegenomen. Elke CSV-download is daarnaast begrensd op 3 MB om betrouwbare levering mogelijk te houden. De collectie-export bevat maximaal vijfduizend producten en wordt eveneens met de echte resultaatsteller geleverd. Exports worden geregistreerd en bevatten geen auth-wachtwoorden, sessietokens of bankcredentials. CSV-cellen worden gequote en formuleprefixen, inclusief die na witruimte, worden geneutraliseerd.
+
+### Werkblad
+
+Interne taken/notities hebben status, prioriteit, optionele termijn en versiecontrole. Er worden geen berichten verstuurd naar de eigenaar. Actieve taken zijn begrensd op tweehonderd; afgeronde en gearchiveerde taken hebben aparte weergaven. Updates met een oude versienummer worden geweigerd. Open taken en verstreken termijnen verschijnen ook op het startscherm. De formulieren beschermen tegen het stilzwijgend verlaten van niet-opgeslagen invoer.
+
+### Back-ups, onderhoud en toegang
+
+Vanuit superadmin kan Kevin een reservekopie of hernieuwde meetronde aanvragen. Een private taakregistratie begrenst uitvoering op één gelijktijdige aanvraag en tien minuten tussen aanvragen. De achtergrondverwerking gebruikt de bestaande onderhoudsfuncties. Statussen onderscheiden wachtrij, uitvoering, geslaagd, gedeeltelijk, overgeslagen en fout. Een niet tijdig bevestigde uitvoering wordt zichtbaar als controlepunt en niet als succes. Alleen tijdens een actieve taak wordt de uitvoeringslijst tijdelijk ververst. Incomplete opslagmetingen worden niet als volledig beschouwd.
+
+Een handmatig gevraagde databaseback-up gebruikt dezelfde private opslag, teruglees-/checksumcontrole en beperkte retentie als de dagelijkse taak. De normale dagelijkse scheduler blijft bestaan. De handmatige claim kan de daggrens doorbreken, maar respecteert een al lopende lease en een recente succesvolle back-up. Er is geen volledige productie-restoreknop: een dergelijke restore vereist afzonderlijke, gecontroleerde voorbereiding buiten deze interface.
+
+De toegangspagina toont de persoonlijke aanmelding en de actieve beheerdersregistratie. Andere sessies van uitsluitend het superadminaccount kunnen via de normale Supabase-sessie-intrekking worden afgemeld; de eigenaarsessie wordt niet aangeraakt. De interface bevat directe links naar het bestaande Vercel-project, Supabase-project en GitHub-repository.
+
+### Migratie en herstelbaarheid
+
+`20261104190000_operator_workspace.sql` voegt private tabellen voor notities, productversies en handmatige uitvoeringen toe, plus beperkte service-role-RPC's. Alle nieuwe tabellen hebben RLS en weigeren anon/authenticated-toegang. De HTTP-routes controleren de actieve superadminidentiteit vóór elke uitlezing en de eigen origin vóór mutaties. De toegangsregistratie wordt bij elke request opnieuw geraadpleegd; lokale formuliervelden kunnen geen actoridentiteit kiezen.
+
+Snapshots omvatten nu 24 tabellen. Eerdere complete v2-snapshots met 15, 18 of 21 tabellen blijven geaccepteerd; gedeeltelijke combinaties worden geweigerd. Productversies in een snapshot worden op itemidentiteit en versienummer gecontroleerd. Een volledige PostgreSQL-restore moet de identity-sequences opnieuw op de hoogste herstelde ID zetten, zoals reeds bij de eerdere superadminrelease beschreven. De geïsoleerde SQL-hersteltest controleert tabelinhoud zonder productie te wijzigen.
+
+
+### Klikken, pakketinteresse en verbruik
+
+‘Klikken & interesse’ toont over 7, 30 of 90 dagen de meest gebruikte benoemde acties, een tijdlijn met het registratiemoment en afzonderlijke tellers voor pakketten en verbruik. Het overzicht onderscheidt Hosting openen, het verbruiksblok zien, pakketten zien, Pro/Business aanklikken, het betaalvenster openen, bestellen aanklikken en een betaling melden aanklikken. De pakketverdeling laat de gekozen maand-/jaartermijn zien. Filters en paginering worden serverzijdig toegepast op de tijdlijn; de samenvatting blijft de volledige geselecteerde periode tonen. Een knop vernieuwt de cijfers op verzoek.
+
+Zichtbaarheid wordt één keer per bezoek aan Hosting geregistreerd als minstens 25% van het verbruiksblok of van één pakketkaart twee onafgebroken seconden in een actief tabblad zichtbaar is. Dit bewijst geen lezen, schermtijd, conversie of betaling. De gebeurtenissen staan op ontvangsttijd van de server; de browser bundelt maximaal twintig gebeurtenissen per verzoek met korte vertraging. Dit is geen schermopname of registratie van elke willekeurige muisklik. Het instellingsscherm vermeldt de registratie. Alleen vaste actiecodes, secties en productcodes worden geaccepteerd; formulierinhoud, wachtwoorden, vrije knopteksten en URL's worden niet verzameld. De server bepaalt de actor en tijd; browservelden daarvoor worden geweigerd. Herhaalde event-ID's verhogen geen tellingen.
+
+De registratie is privé, vereist een eigenaarsessie en dezelfde origin. Alleen de actieve superadmin kan de statistieken opvragen. Er is geen externe analyticsdienst. Tijdlijngebeurtenissen vervallen na 90 dagen, dagtotalen na één jaar. Niet-bezorgde gebeurtenissen worden niet op het toestel bewaard of eindeloos herhaald. Hierdoor kan registratie bij gesloten tabbladen, netwerkproblemen of blokkeerders ontbreken. Historische klikken van vóór installatie zijn niet reconstrueerbaar.
+
+### Handmatig pakketten activeren
+
+Onder Betalingen staat ‘Een pakket activeren’: kies Free, Pro of Business, een looptijd van één/ drie/ twaalf maanden of een eigen einddatum, en een reden. Een betaald pakket vereist bevestiging dat de afgesproken infrastructuur en diensten beschikbaar zijn; het instellen van apprechten koopt of upgrade de providerinfrastructuur niet automatisch. De kalenderberekening bewaart de dag waar mogelijk en begrenst op het maandeinde. Het scherm bevestigt expliciet dat dit de huidige looptijd vervangt. Een verlopen betaald recht valt terug op Free via de bestaande serverregels.
+
+Deze handeling kent rechten toe zonder een fictieve betaling te registreren. Voor bestaande bestellingen blijft de aparte ontvangstcontrole beschikbaar. De server vergrendelt de accountregel, controleert de actuele wijzigingsdatum en registreert het pakket met actor, reden en einddatum. Een identieke retry met dezelfde aanvraag-ID is veilig; verouderde wijzigingen worden geweigerd. Producten, foto's, eenmalige objectuitbreidingen en eventuele aparte limietinstellingen blijven behouden. Een actieve afwijkende objectlimiet wordt daarom expliciet vermeld naast de activering. De eigenaar vernieuwt een open werkruimte om het nieuwe pakket op het scherm te zien. De laatste dertig handmatige toekenningen zijn zichtbaar onder het formulier.

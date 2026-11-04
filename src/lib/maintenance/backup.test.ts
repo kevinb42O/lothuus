@@ -11,7 +11,7 @@ test('cloud backup verifies storage before promotion and prunes only dated backu
   const previous = Object.fromEntries(names.map(k=>[k,process.env[k]])), originalFetch = globalThis.fetch;
   const objects = new Map<string,Buffer>(), deleted: string[] = [], completed: boolean[] = [];
   const snapshot = {schemaVersion:2,createdAt:new Date().toISOString(),tables:Object.fromEntries(backupTables.map(t=>[t,[]]))} as unknown as CloudBackup;
-  snapshot.tables.store=[{id:true,revision:1,body:initialStore()}];snapshot.tables.hosting_account=[{id:true,plan:'basis'}];snapshot.tables.heart_settings=[{id:true,enabled:true}];snapshot.tables.analytics_config=[{id:true,enabled:true}];
+  snapshot.tables.operator_settings=[{id:true,enforce_limit:true}];snapshot.tables.store=[{id:true,revision:1,body:initialStore()}];snapshot.tables.hosting_account=[{id:true,plan:'basis'}];snapshot.tables.heart_settings=[{id:true,enabled:true}];snapshot.tables.analytics_config=[{id:true,enabled:true}];
   let corrupt = false;
   const server = createServer(async (request,response)=>{
     const url = new URL(request.url!,'http://localhost'), key = decodeURIComponent(url.pathname.replace('/lothuus-backups/',''));

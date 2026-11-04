@@ -8,10 +8,10 @@ async function rpc(name: string, args?: Record<string, unknown>) {
   if (result.error) throw new Error(`Maintenance database error: ${result.error.code}`);
   return result.data;
 }
-export async function dailyCloudBackup() {
+export async function dailyCloudBackup(manual = false) {
   if (!cloudMode()) return { skipped: true };
   const id = randomUUID();
-  if (!await rpc('lothuus_maintenance_claim', { job_name: 'backup', job_id: id })) return { skipped: true };
+  if (!await rpc(manual ? 'lothuus_maintenance_claim_manual' : 'lothuus_maintenance_claim', { job_name: 'backup', job_id: id })) return { skipped: true };
   let completed = false, stage = 'configuration', failure = 'Unknown';
   try {
     const bucket = process.env.R2_BACKUP_BUCKET || 'lothuus-backups';

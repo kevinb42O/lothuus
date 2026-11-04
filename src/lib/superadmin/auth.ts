@@ -20,7 +20,7 @@ export async function operatorClient() {
 export function operatorIdentity(user: { id: string; email?: string; app_metadata?: Record<string, unknown> } | null) {
   return user?.app_metadata?.role === 'superadmin' && user.email?.toLowerCase() === 'kevin@webaanzee.be' ? user.id : null;
 }
-export async function requireOperator(_legacyMfa?: boolean) {
+export async function requireOperator() {
   const client = await operatorClient();
   const { data, error } = await client.auth.getUser();
   const actor = error ? null : operatorIdentity(data.user);

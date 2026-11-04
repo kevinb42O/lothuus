@@ -1,14 +1,15 @@
 import { createHash } from 'node:crypto';
-import type { Store } from '../backend/types';
+import type { Item, Store } from '../backend/types';
 
-export const backupTables = ['store','media','product_numbers','stock_claims','heart_settings','heart_objects','heart_days','analytics_config','analytics_days','hosting_account','hosting_orders','hosting_entitlements','hosting_media_objects','hosting_metrics','hosting_usage_daily','operator_users','operator_settings','operator_activity'] as const;
+export const backupTables = ['store','media','product_numbers','stock_claims','heart_settings','heart_objects','heart_days','analytics_config','analytics_days','hosting_account','hosting_orders','hosting_entitlements','hosting_media_objects','hosting_metrics','hosting_usage_daily','operator_users','operator_settings','operator_activity','operator_notes','operator_versions','operator_jobs','operator_usage_events','operator_usage_daily','operator_package_grants'] as const;
 type Row = Record<string, unknown>;
 export type CloudBackup = { schemaVersion: 2; createdAt: string; tables: Record<typeof backupTables[number], Row[]> };
-const legacyTables = backupTables.filter(t => !t.startsWith('operator_'));
+const layouts = [15,18,21,24].map(count=>backupTables.slice(0,count));
 export const checksum = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 export function validateBackup(value: unknown): CloudBackup {
   const b = value as CloudBackup;
-  if (b?.schemaVersion !== 2 || !Number.isFinite(Date.parse(b.createdAt)) || !b.tables || ![legacyTables.length, backupTables.length].includes(Object.keys(b.tables).length) || !(Object.keys(b.tables).length === legacyTables.length ? legacyTables : backupTables).every(t => Array.isArray(b.tables[t]))) throw new Error('Incomplete backup schema');
+  const layout=b?.tables&&layouts.find(tables=>tables.length===Object.keys(b.tables).length);
+  if(b?.schemaVersion!==2||!Number.isFinite(Date.parse(b.createdAt))||!layout||!layout.every(table=>Array.isArray(b.tables[table])))throw new Error('Incomplete backup schema');
   const state = b.tables.store[0]?.body as Store;
   if (b.tables.store.length !== 1 || state?.schemaVersion !== 1 || !Array.isArray(state.items) || !Array.isArray(state.reservations)) throw new Error('Invalid store backup');
   const media = new Set(b.tables.media.map(r => r.id));
@@ -22,5 +23,15 @@ export function validateBackup(value: unknown): CloudBackup {
   for (const r of b.tables.hosting_entitlements) if (orders.get(r.order_id)?.status !== 'active') throw new Error('Backup has an entitlement without an active order');
   if (b.tables.hosting_account.length !== 1 || b.tables.analytics_config.length !== 1 || b.tables.heart_settings.length !== 1) throw new Error('Backup has missing account or measurement settings');
   for (const row of b.tables.analytics_days) if (!Number.isSafeInteger(row.visits) || Number(row.visits) < 0) throw new Error('Invalid analytics totals');
+  if (b.tables.operator_settings && (b.tables.operator_settings.length !== 1 || typeof b.tables.operator_settings[0].enforce_limit !== 'boolean')) throw new Error('Backup has invalid operator settings');
+  if (b.tables.operator_versions) {
+    const ids = new Set<string>();
+    for (const row of b.tables.operator_versions) {
+      const snapshot = row.snapshot as Item | undefined;
+      const id = String(row.id);
+      if (ids.has(id) || !snapshot || snapshot.id !== row.item_id || !Number.isInteger(row.item_version) || row.item_version !== snapshot.version) throw new Error('Backup has invalid product versions');
+      ids.add(id);
+    }
+  }
   return b;
 }

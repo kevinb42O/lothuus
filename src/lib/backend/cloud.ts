@@ -10,7 +10,7 @@ export function serverDatabase() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store', signal: AbortSignal.timeout(15000) }) } });
 }
 /** Callback must be pure: a concurrent writer can cause a retry. No emails or uploads here. */
-export async function withStore<T>(operation: (state: Store) => T, onRevision?: (revision: number) => void, actor?: string): Promise<T> {
+export async function withStore<T>(operation: (state: Store) => T, onRevision?: (revision: number) => void, actor?: string, operatorChange?: {kind:'product_restored'|'product_status_changed';itemId:string;reason:string;sourceVersion?:string}): Promise<T> {
   if (!cloudMode()) {
     if (process.env.NODE_ENV === 'production') throw new BusinessError('Online opslag ontbreekt.', 503);
     const { transact } = await import('./repository');
@@ -37,12 +37,14 @@ export async function withStore<T>(operation: (state: Store) => T, onRevision?: 
         throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
       }
     }
-    const saved = await db.rpc(actor ? 'lothuus_commit_state_audited' : 'lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state, ...(actor ? { actor } : {}) });
+    const saved = await db.rpc(operatorChange ? 'lothuus_operator_commit' : actor ? 'lothuus_commit_state_audited' : 'lothuus_commit_state', { expected_revision: loaded.data.revision, next_state: state, ...(actor ? { actor } : {}), ...(operatorChange ? {item_key:operatorChange.itemId,event_kind:operatorChange.kind,reason:operatorChange.reason,source_version:operatorChange.sourceVersion || null} : {}) });
     if (saved.error?.message.includes('HOSTING_OBJECT_LIMIT')) {
       const { recordActivity } = await import('../superadmin/server');
       await recordActivity(actor, 'capacity_denied');
       throw new BusinessError(OBJECT_LIMIT_MESSAGE, 409);
     }
+    if (saved.error?.message.includes('OPERATOR_VERSION_NOT_FOUND')) throw new BusinessError('De herstelversie is niet meer beschikbaar. Vernieuw de fiche.',404);
+    if (saved.error?.message.includes('OPERATOR_FORBIDDEN')) throw new BusinessError('Je beheertoegang is ingetrokken.',403);
     if (saved.error) throw new BusinessError('Opslaan is niet gelukt. Vernieuw de gegevens en probeer opnieuw.', 503);
     if (saved.data === true) { invalidateReadCache(CATALOGUE_TAG, HEARTS_TAG); onRevision?.(loaded.data.revision + 1); return result; }
   }
