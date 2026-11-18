@@ -1,3 +1,4 @@
+import { retryPhotoViaServer } from '@/lib/photo-fallback';
 /** A repeating, photo-only continuation of the actual mosaic for the entrance.
  * The atlas shares the live grid's tile pitch and origin, so it can disappear
  * into that grid at arrival without a photo swap or a second interactive grid.
@@ -25,11 +26,15 @@ export async function createEntryPhotoWall(world:HTMLElement):Promise<EntryPhoto
   const pictures=await Promise.all(sources.map(async source=>{
     if(!source)return null;
     const image=new Image();
+    image.crossOrigin='anonymous';
     // Reuse responsive selection for lazy tiles instead of requesting their
     // full-resolution fallback just to paint a small entrance thumbnail.
     if(source.currentSrc)image.src=source.currentSrc;
     else{image.sizes=source.sizes;image.srcset=source.srcset;image.src=source.src;}
-    try{await image.decode();return image;}catch{return null;}
+    try{
+      try{await image.decode();}catch(error){if(!retryPhotoViaServer(image))throw error;await image.decode();}
+      return image;
+    }catch{return null;}
   }));
   const fallback=pictures.find(image=>image!==null);if(!fallback)return null;
   const atlas=document.createElement('canvas');atlas.width=Math.ceil(columns*pitch);atlas.height=Math.ceil(rows*pitch);

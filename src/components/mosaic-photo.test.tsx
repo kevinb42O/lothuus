@@ -16,7 +16,7 @@ test('a larger source replaces a thumbnail only after decode; a superseded decod
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(ui.container);
   const object = { ...objects[0], image: '/api/images/photo?size=grid' };
-  const src = () => ui.container.querySelector('img')?.getAttribute('src');
+  const src = () => { const image = ui.container.querySelector('img'); if (!image) return undefined; const url = new URL(image.src); return url.pathname + url.search; };
   try {
     await act(async () => root.render(<MosaicPhoto object={object} width={150} />));
     assert.equal(src(), '/api/images/photo?size=thumb');

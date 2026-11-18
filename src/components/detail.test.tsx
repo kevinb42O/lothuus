@@ -190,3 +190,30 @@ test('product details show the category without repeating stored material descri
     assert.equal(object.material, 'Geglazuurd aardewerk');
   } finally { await act(async () => root.unmount()); ui.cleanup(); }
 });
+
+test('detail navigation retries a failed direct photo through the server before showing an error', async () => {
+  const ui = setupDom();
+  const requests: string[] = [];
+  ui.dom.window.Image = class {
+    src = ''; naturalWidth = 800; naturalHeight = 600;
+    async decode() {
+      requests.push(this.src);
+      if (!this.src.includes('delivery=proxy')) throw new Error('Direct image failed');
+    }
+  } as unknown as typeof Image;
+  const { Detail } = await import('./lothuus');
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(ui.container);
+  const object = { ...objects[0], image: '/api/images/first?size=grid', photos: [
+    { id: 'first', alt: 'First' }, { id: 'second', alt: 'Second' },
+  ] };
+  try {
+    await act(async () => root.render(<Detail object={object} saved={false} count={0} onSave={() => {}} onClose={() => {}} onSelection={() => {}} />));
+    await act(async () => { ui.container.querySelector<HTMLButtonElement>('.detail-photo-next')!.click(); await settle(); });
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0], '/api/images/second?size=detail');
+    assert.equal(new URL(requests[1]).searchParams.get('delivery'), 'proxy');
+    assert.match(ui.container.querySelector('.detail-photo-slide[aria-hidden="false"] img')!.getAttribute('src')!, /second/);
+    assert.doesNotMatch(ui.container.textContent!, /Deze foto kan niet worden geladen/);
+  } finally { await act(async () => root.unmount()); ui.cleanup(); }
+});

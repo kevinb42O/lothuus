@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { publicPhotoRedirect, type PhotoSize } from '@/lib/backend/photo-delivery';
 import { readPhoto } from '@/lib/backend/media';
 import { isOwner } from '@/lib/backend/auth';
 import { cloudMode, serverDatabase, withStore } from '@/lib/backend/cloud';
@@ -17,6 +18,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   const headers = { 'Cache-Control': 'private, no-cache', 'ETag': tag, 'Vary': 'Cookie', 'X-Content-Type-Options': 'nosniff' };
   const matches = (request.headers.get('if-none-match') || '').split(',').map(value => value.trim().replace(/^W\//, ''));
   if (matches.includes(tag) || matches.includes('*')) return new NextResponse(null, { status: 304, headers });
-  try { const body = await readPhoto(id, size); if (!body) return new NextResponse(null, { status: 404 }); return new NextResponse(body, { headers: { ...headers, 'Content-Type': 'image/webp' } }); }
+  try {
+    const redirect = !owner ? await publicPhotoRedirect(request, id, size as PhotoSize) : null;
+    if (redirect) return redirect;
+    const body = await readPhoto(id, size); if (!body) return new NextResponse(null, { status: 404 }); return new NextResponse(body, { headers: { ...headers, 'Content-Type': 'image/webp' } }); }
   catch { return new NextResponse(null, { status: 404 }); }
 }

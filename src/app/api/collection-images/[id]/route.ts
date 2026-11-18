@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { objects } from '@/lib/collection';
 import { catalogueProjection } from '@/lib/backend/catalogue';
 import { catalogue } from '@/lib/backend/service';
+import { publicPhotoRedirect, type PhotoSize } from '@/lib/backend/photo-delivery';
 import { readPhoto } from '@/lib/backend/media';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const headers = { 'Content-Type': 'image/webp', 'Cache-Control': 'private, no-cache', ETag: tag, 'X-Content-Type-Options': 'nosniff' };
     const matches = (request.headers.get('if-none-match') || '').split(',').map(value => value.trim().replace(/^W\//, ''));
     if (matches.includes(tag) || matches.includes('*')) return new NextResponse(null, { status: 304, headers });
+    const redirect = await publicPhotoRedirect(request, id, size as PhotoSize);
+    if (redirect) return redirect;
     const body = await readPhoto(id, size);
     return body ? new NextResponse(body, { headers }) : new NextResponse(null, { status: 404 });
   } catch {

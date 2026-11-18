@@ -1,4 +1,5 @@
 'use client';
+import { retryPhotoViaServer } from '@/lib/photo-fallback';
 import { displayProductTitle } from '@/lib/product-title';
 
 import Image, { getImageProps } from 'next/image';
@@ -8,19 +9,23 @@ import type { CollectionObject } from '@/lib/collection';
 
 export function mosaicPhotoProps(object: CollectionObject, width: number) {
   const source = mosaicPhotoSource(object.image, width, typeof window === 'undefined' ? 1 : window.devicePixelRatio);
-  return { src: source.src, alt: displayProductTitle(object.title), fill: true as const, sizes: `${Math.ceil(width)}px`,
+  return { src: source.src, alt: displayProductTitle(object.title), fill: true as const, crossOrigin: 'anonymous' as const, sizes: `${Math.ceil(width)}px`,
     unoptimized: object.image.startsWith('/api/'), 'data-source-width': object.image.startsWith('/api/') ? source.sourceWidth : undefined };
 }
 
 export async function prepareMosaicPhoto(object: CollectionObject, width: number) {
   const { props } = getImageProps(mosaicPhotoProps(object, width));
   const image = new window.Image();
+  image.crossOrigin = 'anonymous';
   if (props.sizes) image.sizes = props.sizes;
   if (props.srcSet) image.srcset = props.srcSet;
   image.src = props.src;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await Promise.race([image.decode(), new Promise<never>((_, reject) => {
+    await Promise.race([image.decode().catch(async error => {
+        if (!retryPhotoViaServer(image)) throw error;
+        await image.decode();
+      }), new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error('Photo decode timed out')), 8000);
     })]);
   } finally { clearTimeout(timer); }
@@ -39,5 +44,5 @@ export function MosaicPhoto({ object, width }: { object: CollectionObject; width
     }).catch(() => { /* Keep the already painted photo if its replacement fails. */ });
     return () => { cancelled = true; };
   }, [object, width, desired.src, desired.sizes, painted.src, painted.sizes]);
-  return <Image {...painted} alt={displayProductTitle(object.title)} loading="eager" draggable={false} />;
+  return <Image {...painted} alt={displayProductTitle(object.title)} loading="eager" draggable={false} onError={event => retryPhotoViaServer(event.currentTarget)} />;
 }

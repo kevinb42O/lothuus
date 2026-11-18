@@ -38,3 +38,55 @@ test('R2 source photos follow visibility and selection; private uploads and unkn
     await rm(directory,{recursive:true,force:true});
   }
 });
+
+test('direct source delivery checks visibility before issuing a signed link, including conditional requests', async () => {
+  const keys = ['BACKEND_MODE','SUPABASE_URL','SUPABASE_SECRET_KEY','R2_DIRECT_DELIVERY','R2_ENDPOINT','R2_BUCKET','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY'];
+  const previous = Object.fromEntries(keys.map(key => [key,process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  Object.assign(process.env, { BACKEND_MODE:'supabase', SUPABASE_URL:'https://isolated.example.test', SUPABASE_SECRET_KEY:'test', R2_DIRECT_DELIVERY:'true', R2_ENDPOINT:'https://abcdef.eu.r2.cloudflarestorage.com', R2_BUCKET:'private-media', R2_ACCESS_KEY_ID:'key', R2_SECRET_ACCESS_KEY:'secret' });
+  const source = objects.find(o=>o.category==='inox-ijzer')!, photo=source.photos![0];
+  const state=initialStore();
+  globalThis.fetch=async()=>Response.json(state);
+  const get=(tag?:string)=>GET(new NextRequest(`https://example.test/api/collection-images/${photo.id}?size=grid`, {headers:tag?{'If-None-Match':tag}:undefined}),{params:Promise.resolve({id:photo.id})});
+  try {
+    assert.equal((await get()).status,302);
+    state.items.push({id:randomUUID(),sourceReference:source.id,title:'Private',category:source.category,description:'',date:'',material:'',dimensions:'',maker:'',condition:'',priceCents:0,publication:'archived',photos:[photo],sourcePhotos:[photo],version:1,createdAt:''});
+    const hidden=await get(`"source-photo-v1-${photo.id}-grid"`);
+    assert.equal(hidden.status,404); assert.equal(hidden.headers.get('location'),null);
+    globalThis.fetch=async()=>Response.json({error:'unavailable'},{status:503});
+    const unavailable=await get(); assert.equal(unavailable.status,503); assert.equal(unavailable.headers.get('location'),null);
+  } finally {
+    globalThis.fetch=originalFetch;
+    for (const [key,value] of Object.entries(previous)) if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+});
+
+test('warm photo bytes never bypass unpublishing, selection changes, or a failed access check', async t => {
+  const { S3Client } = await import('@aws-sdk/client-s3');
+  const keys = ['BACKEND_MODE','SUPABASE_URL','SUPABASE_SECRET_KEY','R2_DIRECT_DELIVERY','R2_ENDPOINT','R2_BUCKET','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY'];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  Object.assign(process.env, { BACKEND_MODE:'supabase', SUPABASE_URL:'https://isolated.example.test', SUPABASE_SECRET_KEY:'test', R2_DIRECT_DELIVERY:'false', R2_ENDPOINT:'https://abcdef.eu.r2.cloudflarestorage.com', R2_BUCKET:'byte-cache-route-test', R2_ACCESS_KEY_ID:'key', R2_SECRET_ACCESS_KEY:'secret' });
+  const source = objects.find(o => o.category === 'inox-ijzer')!, photo = source.photos![0], other = source.photos![1];
+  const state = initialStore(); let reads = 0, accessChecks = 0;
+  globalThis.fetch = async () => { accessChecks++; return Response.json(state); };
+  t.mock.method(S3Client.prototype, 'send', async () => { reads++; return { Body: { transformToByteArray: async () => new TextEncoder().encode('same photo bytes') } }; });
+  const get = (tag?: string) => GET(new NextRequest(`https://example.test/api/collection-images/${photo.id}?size=grid`, { headers: tag ? { 'If-None-Match': tag } : undefined }), { params: Promise.resolve({ id: photo.id }) });
+  try {
+    const first = await get(); assert.equal(first.status, 200); assert.equal(await first.text(), 'same photo bytes');
+    const tag = first.headers.get('etag')!;
+    const warm = await get(); assert.equal(warm.status, 200); assert.equal(await warm.text(), 'same photo bytes');
+    assert.equal(warm.headers.get('cache-control'), 'private, no-cache'); assert.equal(reads, 1);
+    state.items.push({id:randomUUID(),sourceReference:source.id,title:'Private',category:source.category,description:'',date:'',material:'',dimensions:'',maker:'',condition:'',priceCents:0,publication:'published',photos:[other],sourcePhotos:[photo,other],version:1,createdAt:''});
+    assert.equal((await get()).status, 404); assert.equal((await get(tag)).status, 404);
+    state.items[0].publication = 'archived';
+    assert.equal((await get()).status, 404);
+    globalThis.fetch = async () => { accessChecks++; return Response.json({ error:'unavailable' }, { status:503 }); };
+    assert.equal((await get()).status, 503);
+    assert.equal(reads, 1, 'denied requests never reach even the warm byte cache');
+    assert.equal(accessChecks, 6, 'every request still checks current visibility');
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const [key,value] of Object.entries(previous)) if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  }
+});

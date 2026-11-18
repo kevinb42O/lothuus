@@ -8,6 +8,7 @@ import { usePhotoSwipe } from './use-photo-swipe';
 import { DoorwayHero } from './doorway-hero';
 import { ArrowUpRight, Heart, Download, Plus, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type CSSProperties } from 'react';
+import { retryPhotoViaServer } from '@/lib/photo-fallback';
 import { objects as suppliedObjects, categories, categoryLabel, photoVariant, type Category, type CollectionObject } from '@/lib/collection';
 import { Mosaic } from './mosaic';
 import { Dialog } from './dialog';
@@ -75,7 +76,12 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
     requestedPhoto.current = src;
     setPhotoError('');
     const next = new window.Image(); next.src = src;
-    try { await next.decode(); } catch {
+    try {
+      try { await next.decode(); } catch (error) {
+        if (!retryPhotoViaServer(next)) throw error;
+        await next.decode();
+      }
+    } catch {
       if (request === photoRequest.current) {
         requestedPhoto.current = photo;
         setPhotoError('Deze foto kan niet worden geladen. Probeer opnieuw.');
@@ -113,7 +119,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
         const src = photoSource(p);
         const active = src === photo || (photos.length === 0 && index === 0);
         return <div className="detail-photo-slide" key={p.id} style={{ left: `${index * 100}%` }} aria-hidden={!active}>
-          <Image src={src} unoptimized alt={active ? p.alt : ''} width={image.width} height={image.height} sizes="(max-width: 700px) 95vw, 800px" loading={Math.abs(index - activePhotoIndex) <= 1 ? 'eager' : 'lazy'} draggable={false} onLoad={event => {
+          <Image src={src} onError={src.startsWith('/api/') ? event => retryPhotoViaServer(event.currentTarget) : undefined} unoptimized alt={active ? p.alt : ''} width={image.width} height={image.height} sizes="(max-width: 700px) 95vw, 800px" loading={Math.abs(index - activePhotoIndex) <= 1 ? 'eager' : 'lazy'} draggable={false} onLoad={event => {
             const loaded = event.currentTarget;
             if (active && loaded.naturalWidth && loaded.naturalHeight) setImage(current => current.src === src && (current.width !== loaded.naturalWidth || current.height !== loaded.naturalHeight) ? { src, width: loaded.naturalWidth, height: loaded.naturalHeight } : current);
           }} />
@@ -126,7 +132,7 @@ export function Detail({ object, saved, onSave, onClose, onSelection, count }: {
         <span className="sr-only" role="status" aria-live="polite">Foto {activePhotoIndex + 1} van {photos.length}</span>
       </>}
     </div>
-      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip" ref={photoStrip}>{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photoSource(p) === photo} onClick={() => { void choosePhoto(photoSource(p)); }}><img src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
+      {object.photos && object.photos.length > 1 && <div className="detail-photo-strip" ref={photoStrip}>{object.photos.map(p => <button key={p.id} aria-label={`Bekijk ${p.alt}`} aria-pressed={photoSource(p) === photo} onClick={() => { void choosePhoto(photoSource(p)); }}><img onError={event => retryPhotoViaServer(event.currentTarget)} src={p.src ? photoVariant(p.src, 'thumb') : `/api/images/${p.id}?size=thumb`} alt={p.alt} /></button>)}</div>}
     </div>
     <div className="detail-content">
       <div className="detail-reading">
