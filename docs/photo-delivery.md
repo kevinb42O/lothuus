@@ -24,3 +24,9 @@ Terugdraaien: promoot het vorige deployment, of bouw opnieuw met `R2_DIRECT_DELI
 ## Kosten en beperkingen
 
 De fotobody gaat bij directe levering buiten Vercel om. Kleine toegangscontroles, redirects, uploads en andere API-antwoorden blijven Fast Origin Transfer gebruiken. R2 GET-aanvragen blijven meetellen bij R2; door kort geldige links kan hergebruik minder gunstig zijn dan een langdurige publieke CDN-cache. Er is bewust geen langdurig openbaar fotoadres toegevoegd. Besparing op de totale Vercel-facturatieteller moet na uitrol uit werkelijk verkeer worden gemeten; er is geen vooraf gegarandeerd percentage.
+
+## Productiecontrole op 18 november 2026
+
+Directe levering is actief op `https://lothuus.vercel.app`. De publieke catalogus gaf 357 objecten terug. Een openbare foto gaf een 302 met een lege body; de private R2-link leverde 14.366 bytes WebP met correcte CORS. De expliciete serverterugval leverde exact dezelfde bytes. Een onbekende foto gaf 404 zonder redirect, beheer zonder login gaf 401, en de homepage gaf 200 met de juiste CSP. De tijdelijke Vercel-testtoegang is na de controle ingetrokken.
+
+Validatie: 251 tests geslaagd, typecheck en productiebuild geslaagd. In de lokale productiepreview zijn het entreebeeld, filteren en detailfoto’s met echte R2-afbeeldingen gecontroleerd. De verandering is vastgelegd in `5c2d3b9` en `73b9caf`. Het voorafgaande productie-deployment `dpl_Brd8XhnND2qx1LZMhP8yfaBRjkoG` is beschikbaar voor rollback. De nieuwe route verlaagt toekomstig Vercel-fotoverkeer; reeds geregistreerd verbruik wordt niet teruggezet.
