@@ -40,11 +40,8 @@ export async function savePhoto(file:File) {
 export async function readPhoto(id:string,size:string):Promise<BodyInit|null> {
   if(cloudMode()) {
     if(process.env.NODE_ENV!=='production' && process.env.R2_USE_WRANGLER==='true') { const {developmentR2}=await import('./r2-development'); return (await developmentR2(`variants/${id}-${size}.webp`,'GET'))?.body || null; }
-    const {S3Client,GetObjectCommand}=await import('@aws-sdk/client-s3');
-    if(!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) throw new BusinessError('Foto-opslag niet beschikbaar.',503);
-    const s3=new S3Client({region:'auto',endpoint:process.env.R2_ENDPOINT,credentials:{accessKeyId:process.env.R2_ACCESS_KEY_ID,secretAccessKey:process.env.R2_SECRET_ACCESS_KEY}});
-    const object=await s3.send(new GetObjectCommand({Bucket:process.env.R2_BUCKET,Key:`variants/${id}-${size}.webp`}));
-    return object.Body?new Uint8Array(await object.Body.transformToByteArray()):null;
+    const { readStoredPhoto } = await import('./photo-storage');
+    return readStoredPhoto(id, size);
   }
   const {readFile}=await import('node:fs/promises'),{join}=await import('node:path'),{dataDirectory}=await import('./repository');
   return new Uint8Array(await readFile(join(dataDirectory(),'images',`${id}-${size}.webp`)));
