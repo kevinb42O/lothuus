@@ -1,6 +1,7 @@
 'use client';
 import { displayProductTitle } from '@/lib/product-title';
 import { observeFreshness } from '@/lib/client-refresh';
+import { requestCatalogue } from '@/lib/catalogue-request';
 
 import Image from 'next/image';
 import { motion } from 'motion/react';
@@ -184,7 +185,7 @@ export function Lothuus() {
   const refreshCatalogue = useCallback(async () => {
     if (cataloguePending.current) return; cataloguePending.current = true;
     const request = ++catalogueRequest.current;
-    try { const response = await fetch('/api/catalogue', { cache: 'no-store', headers: catalogueTag.current ? { 'If-None-Match': catalogueTag.current } : {}, signal: AbortSignal.timeout(15000) }); if (response.status === 304) { catalogueLoaded.current = Date.now(); return; } if (!response.ok) throw new Error(); const data = await response.json(); if (request !== catalogueRequest.current) return; catalogueLoaded.current = Date.now(); catalogueTag.current = response.headers.get('etag') || undefined; catalogueObjects.current = data.objects; setObjects(current => { const next = data.objects; return JSON.stringify(current) === JSON.stringify(next) ? current : next; }); setSaved(current => { const next = reconcileSelection(current, data.objects); return next.every((id, index) => id === current[index]) && next.length === current.length ? current : next; }); setIsSuppliedCollection(!data.hasInventory); setPublicSettings(data.settings); }
+    try { const result = await requestCatalogue(catalogueTag.current); if (request !== catalogueRequest.current) return; catalogueLoaded.current = Date.now(); if (!result.data) return; const data = result.data; catalogueTag.current = result.tag; catalogueObjects.current = data.objects; setObjects(current => { const next = data.objects; return JSON.stringify(current) === JSON.stringify(next) ? current : next; }); setSaved(current => { const next = reconcileSelection(current, data.objects); return next.every((id, index) => id === current[index]) && next.length === current.length ? current : next; }); setIsSuppliedCollection(!data.hasInventory); setPublicSettings(data.settings); }
     catch { if (request === catalogueRequest.current) { catalogueTag.current = undefined; setPublicSettings(null); } }
     finally { cataloguePending.current = false; }
   }, []);
